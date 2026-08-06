@@ -113,66 +113,68 @@ export default function ComparisonChart({
   const chartData = data.filter(d => d.currentResult !== null || d.previousResult !== null);
 
   return (
-    <div style={{ width: '100%', minHeight: '340px', height: '340px' }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 10, left: 10 }}>
-          <CartesianGrid
-            strokeDasharray="3 3"
-            vertical={false}
-            stroke="rgba(148, 163, 184, 0.08)"
-          />
-          <XAxis
-            dataKey="period"
-            stroke="#64748b"
-            tick={{ fill: '#94a3b8', fontSize: 12 }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <YAxis
-            stroke="#64748b"
-            tick={{ fill: '#94a3b8', fontSize: 11 }}
-            axisLine={false}
-            tickLine={false}
-            tickFormatter={formatYAxis}
-            width={60}
-          />
-          <Tooltip
-            content={<CustomTooltip unit={unit} />}
-            cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
-          />
-
-          <Bar dataKey="currentResult" radius={[4, 4, 0, 0]} maxBarSize={40}>
-            {chartData.map((entry, index) => {
-              let fill = accentColor;
-              if (entry.isBest) fill = '#fbbf24';
-              if (entry.isWorst) fill = '#ef4444';
-              return <Cell key={`cell-${index}`} fill={fill} fillOpacity={entry.currentResult === null ? 0 : 0.85} />;
-            })}
-          </Bar>
-
-          <Line
-            type="monotone"
-            dataKey="previousResult"
-            stroke={lineColor}
-            strokeWidth={2}
-            strokeDasharray="6 4"
-            dot={{ r: 3, fill: lineColor, strokeWidth: 0 }}
-            connectNulls={false}
-          />
-
-          {hasTarget && (
-            <Line
-              type="stepAfter"
-              dataKey="target"
-              stroke={targetColor}
-              strokeWidth={1.5}
-              strokeDasharray="4 4"
-              dot={false}
-              connectNulls={true}
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', height: '360px', paddingBottom: '8px' }}>
+      <div style={{ flex: 1, minHeight: '300px', width: '100%' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 10, left: 10 }}>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+              stroke="rgba(148, 163, 184, 0.08)"
             />
-          )}
-        </ComposedChart>
-      </ResponsiveContainer>
+            <XAxis
+              dataKey="period"
+              stroke="#64748b"
+              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              stroke="#64748b"
+              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={formatYAxis}
+              width={60}
+            />
+            <Tooltip
+              content={<CustomTooltip unit={unit} />}
+              cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
+            />
+
+            <Bar dataKey="currentResult" radius={[4, 4, 0, 0]} maxBarSize={40}>
+              {chartData.map((entry, index) => {
+                let fill = accentColor;
+                if (entry.isBest) fill = '#fbbf24';
+                if (entry.isWorst) fill = '#ef4444';
+                return <Cell key={`cell-${index}`} fill={fill} fillOpacity={entry.currentResult === null ? 0 : 0.85} />;
+              })}
+            </Bar>
+
+            <Line
+              type="monotone"
+              dataKey="previousResult"
+              stroke={lineColor}
+              strokeWidth={2}
+              strokeDasharray="6 4"
+              dot={{ r: 3, fill: lineColor, strokeWidth: 0 }}
+              connectNulls={false}
+            />
+
+            {hasTarget && (
+              <Line
+                type="stepAfter"
+                dataKey="target"
+                stroke={targetColor}
+                strokeWidth={1.5}
+                strokeDasharray="4 4"
+                dot={false}
+                connectNulls={true}
+              />
+            )}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
 
       <CustomLegend
         accentColor={accentColor}

@@ -1,6 +1,6 @@
-import { RefreshCw, Download } from 'lucide-react';
+import { RefreshCw, Download, HelpCircle } from 'lucide-react';
 
-export default function Header() {
+export default function Header({ onOpenHelp }) {
   const now = new Date();
   const dateStr = now.toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' });
   const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -19,14 +19,18 @@ export default function Header() {
         </div>
 
         <div className="header__user">
-          <div className="header__avatar">RS</div>
+          <div className="header__avatar">LG</div>
           <div className="header__user-info">
-            <span className="header__user-name">Ricardo Souza</span>
-            <span className="header__user-role">Supply Chain Director</span>
+            <span className="header__user-name">Logística & Admin</span>
+            <span className="header__user-role">LG Electronics · DXI</span>
           </div>
         </div>
 
         <div className="header__actions">
+          <button className="btn btn--accent" onClick={onOpenHelp} title="Entenda a origem de todos os dados e fórmulas">
+            <HelpCircle size={14} />
+            Origem dos Dados
+          </button>
           <button className="btn">
             <RefreshCw size={14} />
             Atualizar

@@ -1,24 +1,19 @@
 import {
   LayoutDashboard,
-  GitCompare,
-  BarChart3,
-  Layers,
-  Building2,
-  FileText,
-  Settings,
+  DollarSign,
+  Plane,
+  Package,
+  HelpCircle
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { id: 'comparativo', icon: GitCompare, label: 'Comparativo' },
-  { id: 'analytics', icon: BarChart3, label: 'Analytics' },
-  { id: 'custos-categoria', icon: Layers, label: 'Custos por Categoria' },
-  { id: 'custos-unidade', icon: Building2, label: 'Custos por Unidade' },
-  { id: 'relatorios', icon: FileText, label: 'Relatórios' },
-  { id: 'configuracoes', icon: Settings, label: 'Configurações' },
+  { id: 'dashboard', icon: LayoutDashboard, label: 'Visão Geral', badge: 'Global' },
+  { id: 'logisticCost', icon: DollarSign, label: 'War Room Report', badge: 'KPI %' },
+  { id: 'airFreight', icon: Plane, label: 'Air Freight', badge: 'Aéreo' },
+  { id: 'logisticsVsProd', icon: Package, label: 'Cost x Product', badge: 'Ratio' },
 ];
 
-export default function Sidebar({ activeItem = 'dashboard', onNavigate }) {
+export default function Sidebar({ activeItem = 'dashboard', onNavigate, onOpenHelp }) {
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
@@ -30,21 +25,32 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate }) {
       </div>
 
       <nav className="sidebar__nav">
-        {NAV_ITEMS.map(({ id, icon: Icon, label }) => (
+        <div className="sidebar__section-label">PAINÉIS DISPONÍVEIS</div>
+        {NAV_ITEMS.map(({ id, icon: Icon, label, badge }) => (
           <button
             key={id}
             className={`sidebar__item ${activeItem === id ? 'active' : ''}`}
             onClick={() => onNavigate?.(id)}
           >
             <Icon size={16} />
-            {label}
+            <span className="sidebar__item-label">{label}</span>
+            {badge && <span className="sidebar__item-badge">{badge}</span>}
           </button>
         ))}
       </nav>
 
+      <div className="sidebar__help-box" onClick={onOpenHelp}>
+        <HelpCircle size={16} />
+        <div>
+          <strong>Origem dos Dados?</strong>
+          <span>Entenda todas as métricas</span>
+        </div>
+      </div>
+
       <div className="sidebar__footer">
-        Ambiente corporativo · MVP
+        Plataforma Logística · LG DXI
       </div>
     </aside>
   );
 }
+

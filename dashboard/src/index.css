@@ -1,36 +1,67 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Color Palette — Dark Corporate Dashboard */
-  --bg-body: #111118;
-  --bg-sidebar: #151621;
-  --bg-header: #1a1b2e;
-  --bg-card: #1a1b2e;
-  --bg-card-hover: #1f2035;
-  --bg-input: #12131e;
-  --bg-main: #111118;
+  /* =================================
+     DXi DESIGN SYSTEM — BRAND
+     ================================= */
+  --brand-50: #FDE7ED;
+  --brand-100: #FBC2CF;
+  --brand-200: #F799AE;
+  --brand-300: #F26F8D;
+  --brand-400: #ED4570;
+  --brand-500: #E7194A;
+  --brand-600: #D11442;
+  --brand-700: #B81039;
+  --brand-800: #E7194A;
+  --brand-900: #7A0824;
+  --brand-950: #4D0517;
 
-  /* Accents */
-  --accent-red: #ef4444;
-  --accent-coral: #f43f5e;
-  --accent-green: #10b981;
-  --accent-green-dim: rgba(16, 185, 129, 0.15);
-  --accent-teal: #14b8a6;
-  --accent-blue: #3b82f6;
-  --accent-violet: #8b5cf6;
-  --accent-amber: #f59e0b;
+  /* =================================
+     SURFACES
+     ================================= */
+  --bg-body: #141414;
+  --bg-main: #141414;
+  --bg-sidebar: #181818;
+  --bg-header: #181818;
+  --bg-card: #1E1E1E;
+  --bg-card-hover: #252525;
+  --bg-input: #181818;
+  --bg-elevated: #252525;
 
-  /* Text */
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-dim: #475569;
+  /* =================================
+     SEMANTIC COLORS
+     ================================= */
+  --accent-red: #E7194A;
+  --accent-coral: #E7194A;
+  --accent-green: #22C55E;
+  --accent-green-dim: rgba(34, 197, 94, 0.15);
+  --accent-teal: #22C55E;
+  --accent-blue: #E7194A;
+  --accent-violet: #B81039;
+  --accent-amber: #F59E0B;
 
-  /* Borders */
-  --border: rgba(148, 163, 184, 0.1);
-  --border-light: rgba(148, 163, 184, 0.06);
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #E7194A;
+  --info: #3B82F6;
 
-  /* Spacing */
+  /* =================================
+     TEXT
+     ================================= */
+  --text-primary: #FFFFFF;
+  --text-secondary: #E0E0E0;
+  --text-muted: #BDBDBD;
+  --text-dim: #757575;
+
+  /* =================================
+     BORDERS
+     ================================= */
+  --border: #303030;
+  --border-light: #252525;
+
+  /* =================================
+     SPACING
+     ================================= */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -40,15 +71,30 @@
   --space-7: 2rem;
   --space-8: 3rem;
 
-  /* Typography */
+  /* =================================
+     TYPOGRAPHY
+     ================================= */
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', Consolas, monospace;
 
-  /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  /* =================================
+     RADIUS
+     ================================= */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
   --radius-full: 9999px;
+
+  /* =================================
+     SHADOWS
+     ================================= */
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.30);
+  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.38);
+  --shadow-glow: 0 0 0 4px rgba(231, 25, 74, 0.15);
 
   /* Sidebar */
   --sidebar-width: 220px;
@@ -103,7 +149,7 @@ body {
 .sidebar__brand-icon {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, var(--accent-coral), var(--accent-red));
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-900));
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -163,8 +209,9 @@ body {
 }
 
 .sidebar__item.active {
-  background: var(--accent-blue);
-  color: white;
+  background: var(--brand-800);
+  color: #FFFFFF;
+  box-shadow: var(--shadow-glow);
 }
 
 .sidebar__footer {
@@ -248,7 +295,7 @@ body {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-full);
-  background: var(--accent-blue);
+  background: var(--brand-800);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -300,19 +347,25 @@ body {
 }
 
 .btn--primary {
-  background: var(--accent-blue);
-  color: white;
-  border-color: var(--accent-blue);
+  background: var(--brand-800);
+  color: #FFFFFF;
+  border-color: var(--brand-800);
 }
 
 .btn--primary:hover {
-  background: #2563eb;
+  background: var(--brand-600);
+  border-color: var(--brand-600);
+}
+
+.btn--primary:active {
+  background: var(--brand-700);
+  border-color: var(--brand-700);
 }
 
 .btn--active {
-  background: rgba(59, 130, 246, 0.12);
-  color: var(--accent-blue);
-  border-color: rgba(59, 130, 246, 0.3);
+  background: rgba(231, 25, 74, 0.12);
+  color: var(--brand-800);
+  border-color: rgba(231, 25, 74, 0.30);
 }
 
 /* ================================
@@ -377,10 +430,10 @@ body {
 }
 
 .filter-pill.active {
-  background: var(--accent-coral);
-  color: white;
-  border-color: var(--accent-coral);
-  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.25);
+  background: var(--brand-800);
+  color: #FFFFFF;
+  border-color: var(--brand-800);
+  box-shadow: var(--shadow-glow);
 }
 
 .comparison-card {
@@ -446,7 +499,8 @@ body {
 
 .kpi-card:hover {
   background: var(--bg-card-hover);
-  border-color: rgba(148, 163, 184, 0.15);
+  border-color: rgba(231, 25, 74, 0.35);
+  box-shadow: var(--shadow-sm);
 }
 
 .kpi-card__label {
@@ -484,12 +538,12 @@ body {
 }
 
 .kpi-card__variation.positive {
-  background: rgba(16, 185, 129, 0.12);
+  background: rgba(34, 197, 94, 0.12);
   color: var(--accent-green);
 }
 
 .kpi-card__variation.negative {
-  background: rgba(239, 68, 68, 0.12);
+  background: rgba(231, 25, 74, 0.12);
   color: var(--accent-red);
 }
 
@@ -606,7 +660,7 @@ body {
    CUSTOM TOOLTIP
    ================================ */
 .custom-tooltip {
-  background: rgba(26, 27, 46, 0.97);
+  background: rgba(30, 30, 30, 0.98);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
@@ -737,13 +791,13 @@ body {
 .data-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
 
 .data-table tbody tr.row-best {
-  border-left: 3px solid #fbbf24;
-  background: rgba(251, 191, 36, 0.04);
+  border-left: 3px solid var(--success);
+  background: rgba(34, 197, 94, 0.06);
 }
 
 .data-table tbody tr.row-worst {
   border-left: 3px solid var(--accent-red);
-  background: rgba(239, 68, 68, 0.04);
+  background: rgba(231, 25, 74, 0.06);
 }
 
 .data-table tbody tr.row-anomaly {
@@ -758,7 +812,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
-  border-left: 3px solid var(--accent-blue);
+  border-left: 3px solid var(--brand-800);
 }
 
 .action-plan-panel__header {
@@ -806,7 +860,8 @@ body {
 }
 
 .action-plan-panel__textarea:focus {
-  border-color: var(--accent-blue);
+  border-color: var(--brand-800);
+  box-shadow: var(--shadow-glow);
 }
 
 .action-plan-panel__note {
@@ -824,7 +879,7 @@ body {
   gap: var(--space-3);
   align-items: flex-start;
   padding: var(--space-4);
-  background: rgba(16, 185, 129, 0.06);
+  background: rgba(34, 197, 94, 0.06);
   border-left: 3px solid var(--accent-green);
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
@@ -848,9 +903,9 @@ body {
 }
 
 .evidence-panel:hover {
-  border-color: var(--accent-blue);
+  border-color: var(--brand-800);
   border-style: solid;
-  background: rgba(59, 130, 246, 0.04);
+  background: rgba(231, 25, 74, 0.06);
 }
 
 .evidence-panel__title {
@@ -957,20 +1012,20 @@ body {
 .sidebar__help-box {
   margin: var(--space-4);
   padding: var(--space-3) var(--space-4);
-  background: rgba(59, 130, 246, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(231, 25, 74, 0.08);
+  border: 1px solid rgba(231, 25, 74, 0.22);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   gap: var(--space-3);
   cursor: pointer;
   transition: all 0.15s ease;
-  color: var(--accent-blue);
+  color: var(--brand-800);
 }
 
 .sidebar__help-box:hover {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: var(--accent-blue);
+  background: rgba(231, 25, 74, 0.15);
+  border-color: var(--brand-800);
 }
 
 .sidebar__help-box div {
@@ -1015,21 +1070,21 @@ body {
 }
 
 .comparison-pill.active {
-  background: var(--accent-blue);
-  border-color: var(--accent-blue);
+  background: var(--brand-800);
+  border-color: var(--brand-800);
   color: #ffffff;
   font-weight: 600;
 }
 
 .btn--accent {
-  background: rgba(59, 130, 246, 0.12);
-  color: var(--accent-blue);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(231, 25, 74, 0.12);
+  color: var(--brand-800);
+  border: 1px solid rgba(231, 25, 74, 0.30);
 }
 
 .btn--accent:hover {
-  background: rgba(59, 130, 246, 0.22);
-  border-color: var(--accent-blue);
+  background: rgba(231, 25, 74, 0.22);
+  border-color: var(--brand-800);
 }
 
 /* ================================
@@ -1081,7 +1136,7 @@ body {
 }
 
 .modal-title-icon {
-  color: var(--accent-blue);
+  color: var(--brand-800);
 }
 
 .modal-title h3 {
@@ -1120,8 +1175,8 @@ body {
 
 .metrics-intro-card {
   padding: var(--space-4) var(--space-5);
-  background: rgba(59, 130, 246, 0.06);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(231, 25, 74, 0.06);
+  border: 1px solid rgba(231, 25, 74, 0.22);
   border-radius: var(--radius-lg);
   display: flex;
   gap: var(--space-3);
@@ -1191,7 +1246,7 @@ body {
 }
 
 .metric-card-detail__formula code {
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 
 .metric-card-detail__row {
@@ -1209,7 +1264,7 @@ body {
 }
 
 .metric-card-detail__example {
-  background: rgba(16, 185, 129, 0.06);
+  background: rgba(34, 197, 94, 0.06);
   border-left: 3px solid var(--accent-green);
   padding: var(--space-2) var(--space-3);
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
@@ -1249,3 +1304,33 @@ body {
   .header__right { display: none; }
 }
 
+/* =================================
+   DXi — TYPOGRAPHY DETAILS
+   ================================= */
+.kpi-card__value,
+.custom-tooltip__value,
+.metric-card-detail__formula code {
+  font-family: var(--font-mono);
+}
+
+/* Strong, subtle institutional accent on the sticky header. */
+.header {
+  border-top: 2px solid var(--brand-800);
+}
+
+/* Improved focus visibility following the brand color. */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--brand-800);
+  outline-offset: 2px;
+}
+
+/* Cards gain a restrained institutional emphasis on interaction. */
+.kpi-card:hover,
+.chart-panel:hover,
+.period-filter-card:hover,
+.comparison-card:hover {
+  border-color: rgba(231, 25, 74, 0.30);
+}

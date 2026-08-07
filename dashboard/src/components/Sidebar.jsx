@@ -53,4 +53,3 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onOpenHe
     </aside>
   );
 }
-

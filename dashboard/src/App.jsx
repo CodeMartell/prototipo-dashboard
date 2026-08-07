@@ -202,99 +202,105 @@ function App() {
             </div>
           )}
 
-          {/* KPI Cards — Row 1 (main metrics) */}
-          <div className="kpi-cards-grid">
-            <KPICard
-              title="Custo Logístico Total"
-              variant="logistic"
-              currentValue={logCostInfo.latest}
-              targetValue={logCostInfo.target}
-              achievement={logCostInfo.achievement}
-              variation={logCostInfo.variation}
-              variationAbsolute={logCostInfo.variationAbs}
-              sparklineData={logCostInfo.sparkline}
-              unit="%"
-              lowerIsBetter={true}
-              previousLabel={logCostInfo.prevLabel}
-              previousValue={logCostInfo.prevValue}
-              onClick={() => handleSidebarNavigate('logisticCost')}
-            />
-            <KPICard
-              title="Custo Médio — Air Freight"
-              variant="airfreight"
-              currentValue={airFreightInfo.latest}
-              targetValue={airFreightInfo.target}
-              achievement={airFreightInfo.achievement}
-              variation={airFreightInfo.variation}
-              variationAbsolute={airFreightInfo.variationAbs}
-              sparklineData={airFreightInfo.sparkline}
-              unit="%"
-              lowerIsBetter={true}
-              previousLabel={airFreightInfo.prevLabel}
-              previousValue={airFreightInfo.prevValue}
-              onClick={() => handleSidebarNavigate('airFreight')}
-            />
-            <KPICard
-              title="Custo por Valor de Produção"
-              variant="production"
-              currentValue={logVsProdInfo.latest}
-              targetValue={null}
-              achievement={null}
-              variation={logVsProdInfo.variation}
-              variationAbsolute={logVsProdInfo.variationAbs}
-              sparklineData={logVsProdInfo.sparkline}
-              unit="Ratio"
-              lowerIsBetter={true}
-              previousLabel={logVsProdInfo.prevLabel}
-              previousValue={logVsProdInfo.prevValue}
-              onClick={() => handleSidebarNavigate('logisticsVsProd')}
-            />
-          </div>
+          {/* KPI Cards — temporariamente ocultos */}
+          {false && (
+            <>
+                        {/* KPI Cards — Row 1 (main metrics) */}
+                        <div className="kpi-cards-grid">
+                          <KPICard
+                            title="Custo Logístico Total"
+                            variant="logistic"
+                            currentValue={logCostInfo.latest}
+                            targetValue={logCostInfo.target}
+                            achievement={logCostInfo.achievement}
+                            variation={logCostInfo.variation}
+                            variationAbsolute={logCostInfo.variationAbs}
+                            sparklineData={logCostInfo.sparkline}
+                            unit="%"
+                            lowerIsBetter={true}
+                            previousLabel={logCostInfo.prevLabel}
+                            previousValue={logCostInfo.prevValue}
+                            onClick={() => handleSidebarNavigate('logisticCost')}
+                          />
+                          <KPICard
+                            title="Custo Médio — Air Freight"
+                            variant="airfreight"
+                            currentValue={airFreightInfo.latest}
+                            targetValue={airFreightInfo.target}
+                            achievement={airFreightInfo.achievement}
+                            variation={airFreightInfo.variation}
+                            variationAbsolute={airFreightInfo.variationAbs}
+                            sparklineData={airFreightInfo.sparkline}
+                            unit="%"
+                            lowerIsBetter={true}
+                            previousLabel={airFreightInfo.prevLabel}
+                            previousValue={airFreightInfo.prevValue}
+                            onClick={() => handleSidebarNavigate('airFreight')}
+                          />
+                          <KPICard
+                            title="Custo por Valor de Produção"
+                            variant="production"
+                            currentValue={logVsProdInfo.latest}
+                            targetValue={null}
+                            achievement={null}
+                            variation={logVsProdInfo.variation}
+                            variationAbsolute={logVsProdInfo.variationAbs}
+                            sparklineData={logVsProdInfo.sparkline}
+                            unit="Ratio"
+                            lowerIsBetter={true}
+                            previousLabel={logVsProdInfo.prevLabel}
+                            previousValue={logVsProdInfo.prevValue}
+                            onClick={() => handleSidebarNavigate('logisticsVsProd')}
+                          />
+                        </div>
 
-          {/* KPI Cards — Row 2 (derived metrics) */}
-          <div className="kpi-cards-grid">
-            <KPICard
-              title="Valor Total de Produção"
-              variant="production"
-              currentValue={kpi3Latest.totalProd}
-              variation={prodVariation}
-              variationAbsolute={kpi3PrevTotals.totalProd ? kpi3Latest.totalProd - kpi3PrevTotals.totalProd : null}
-              sparklineData={logisticsCostVsProdData
-                .filter((d) => d.year === selectedYear && d.productionAmount !== null)
-                .map((d) => ({ value: d.productionAmount }))}
-              unit="MUSD"
-              lowerIsBetter={false}
-              previousLabel={`Acum. ${prevYearLabel}`}
-              previousValue={kpi3PrevTotals.totalProd}
-            />
-            <KPICard
-              title="Custo Logístico Acumulado"
-              variant="logistic"
-              currentValue={kpi3Latest.totalCost}
-              variation={costVariation}
-              variationAbsolute={kpi3PrevTotals.totalCost ? kpi3Latest.totalCost - kpi3PrevTotals.totalCost : null}
-              sparklineData={logisticsCostVsProdData
-                .filter((d) => d.year === selectedYear && d.logisticsCost !== null)
-                .map((d) => ({ value: d.logisticsCost }))}
-              unit="MUSD"
-              lowerIsBetter={true}
-              previousLabel={`Acum. ${prevYearLabel}`}
-              previousValue={kpi3PrevTotals.totalCost}
-            />
-            <KPICard
-              title="Percentual de Atingimento"
-              variant="airfreight"
-              currentValue={logCostInfo.achievement}
-              variation={null}
-              sparklineData={logisticCostData
-                .filter((d) => d.year === selectedYear && d.achievement !== null)
-                .map((d) => ({ value: d.achievement }))}
-              unit="achievement"
-              lowerIsBetter={false}
-              previousLabel="Meta"
-              previousValue={logCostInfo.target}
-            />
-          </div>
+                        {/* KPI Cards — Row 2 (derived metrics) */}
+                        <div className="kpi-cards-grid">
+                          <KPICard
+                            title="Valor Total de Produção"
+                            variant="production"
+                            currentValue={kpi3Latest.totalProd}
+                            variation={prodVariation}
+                            variationAbsolute={kpi3PrevTotals.totalProd ? kpi3Latest.totalProd - kpi3PrevTotals.totalProd : null}
+                            sparklineData={logisticsCostVsProdData
+                              .filter((d) => d.year === selectedYear && d.productionAmount !== null)
+                              .map((d) => ({ value: d.productionAmount }))}
+                            unit="MUSD"
+                            lowerIsBetter={false}
+                            previousLabel={`Acum. ${prevYearLabel}`}
+                            previousValue={kpi3PrevTotals.totalProd}
+                          />
+                          <KPICard
+                            title="Custo Logístico Acumulado"
+                            variant="logistic"
+                            currentValue={kpi3Latest.totalCost}
+                            variation={costVariation}
+                            variationAbsolute={kpi3PrevTotals.totalCost ? kpi3Latest.totalCost - kpi3PrevTotals.totalCost : null}
+                            sparklineData={logisticsCostVsProdData
+                              .filter((d) => d.year === selectedYear && d.logisticsCost !== null)
+                              .map((d) => ({ value: d.logisticsCost }))}
+                            unit="MUSD"
+                            lowerIsBetter={true}
+                            previousLabel={`Acum. ${prevYearLabel}`}
+                            previousValue={kpi3PrevTotals.totalCost}
+                          />
+                          <KPICard
+                            title="Percentual de Atingimento"
+                            variant="airfreight"
+                            currentValue={logCostInfo.achievement}
+                            variation={null}
+                            sparklineData={logisticCostData
+                              .filter((d) => d.year === selectedYear && d.achievement !== null)
+                              .map((d) => ({ value: d.achievement }))}
+                            unit="achievement"
+                            lowerIsBetter={false}
+                            previousLabel="Meta"
+                            previousValue={logCostInfo.target}
+                          />
+                        </div>
+
+            </>
+          )}
 
           {/* KPI Detail Sections */}
           {(activeTab === 'dashboard' || activeTab === 'logisticCost') && (
@@ -305,7 +311,7 @@ function App() {
                 icon={DollarSign}
                 monthlyData={logisticCostData}
                 quarterlyData={quarterlyLogisticCost}
-                accentColor="#3b82f6"
+                accentColor="#E7194A"
                 lowerIsBetter={true}
                 unit="%"
                 selectedYear={selectedYear}
@@ -322,7 +328,7 @@ function App() {
                 icon={Plane}
                 monthlyData={airFreightData}
                 quarterlyData={quarterlyAirFreight}
-                accentColor="#14b8a6"
+                accentColor="#F59E0B"
                 lowerIsBetter={true}
                 unit="%"
                 selectedYear={selectedYear}
@@ -339,7 +345,7 @@ function App() {
                 icon={Package}
                 monthlyData={logisticsCostVsProdData}
                 quarterlyData={quarterlyLogisticsCostVsProd}
-                accentColor="#8b5cf6"
+                accentColor="#22C55E"
                 lowerIsBetter={true}
                 unit="Ratio"
                 selectedYear={selectedYear}
@@ -361,4 +367,4 @@ function App() {
 }
 
 export default App;
-
+     

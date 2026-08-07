@@ -8,7 +8,7 @@ const METRICS_EXPLANATIONS = [
     formula: 'Logistic Cost (%) = (Custo Logístico Total + Incident Costs) / Valor Bruto de Produção',
     source: 'ARUM System (Fretes) + Incident Cost System (Sinistros/Demurrage) + GERP (Produção)',
     badge: 'Quanto Menor, Melhor',
-    badgeColor: 'var(--accent-blue)',
+    badgeColor: 'var(--brand-800)',
     concept: 'Percentual do custo total de movimentação logística sobre o valor financeiro da produção bruta de TVs.',
     rationale: 'Permite medir a eficiência do frete relativo ao volume financeiro gerado pela fábrica. Se a produção aumenta, o frete nominal sobe, mas o percentual deve cair ou manter-se estável para demonstrar ganho de escala.',
     example: 'Em Jan/26, gastou-se $2.56M em frete + adicionais para $47.63M de produção = 5.38% (frente a uma meta de 6.48%).'
@@ -52,7 +52,7 @@ const METRICS_EXPLANATIONS = [
     formula: 'Custo Acumulado = Soma dos desembolsos mensais em transporte (MUSD)',
     source: 'ARUM System + Relatórios de Tesouraria/Financeiro',
     badge: 'Volume Financeiro Bruto',
-    badgeColor: 'var(--accent-red)',
+    badgeColor: 'var(--brand-800)',
     concept: 'Total em dólares efetivamente desembolsado pela LG para transporte e armazenagem.',
     rationale: 'Indispensável para o controle de caixa e negociação de contratos volumétricos com armadores e transportadoras.',
     example: 'No acumulado de Y26 (Jan-Mai), o desembolso total de frete somou $12.23 MUSD.'
@@ -91,7 +91,7 @@ export default function MetricsModal({ isOpen, onClose }) {
 
         <div className="modal-body">
           <div className="metrics-intro-card">
-            <HelpCircle size={18} style={{ color: 'var(--accent-blue)', flexShrink: 0, marginTop: '2px' }} />
+            <HelpCircle size={18} style={{ color: 'var(--brand-800)', flexShrink: 0, marginTop: '2px' }} />
             <div>
               <strong>Como explicar esses números para a Gestão:</strong>
               <p>

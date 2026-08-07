@@ -33,7 +33,7 @@ function CustomTooltip({ active, payload, label, unit }) {
       
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
-          <span className="custom-tooltip__dot" style={{ background: '#3b82f6' }}></span>
+          <span className="custom-tooltip__dot" style={{ background: '#E7194A' }}></span>
           Atual (2026)
         </span>
         <span className="custom-tooltip__value">{formatValue(data.currentResult, unit)}</span>
@@ -41,7 +41,7 @@ function CustomTooltip({ active, payload, label, unit }) {
       
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
-          <span className="custom-tooltip__dot" style={{ background: '#8b5cf6' }}></span>
+          <span className="custom-tooltip__dot" style={{ background: '#9E9E9E' }}></span>
           Anterior (2025)
         </span>
         <span className="custom-tooltip__value">{formatValue(data.previousResult, unit)}</span>
@@ -50,7 +50,7 @@ function CustomTooltip({ active, payload, label, unit }) {
       {data.target !== undefined && data.target !== null && (
         <div className="custom-tooltip__row">
           <span className="custom-tooltip__label">
-            <span className="custom-tooltip__dot" style={{ background: '#10b981' }}></span>
+            <span className="custom-tooltip__dot" style={{ background: '#22C55E' }}></span>
             Target
           </span>
           <span className="custom-tooltip__value">{formatValue(data.target, unit)}</span>
@@ -97,9 +97,9 @@ function CustomLegend({ accentColor, lineColor, targetColor, hasTarget }) {
 export default function ComparisonChart({
   data,
   unit,
-  accentColor = '#3b82f6',
-  lineColor = '#8b5cf6',
-  targetColor = '#10b981',
+  accentColor = '#E7194A',
+  lineColor = '#9E9E9E',
+  targetColor = '#22C55E',
 }) {
   const formatYAxis = (val) => {
     if (unit === '%' || unit === 'Ratio') return `${(val * 100).toFixed(1)}%`;
@@ -120,18 +120,18 @@ export default function ComparisonChart({
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
-              stroke="rgba(148, 163, 184, 0.08)"
+              stroke="rgba(189, 189, 189, 0.10)"
             />
             <XAxis
               dataKey="period"
-              stroke="#64748b"
-              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              stroke="#616161"
+              tick={{ fill: '#BDBDBD', fontSize: 12 }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              stroke="#64748b"
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              stroke="#616161"
+              tick={{ fill: '#BDBDBD', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               tickFormatter={formatYAxis}
@@ -145,8 +145,8 @@ export default function ComparisonChart({
             <Bar dataKey="currentResult" radius={[4, 4, 0, 0]} maxBarSize={40}>
               {chartData.map((entry, index) => {
                 let fill = accentColor;
-                if (entry.isBest) fill = '#fbbf24';
-                if (entry.isWorst) fill = '#ef4444';
+                if (entry.isBest) fill = '#22C55E';
+                if (entry.isWorst) fill = '#E7194A';
                 return <Cell key={`cell-${index}`} fill={fill} fillOpacity={entry.currentResult === null ? 0 : 0.85} />;
               })}
             </Bar>

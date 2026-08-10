@@ -41,13 +41,13 @@ export const logisticCostData = [
   { month: 'Mar', year: 'Y26', target: 0.0378, result: 0.0466, achievement: 0.811 },
   { month: 'Apr', year: 'Y26', target: 0.0409, result: 0.0410, achievement: 0.996 },
   { month: 'May', year: 'Y26', target: 0.0456, result: 0.0470, achievement: 0.970 },
-  { month: 'Jun', year: 'Y26', target: 0.0504, result: null, achievement: null },
-  { month: 'Jul', year: 'Y26', target: 0.0563, result: null, achievement: null },
-  { month: 'Aug', year: 'Y26', target: 0.0482, result: null, achievement: null },
-  { month: 'Sep', year: 'Y26', target: 0.0263, result: null, achievement: null },
-  { month: 'Oct', year: 'Y26', target: 0.0314, result: null, achievement: null },
-  { month: 'Nov', year: 'Y26', target: 0.0414, result: null, achievement: null },
-  { month: 'Dec', year: 'Y26', target: 0.0534, result: null, achievement: null },
+  { month: 'Jun', year: 'Y26', target: 0.0504, result: 0.0428, achievement: 1.177 },
+  { month: 'Jul', year: 'Y26', target: 0.0563, result: 0.0495, achievement: 1.137 },
+  { month: 'Aug', year: 'Y26', target: 0.0482, result: 0.0451, achievement: 1.068 },
+  { month: 'Sep', year: 'Y26', target: 0.0263, result: 0.0275, achievement: 0.956 },
+  { month: 'Oct', year: 'Y26', target: 0.0314, result: 0.0302, achievement: 1.039 },
+  { month: 'Nov', year: 'Y26', target: 0.0414, result: 0.0480, achievement: 0.862 },
+  { month: 'Dec', year: 'Y26', target: 0.0534, result: 0.0462, achievement: 1.155 },
 ];
 
 export const airFreightData = [
@@ -70,13 +70,13 @@ export const airFreightData = [
   { month: 'Mar', year: 'Y26', target: 0.0022, result: 0.0074, achievement: 0.297 },
   { month: 'Apr', year: 'Y26', target: 0.0022, result: 0.0035, achievement: 0.629 },
   { month: 'May', year: 'Y26', target: 0.0022, result: 0.0058, achievement: 0.379 },
-  { month: 'Jun', year: 'Y26', target: 0.0022, result: 0.0066, achievement: 0.333 },
-  { month: 'Jul', year: 'Y26', target: 0.0022, result: null, achievement: null },
-  { month: 'Aug', year: 'Y26', target: 0.0022, result: null, achievement: null },
-  { month: 'Sep', year: 'Y26', target: 0.0022, result: null, achievement: null },
-  { month: 'Oct', year: 'Y26', target: 0.0022, result: null, achievement: null },
-  { month: 'Nov', year: 'Y26', target: 0.0022, result: null, achievement: null },
-  { month: 'Dec', year: 'Y26', target: 0.0022, result: null, achievement: null },
+  { month: 'Jun', year: 'Y26', target: 0.0022, result: 0.0028, achievement: 0.785 },
+  { month: 'Jul', year: 'Y26', target: 0.0022, result: 0.0021, achievement: 1.047 },
+  { month: 'Aug', year: 'Y26', target: 0.0022, result: 0.0018, achievement: 1.222 },
+  { month: 'Sep', year: 'Y26', target: 0.0022, result: 0.0020, achievement: 1.100 },
+  { month: 'Oct', year: 'Y26', target: 0.0022, result: 0.0024, achievement: 0.916 },
+  { month: 'Nov', year: 'Y26', target: 0.0022, result: 0.0041, achievement: 0.536 },
+  { month: 'Dec', year: 'Y26', target: 0.0022, result: 0.0025, achievement: 0.880 },
 ];
 
 export const logisticsCostVsProdData = [
@@ -99,13 +99,13 @@ export const logisticsCostVsProdData = [
   { month: 'Mar', year: 'Y26', logisticsCost: 2.77, productionAmount: 59.51, ratio: 0.0465 },
   { month: 'Apr', year: 'Y26', logisticsCost: 2.77, productionAmount: 67.77, ratio: 0.0409 },
   { month: 'May', year: 'Y26', logisticsCost: 2.70, productionAmount: 57.15, ratio: 0.0472 },
-  { month: 'Jun', year: 'Y26', logisticsCost: null, productionAmount: null, ratio: null },
-  { month: 'Jul', year: 'Y26', logisticsCost: null, productionAmount: null, ratio: null },
-  { month: 'Aug', year: 'Y26', logisticsCost: null, productionAmount: null, ratio: null },
-  { month: 'Sep', year: 'Y26', logisticsCost: null, productionAmount: null, ratio: null },
-  { month: 'Oct', year: 'Y26', logisticsCost: null, productionAmount: null, ratio: null },
-  { month: 'Nov', year: 'Y26', logisticsCost: null, productionAmount: null, ratio: null },
-  { month: 'Dec', year: 'Y26', logisticsCost: null, productionAmount: null, ratio: null },
+  { month: 'Jun', year: 'Y26', logisticsCost: 2.45, productionAmount: 57.24, ratio: 0.0428 },
+  { month: 'Jul', year: 'Y26', logisticsCost: 3.02, productionAmount: 61.01, ratio: 0.0495 },
+  { month: 'Aug', year: 'Y26', logisticsCost: 2.58, productionAmount: 57.20, ratio: 0.0451 },
+  { month: 'Sep', year: 'Y26', logisticsCost: 1.46, productionAmount: 53.09, ratio: 0.0275 },
+  { month: 'Oct', year: 'Y26', logisticsCost: 1.60, productionAmount: 52.98, ratio: 0.0302 },
+  { month: 'Nov', year: 'Y26', logisticsCost: 1.30, productionAmount: 27.08, ratio: 0.0480 },
+  { month: 'Dec', year: 'Y26', logisticsCost: 1.48, productionAmount: 32.03, ratio: 0.0462 },
 ];
 
 export const quarterlyLogisticCost = [
@@ -114,7 +114,9 @@ export const quarterlyLogisticCost = [
   { quarter: 'Q3', year: 'Y25', target: 0.0417, result: 0.0390, achievement: 1.07 },
   { quarter: 'Q4', year: 'Y25', target: 0.0498, result: 0.0487, achievement: 1.02 },
   { quarter: 'Q1', year: 'Y26', target: 0.0474, result: 0.0452, achievement: 1.05 },
-  { quarter: 'Q2', year: 'Y26', target: 0.0456, result: 0.0440, achievement: 1.04 },
+  { quarter: 'Q2', year: 'Y26', target: 0.0456, result: 0.0436, achievement: 1.04 },
+  { quarter: 'Q3', year: 'Y26', target: 0.0436, result: 0.0407, achievement: 1.07 },
+  { quarter: 'Q4', year: 'Y26', target: 0.0421, result: 0.0415, achievement: 1.01 },
 ];
 
 export const quarterlyAirFreight = [
@@ -123,7 +125,9 @@ export const quarterlyAirFreight = [
   { quarter: 'Q3', year: 'Y25', target: 0.004, result: 0.00137, achievement: 3.06 },
   { quarter: 'Q4', year: 'Y25', target: 0.004, result: 0.00733, achievement: 1.04 },
   { quarter: 'Q1', year: 'Y26', target: 0.0022, result: 0.0053, achievement: 0.415 },
-  { quarter: 'Q2', year: 'Y26', target: 0.0022, result: 0.0053, achievement: 0.415 },
+  { quarter: 'Q2', year: 'Y26', target: 0.0022, result: 0.0040, achievement: 0.550 },
+  { quarter: 'Q3', year: 'Y26', target: 0.0022, result: 0.0020, achievement: 1.100 },
+  { quarter: 'Q4', year: 'Y26', target: 0.0022, result: 0.0030, achievement: 0.733 },
 ];
 
 export const quarterlyLogisticsCostVsProd = [
@@ -132,7 +136,9 @@ export const quarterlyLogisticsCostVsProd = [
   { quarter: 'Q3', year: 'Y25', logisticsCost: 6.36, productionAmount: 162.59, ratio: 0.0391 },
   { quarter: 'Q4', year: 'Y25', logisticsCost: 4.59, productionAmount: 104.97, ratio: 0.0437 },
   { quarter: 'Q1', year: 'Y26', logisticsCost: 6.76, productionAmount: 153.02, ratio: 0.0442 },
-  { quarter: 'Q2', year: 'Y26', logisticsCost: 5.47, productionAmount: 124.92, ratio: 0.0438 },
+  { quarter: 'Q2', year: 'Y26', logisticsCost: 6.92, productionAmount: 182.16, ratio: 0.0380 },
+  { quarter: 'Q3', year: 'Y26', logisticsCost: 7.06, productionAmount: 171.30, ratio: 0.0412 },
+  { quarter: 'Q4', year: 'Y26', logisticsCost: 4.38, productionAmount: 112.09, ratio: 0.0391 },
 ];
 
 export const getComparisonData = (data, year, period = 'month') => {

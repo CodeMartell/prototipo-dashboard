@@ -1,6 +1,6 @@
-import { RefreshCw, Download, HelpCircle } from 'lucide-react';
+import { RefreshCw, Download, HelpCircle, CalendarCheck } from 'lucide-react';
 
-export default function Header({ onOpenHelp }) {
+export default function Header({ onOpenHelp, activePeriodText }) {
   const now = new Date();
   const dateStr = now.toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' });
   const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -13,6 +13,16 @@ export default function Header({ onOpenHelp }) {
       </div>
 
       <div className="header__right">
+        {activePeriodText && (
+          <div className="header__active-period" title="Período de Referência dos Dados Ativos">
+            <CalendarCheck size={14} className="header__period-icon" />
+            <div className="header__period-text">
+              <span>Referência dos Dados</span>
+              <strong>{activePeriodText}</strong>
+            </div>
+          </div>
+        )}
+
         <div className="header__meta">
           Última atualização<br />
           <strong>{dateStr} — {timeStr}</strong>

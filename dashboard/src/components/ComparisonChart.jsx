@@ -33,7 +33,7 @@ function CustomTooltip({ active, payload, label, unit }) {
       
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
-          <span className="custom-tooltip__dot" style={{ background: '#3b82f6' }}></span>
+          <span className="custom-tooltip__dot" style={{ background: '#E7194A' }}></span>
           Atual (2026)
         </span>
         <span className="custom-tooltip__value">{formatValue(data.currentResult, unit)}</span>
@@ -41,7 +41,7 @@ function CustomTooltip({ active, payload, label, unit }) {
       
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
-          <span className="custom-tooltip__dot" style={{ background: '#8b5cf6' }}></span>
+          <span className="custom-tooltip__dot" style={{ background: '#9E9E9E' }}></span>
           Anterior (2025)
         </span>
         <span className="custom-tooltip__value">{formatValue(data.previousResult, unit)}</span>
@@ -51,7 +51,7 @@ function CustomTooltip({ active, payload, label, unit }) {
         <div className="custom-tooltip__row">
           <span className="custom-tooltip__label">
             <span className="custom-tooltip__dot" style={{ background: '#10b981' }}></span>
-            Target
+            Target (Meta)
           </span>
           <span className="custom-tooltip__value">{formatValue(data.target, unit)}</span>
         </div>
@@ -59,7 +59,7 @@ function CustomTooltip({ active, payload, label, unit }) {
 
       {data.currentAchievement !== undefined && data.currentAchievement !== null && (
         <div className="custom-tooltip__row">
-          <span className="custom-tooltip__label">Atingimento</span>
+          <span className="custom-tooltip__label">Atingimento Meta</span>
           <span className="custom-tooltip__value">{(data.currentAchievement * 100).toFixed(0)}%</span>
         </div>
       )}
@@ -87,7 +87,7 @@ function CustomLegend({ accentColor, lineColor, targetColor, hasTarget }) {
       {hasTarget && (
         <div className="custom-legend__item">
           <div className="custom-legend__marker--dashed" style={{ borderColor: targetColor }}></div>
-          <span>Target</span>
+          <span>Target (Meta)</span>
         </div>
       )}
     </div>
@@ -97,9 +97,9 @@ function CustomLegend({ accentColor, lineColor, targetColor, hasTarget }) {
 export default function ComparisonChart({
   data,
   unit,
-  accentColor = '#3b82f6',
-  lineColor = '#8b5cf6',
-  targetColor = '#10b981',
+  accentColor = '#E7194A',
+  lineColor = '#9E9E9E',
+  targetColor = '#22C55E',
 }) {
   const formatYAxis = (val) => {
     if (unit === '%' || unit === 'Ratio') return `${(val * 100).toFixed(1)}%`;
@@ -109,44 +109,43 @@ export default function ComparisonChart({
 
   const hasTarget = data.some(d => d.target !== undefined && d.target !== null);
 
-  // Filter out future months with no data
   const chartData = data.filter(d => d.currentResult !== null || d.previousResult !== null);
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', height: '360px', paddingBottom: '8px' }}>
-      <div style={{ flex: 1, minHeight: '300px', width: '100%' }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 10, left: 10 }}>
+    <div className="comparison-chart-wrapper">
+      <div className="comparison-chart-canvas">
+        <ResponsiveContainer width="100%" height={280}>
+          <ComposedChart data={chartData} margin={{ top: 20, right: 20, bottom: 10, left: 10 }}>
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
-              stroke="rgba(148, 163, 184, 0.08)"
+              stroke="rgba(189, 189, 189, 0.10)"
             />
             <XAxis
               dataKey="period"
-              stroke="#64748b"
-              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              stroke="#616161"
+              tick={{ fill: '#BDBDBD', fontSize: 12 }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              stroke="#64748b"
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              stroke="#616161"
+              tick={{ fill: '#BDBDBD', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               tickFormatter={formatYAxis}
-              width={60}
+              width={55}
             />
             <Tooltip
               content={<CustomTooltip unit={unit} />}
               cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
             />
 
-            <Bar dataKey="currentResult" radius={[4, 4, 0, 0]} maxBarSize={40}>
+            <Bar dataKey="currentResult" radius={[4, 4, 0, 0]} maxBarSize={38}>
               {chartData.map((entry, index) => {
                 let fill = accentColor;
-                if (entry.isBest) fill = '#fbbf24';
-                if (entry.isWorst) fill = '#ef4444';
+                if (entry.isBest) fill = '#22C55E';
+                if (entry.isWorst) fill = '#E7194A';
                 return <Cell key={`cell-${index}`} fill={fill} fillOpacity={entry.currentResult === null ? 0 : 0.85} />;
               })}
             </Bar>

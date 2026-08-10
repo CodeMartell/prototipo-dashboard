@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import KPICard from './components/KPICard';
 import KPISection from './components/KPISection';
 import PeriodFilter from './components/PeriodFilter';
+import ActivePeriodBanner from './components/ActivePeriodBanner';
+import KPIComparisonMatrix from './components/KPIComparisonMatrix';
 import MetricsModal from './components/MetricsModal';
-import { DollarSign, Plane, Package, Calendar, ArrowLeftRight, Lightbulb, AlertTriangle, CheckCircle } from 'lucide-react';
+import { DollarSign, Plane, Package, Calendar, ArrowLeftRight, Lightbulb } from 'lucide-react';
 
 import {
   logisticCostData,
@@ -19,7 +20,8 @@ import {
 
 function App() {
   const [selectedYear, setSelectedYear] = useState('Y26');
-  const [period, setPeriod] = useState('monthly');
+  const [period, setPeriod] = useState('monthly'); // 'monthly' | 'quarterly' | 'semiannual' | 'annual'
+  const [selectedSubPeriod, setSelectedSubPeriod] = useState('May'); // 'Jan'..'Dec', 'Q1'..'Q4', 'H1'..'H2', 'Y26'
   const [activeTab, setActiveTab] = useState('dashboard');
   const [comparisonMode, setComparisonMode] = useState('yoy'); // 'yoy' | 'target' | 'ytd'
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
@@ -28,95 +30,177 @@ function App() {
   const currentYearLabel = `20${selectedYear.substring(1)}`;
   const prevYearLabel = `20${prevYear.substring(1)}`;
 
-  // Helper: get latest data info for a KPI based on comparison mode
-  const getLatestInfo = (dataArray, valueKey) => {
-    const yearData = dataArray.filter((d) => d.year === selectedYear);
-    let latestIndex = -1;
-    for (let i = yearData.length - 1; i >= 0; i--) {
-      if (yearData[i][valueKey] !== null && yearData[i][valueKey] !== undefined) {
-        latestIndex = i;
-        break;
-      }
-    }
-
-    if (latestIndex === -1) {
-      return { latest: null, target: null, achievement: null, variation: null, variationAbs: null, sparkline: [], prevLabel: null, prevValue: null, latestMonth: null };
-    }
-
-    const latestData = yearData[latestIndex];
-    const currentValue = latestData[valueKey];
-    const targetValue = latestData.target;
-    const achievement = latestData.achievement;
-    const latestMonth = latestData.month;
-
-    // Compare vs YoY or vs Target
-    const prevData = dataArray.filter((d) => d.year === prevYear);
-    const samePrev = prevData.find((d) => d.month === latestData.month);
-    
-    let variation = null;
-    let variationAbs = null;
-    let prevLabel = null;
-    let prevValue = null;
-
-    if (comparisonMode === 'target') {
-      prevLabel = `Meta (${latestMonth})`;
-      prevValue = targetValue;
-      if (targetValue !== null && targetValue !== undefined) {
-        variation = calculateVariation(currentValue, targetValue);
-        variationAbs = currentValue - targetValue;
-      }
-    } else {
-      // Default YoY
-      prevLabel = samePrev ? `${latestMonth}/${prevYearLabel}` : null;
-      prevValue = samePrev ? samePrev[valueKey] : null;
-      if (samePrev && samePrev[valueKey] !== null) {
-        variation = calculateVariation(currentValue, samePrev[valueKey]);
-        variationAbs = currentValue - samePrev[valueKey];
-      }
-    }
-
-    // Sparkline: valid data points from this year
-    const sparkline = yearData
-      .filter((d) => d[valueKey] !== null && d[valueKey] !== undefined)
-      .map((d) => ({ value: d[valueKey] }));
-
-    return { latest: currentValue, target: targetValue, achievement, variation, variationAbs, sparkline, prevLabel, prevValue, latestMonth };
+  // Handle high-level period change and reset sub-period gracefully
+  const handlePeriodChange = (newPeriod) => {
+    setPeriod(newPeriod);
+    if (newPeriod === 'monthly') setSelectedSubPeriod('May');
+    else if (newPeriod === 'quarterly') setSelectedSubPeriod('Q1');
+    else if (newPeriod === 'semiannual') setSelectedSubPeriod('H1');
+    else setSelectedSubPeriod(selectedYear);
   };
 
-  const logCostInfo = useMemo(() => getLatestInfo(logisticCostData, 'result'), [selectedYear, comparisonMode]);
-  const airFreightInfo = useMemo(() => getLatestInfo(airFreightData, 'result'), [selectedYear, comparisonMode]);
-  const logVsProdInfo = useMemo(() => getLatestInfo(logisticsCostVsProdData, 'ratio'), [selectedYear, comparisonMode]);
+  // Helper: Get metric details for chosen sub-period and comparison mode
+  const getSubPeriodMetric = (monthlyArr, quarterlyArr, valueKey) => {
+    const isRatio = valueKey === 'ratio';
 
-  // Second row cards: get extra metrics from KPI3
-  const kpi3Latest = useMemo(() => {
-    const yearData = logisticsCostVsProdData.filter((d) => d.year === selectedYear);
-    const validData = yearData.filter((d) => d.ratio !== null);
-    if (validData.length === 0) return { totalCost: null, totalProd: null, ratio: null };
-    const latest = validData[validData.length - 1];
-    const totalCost = validData.reduce((s, d) => s + (d.logisticsCost || 0), 0);
-    const totalProd = validData.reduce((s, d) => s + (d.productionAmount || 0), 0);
-    return { totalCost, totalProd, ratio: latest.ratio, latestCost: latest.logisticsCost, latestProd: latest.productionAmount };
-  }, [selectedYear]);
+    let currentVal = null;
+    let targetVal = null;
+    let achievementVal = null;
+    let prevVal = null;
+    let subLabel = '';
 
-  // Previous year same-period totals for second row
-  const kpi3PrevTotals = useMemo(() => {
-    const prevData = logisticsCostVsProdData.filter((d) => d.year === prevYear);
-    const validPrev = prevData.filter((d) => d.ratio !== null);
-    const yearData = logisticsCostVsProdData.filter((d) => d.year === selectedYear);
-    const monthCount = yearData.filter((d) => d.ratio !== null).length;
-    const samePrev = validPrev.slice(0, monthCount);
-    if (samePrev.length === 0) return { totalCost: null, totalProd: null };
+    if (period === 'monthly') {
+      subLabel = `${selectedSubPeriod}/${currentYearLabel.substring(2)}`;
+      const curData = monthlyArr.find((d) => d.year === selectedYear && d.month === selectedSubPeriod);
+      const prevData = monthlyArr.find((d) => d.year === prevYear && d.month === selectedSubPeriod);
+
+      if (curData) {
+        currentVal = curData[valueKey];
+        targetVal = !isRatio ? curData.target : null;
+        achievementVal = !isRatio ? curData.achievement : null;
+      }
+      if (prevData) {
+        prevVal = prevData[valueKey];
+      }
+    } else if (period === 'quarterly') {
+      subLabel = `${selectedSubPeriod}/${currentYearLabel.substring(2)}`;
+      const curData = quarterlyArr.find((d) => d.year === selectedYear && d.quarter === selectedSubPeriod);
+      const prevData = quarterlyArr.find((d) => d.year === prevYear && d.quarter === selectedSubPeriod);
+
+      if (curData) {
+        currentVal = curData[valueKey];
+        targetVal = !isRatio ? curData.target : null;
+        achievementVal = !isRatio ? curData.achievement : null;
+      }
+      if (prevData) {
+        prevVal = prevData[valueKey];
+      }
+    } else if (period === 'semiannual') {
+      subLabel = `${selectedSubPeriod}/${currentYearLabel.substring(2)}`;
+      const qList = selectedSubPeriod === 'H1' ? ['Q1', 'Q2'] : ['Q3', 'Q4'];
+      const curQs = quarterlyArr.filter((d) => d.year === selectedYear && qList.includes(d.quarter));
+      const prevQs = quarterlyArr.filter((d) => d.year === prevYear && qList.includes(d.quarter));
+
+      const avg = (arr, field) => {
+        const valid = arr.filter((d) => d[field] !== null && d[field] !== undefined);
+        return valid.length ? valid.reduce((s, d) => s + d[field], 0) / valid.length : null;
+      };
+
+      currentVal = avg(curQs, valueKey);
+      prevVal = avg(prevQs, valueKey);
+      targetVal = !isRatio ? avg(curQs, 'target') : null;
+      achievementVal = !isRatio ? avg(curQs, 'achievement') : null;
+    } else {
+      // Annual
+      subLabel = currentYearLabel;
+      const curQs = quarterlyArr.filter((d) => d.year === selectedYear);
+      const prevQs = quarterlyArr.filter((d) => d.year === prevYear);
+
+      const avg = (arr, field) => {
+        const valid = arr.filter((d) => d[field] !== null && d[field] !== undefined);
+        return valid.length ? valid.reduce((s, d) => s + d[field], 0) / valid.length : null;
+      };
+
+      currentVal = avg(curQs, valueKey);
+      prevVal = avg(prevQs, valueKey);
+      targetVal = !isRatio ? avg(curQs, 'target') : null;
+      achievementVal = !isRatio ? avg(curQs, 'achievement') : null;
+    }
+
+    // Variations based on comparison mode
+    let variation = null;
+    let variationAbs = null;
+    let previousLabel = null;
+    let compareVal = null;
+
+    if (comparisonMode === 'target') {
+      previousLabel = `Meta (${subLabel})`;
+      compareVal = targetVal;
+      if (currentVal !== null && targetVal !== null) {
+        variation = calculateVariation(currentVal, targetVal);
+        variationAbs = currentVal - targetVal;
+      }
+    } else {
+      // Default YoY / YTD
+      previousLabel = `${subLabel} (${prevYearLabel.substring(2)})`;
+      compareVal = prevVal;
+      if (currentVal !== null && prevVal !== null) {
+        variation = calculateVariation(currentVal, prevVal);
+        variationAbs = currentVal - prevVal;
+      }
+    }
+
+    // Sparkline points for selected year
+    const sparkline = monthlyArr
+      .filter((d) => d.year === selectedYear && d[valueKey] !== null)
+      .map((d) => ({ value: d[valueKey] }));
+
     return {
-      totalCost: samePrev.reduce((s, d) => s + (d.logisticsCost || 0), 0),
-      totalProd: samePrev.reduce((s, d) => s + (d.productionAmount || 0), 0),
+      latest: currentVal,
+      target: targetVal,
+      achievement: achievementVal,
+      variation,
+      variationAbs,
+      sparkline,
+      prevLabel: previousLabel,
+      prevValue: compareVal,
+      subLabel,
     };
-  }, [selectedYear]);
+  };
+
+  const logCostInfo = useMemo(
+    () => getSubPeriodMetric(logisticCostData, quarterlyLogisticCost, 'result'),
+    [selectedYear, period, selectedSubPeriod, comparisonMode]
+  );
+
+  const airFreightInfo = useMemo(
+    () => getSubPeriodMetric(airFreightData, quarterlyAirFreight, 'result'),
+    [selectedYear, period, selectedSubPeriod, comparisonMode]
+  );
+
+  const logVsProdInfo = useMemo(
+    () => getSubPeriodMetric(logisticsCostVsProdData, quarterlyLogisticsCostVsProd, 'ratio'),
+    [selectedYear, period, selectedSubPeriod, comparisonMode]
+  );
+
+  // Totals for production and logistics cost up to selected subperiod
+  const kpi3Latest = useMemo(() => {
+    const yearData = logisticsCostVsProdData.filter((d) => d.year === selectedYear && d.ratio !== null);
+    if (yearData.length === 0) return { totalCost: null, totalProd: null, ratio: null };
+
+    let filtered = yearData;
+    if (period === 'monthly') {
+      const monthIdx = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(selectedSubPeriod);
+      if (monthIdx !== -1) {
+        filtered = yearData.slice(0, monthIdx + 1);
+      }
+    }
+
+    const totalCost = filtered.reduce((s, d) => s + (d.logisticsCost || 0), 0);
+    const totalProd = filtered.reduce((s, d) => s + (d.productionAmount || 0), 0);
+    return { totalCost, totalProd };
+  }, [selectedYear, period, selectedSubPeriod]);
+
+  const kpi3PrevTotals = useMemo(() => {
+    const prevData = logisticsCostVsProdData.filter((d) => d.year === prevYear && d.ratio !== null);
+    if (prevData.length === 0) return { totalCost: null, totalProd: null };
+
+    let filtered = prevData;
+    if (period === 'monthly') {
+      const monthIdx = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(selectedSubPeriod);
+      if (monthIdx !== -1) {
+        filtered = prevData.slice(0, monthIdx + 1);
+      }
+    }
+
+    return {
+      totalCost: filtered.reduce((s, d) => s + (d.logisticsCost || 0), 0),
+      totalProd: filtered.reduce((s, d) => s + (d.productionAmount || 0), 0),
+    };
+  }, [selectedYear, prevYear, period, selectedSubPeriod]);
 
   const prodVariation = kpi3PrevTotals.totalProd ? calculateVariation(kpi3Latest.totalProd, kpi3PrevTotals.totalProd) : null;
   const costVariation = kpi3PrevTotals.totalCost ? calculateVariation(kpi3Latest.totalCost, kpi3PrevTotals.totalCost) : null;
-
-  // Find the latest month label for comparison card
-  const latestMonth = logCostInfo.latestMonth || airFreightInfo.latestMonth || 'May';
 
   const handleSidebarNavigate = (itemId) => {
     setActiveTab(itemId);
@@ -131,9 +215,9 @@ function App() {
   };
 
   const getComparisonLabel = () => {
-    if (comparisonMode === 'target') return `${latestMonth}/${currentYearLabel} × Meta (Target)`;
+    if (comparisonMode === 'target') return `${selectedSubPeriod}/${currentYearLabel} × Meta (Target)`;
     if (comparisonMode === 'ytd') return `Acumulado ${currentYearLabel} × Acumulado ${prevYearLabel}`;
-    return `${latestMonth}/${currentYearLabel} × ${latestMonth}/${prevYearLabel}`;
+    return `${selectedSubPeriod}/${currentYearLabel} × ${selectedSubPeriod}/${prevYearLabel}`;
   };
 
   return (
@@ -141,17 +225,33 @@ function App() {
       <Sidebar activeItem={activeTab} onNavigate={handleSidebarNavigate} onOpenHelp={() => setIsMetricsModalOpen(true)} />
 
       <div className="main-wrapper">
-        <Header onOpenHelp={() => setIsMetricsModalOpen(true)} />
+        <Header
+          onOpenHelp={() => setIsMetricsModalOpen(true)}
+          activePeriodText={`${selectedSubPeriod} / ${currentYearLabel}`}
+        />
 
         <main className="dashboard-main">
+          {/* Active Period Banner */}
+          <ActivePeriodBanner
+            periodType={period}
+            selectedSubPeriod={selectedSubPeriod}
+            selectedYear={selectedYear}
+            comparisonMode={comparisonMode}
+          />
+
           {/* Period & Comparison Controls Area */}
           <div className="period-section">
             <div className="period-filter-card">
               <div className="period-filter-card__label">
                 <Calendar size={14} />
-                Agrupamento do Gráfico
+                Filtro de Período & Agrupamento
               </div>
-              <PeriodFilter activePeriod={period} onChange={setPeriod} />
+              <PeriodFilter
+                activePeriod={period}
+                onPeriodChange={handlePeriodChange}
+                selectedSubPeriod={selectedSubPeriod}
+                onSubPeriodChange={setSelectedSubPeriod}
+              />
             </div>
 
             <div className="comparison-card">
@@ -167,13 +267,13 @@ function App() {
                   className={`comparison-pill ${comparisonMode === 'yoy' ? 'active' : ''}`}
                   onClick={() => setComparisonMode('yoy')}
                 >
-                  2026 × 2025 (YoY)
+                  {currentYearLabel} × {prevYearLabel} (YoY)
                 </button>
                 <button
                   className={`comparison-pill ${comparisonMode === 'target' ? 'active' : ''}`}
                   onClick={() => setComparisonMode('target')}
                 >
-                  2026 × Meta (Target)
+                  {currentYearLabel} × Meta (Target)
                 </button>
                 <button
                   className={`comparison-pill ${comparisonMode === 'ytd' ? 'active' : ''}`}
@@ -194,107 +294,23 @@ function App() {
                   Insight Executivo — {activeTab === 'logisticCost' ? 'War Room Report (Logistic Cost KPI TV)' : activeTab === 'airFreight' ? 'Air Freight KPI TV' : 'Logistic Cost x Product Amount'}
                 </strong>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  {activeTab === 'logisticCost' && 'Em Mai/26 o custo logístico situou-se em 4.70% do valor produzido, com atingimento de 97.0% da meta (4.56%). Em Jan/26, houve ganho de eficiência com 120.5% de atingimento.'}
-                  {activeTab === 'airFreight' && 'O uso de frete aéreo em 2026 sofreu pressão de despesas não planejadas em Mar/26 (0.74% vs meta de 0.22%). Recomenda-se migração de urgências para o modal marítimo.'}
-                  {activeTab === 'logisticsVsProd' && 'A proporção direta de custo por valor de produção mantém estabilidade em ~4.4%. O volume acumulado de produção atingiu $277.94 MUSD com despesa logística acumulada de $12.23 MUSD.'}
+                  {activeTab === 'logisticCost' && `No período ${selectedSubPeriod}/${currentYearLabel.substring(2)}, o custo logístico situou-se em ${logCostInfo.latest ? (logCostInfo.latest * 100).toFixed(2) + '%' : 'N/A'}.`}
+                  {activeTab === 'airFreight' && `O uso de frete aéreo em ${selectedSubPeriod} registrou ${airFreightInfo.latest ? (airFreightInfo.latest * 100).toFixed(2) + '%' : 'N/A'}.`}
+                  {activeTab === 'logisticsVsProd' && `O volume acumulado de produção até ${selectedSubPeriod} atingiu $${kpi3Latest.totalProd ? kpi3Latest.totalProd.toFixed(2) : '0'} MUSD.`}
                 </span>
               </div>
             </div>
           )}
 
-          {/* KPI Cards — Row 1 (main metrics) */}
-          <div className="kpi-cards-grid">
-            <KPICard
-              title="Custo Logístico Total"
-              variant="logistic"
-              currentValue={logCostInfo.latest}
-              targetValue={logCostInfo.target}
-              achievement={logCostInfo.achievement}
-              variation={logCostInfo.variation}
-              variationAbsolute={logCostInfo.variationAbs}
-              sparklineData={logCostInfo.sparkline}
-              unit="%"
-              lowerIsBetter={true}
-              previousLabel={logCostInfo.prevLabel}
-              previousValue={logCostInfo.prevValue}
-              onClick={() => handleSidebarNavigate('logisticCost')}
-            />
-            <KPICard
-              title="Custo Médio — Air Freight"
-              variant="airfreight"
-              currentValue={airFreightInfo.latest}
-              targetValue={airFreightInfo.target}
-              achievement={airFreightInfo.achievement}
-              variation={airFreightInfo.variation}
-              variationAbsolute={airFreightInfo.variationAbs}
-              sparklineData={airFreightInfo.sparkline}
-              unit="%"
-              lowerIsBetter={true}
-              previousLabel={airFreightInfo.prevLabel}
-              previousValue={airFreightInfo.prevValue}
-              onClick={() => handleSidebarNavigate('airFreight')}
-            />
-            <KPICard
-              title="Custo por Valor de Produção"
-              variant="production"
-              currentValue={logVsProdInfo.latest}
-              targetValue={null}
-              achievement={null}
-              variation={logVsProdInfo.variation}
-              variationAbsolute={logVsProdInfo.variationAbs}
-              sparklineData={logVsProdInfo.sparkline}
-              unit="Ratio"
-              lowerIsBetter={true}
-              previousLabel={logVsProdInfo.prevLabel}
-              previousValue={logVsProdInfo.prevValue}
-              onClick={() => handleSidebarNavigate('logisticsVsProd')}
-            />
-          </div>
-
-          {/* KPI Cards — Row 2 (derived metrics) */}
-          <div className="kpi-cards-grid">
-            <KPICard
-              title="Valor Total de Produção"
-              variant="production"
-              currentValue={kpi3Latest.totalProd}
-              variation={prodVariation}
-              variationAbsolute={kpi3PrevTotals.totalProd ? kpi3Latest.totalProd - kpi3PrevTotals.totalProd : null}
-              sparklineData={logisticsCostVsProdData
-                .filter((d) => d.year === selectedYear && d.productionAmount !== null)
-                .map((d) => ({ value: d.productionAmount }))}
-              unit="MUSD"
-              lowerIsBetter={false}
-              previousLabel={`Acum. ${prevYearLabel}`}
-              previousValue={kpi3PrevTotals.totalProd}
-            />
-            <KPICard
-              title="Custo Logístico Acumulado"
-              variant="logistic"
-              currentValue={kpi3Latest.totalCost}
-              variation={costVariation}
-              variationAbsolute={kpi3PrevTotals.totalCost ? kpi3Latest.totalCost - kpi3PrevTotals.totalCost : null}
-              sparklineData={logisticsCostVsProdData
-                .filter((d) => d.year === selectedYear && d.logisticsCost !== null)
-                .map((d) => ({ value: d.logisticsCost }))}
-              unit="MUSD"
-              lowerIsBetter={true}
-              previousLabel={`Acum. ${prevYearLabel}`}
-              previousValue={kpi3PrevTotals.totalCost}
-            />
-            <KPICard
-              title="Percentual de Atingimento"
-              variant="airfreight"
-              currentValue={logCostInfo.achievement}
-              variation={null}
-              sparklineData={logisticCostData
-                .filter((d) => d.year === selectedYear && d.achievement !== null)
-                .map((d) => ({ value: d.achievement }))}
-              unit="achievement"
-              lowerIsBetter={false}
-              previousLabel="Meta"
-              previousValue={logCostInfo.target}
-            />
-          </div>
+          {/* Consolidated KPI Comparison Matrix */}
+          <KPIComparisonMatrix
+            selectedSubPeriod={selectedSubPeriod}
+            selectedYear={selectedYear}
+            comparisonMode={comparisonMode}
+            logCostInfo={logCostInfo}
+            airFreightInfo={airFreightInfo}
+            logVsProdInfo={logVsProdInfo}
+          />
 
           {/* KPI Detail Sections */}
           {(activeTab === 'dashboard' || activeTab === 'logisticCost') && (
@@ -305,7 +321,7 @@ function App() {
                 icon={DollarSign}
                 monthlyData={logisticCostData}
                 quarterlyData={quarterlyLogisticCost}
-                accentColor="#3b82f6"
+                accentColor="#E7194A"
                 lowerIsBetter={true}
                 unit="%"
                 selectedYear={selectedYear}
@@ -322,7 +338,7 @@ function App() {
                 icon={Plane}
                 monthlyData={airFreightData}
                 quarterlyData={quarterlyAirFreight}
-                accentColor="#14b8a6"
+                accentColor="#F59E0B"
                 lowerIsBetter={true}
                 unit="%"
                 selectedYear={selectedYear}
@@ -339,7 +355,7 @@ function App() {
                 icon={Package}
                 monthlyData={logisticsCostVsProdData}
                 quarterlyData={quarterlyLogisticsCostVsProd}
-                accentColor="#8b5cf6"
+                accentColor="#22C55E"
                 lowerIsBetter={true}
                 unit="Ratio"
                 selectedYear={selectedYear}
@@ -361,4 +377,3 @@ function App() {
 }
 
 export default App;
-

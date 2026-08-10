@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
 import { Area, AreaChart, ResponsiveContainer } from 'recharts';
 import { formatPercent, formatCurrency } from '../utils/formatters';
 
@@ -10,6 +10,7 @@ const VARIANT_COLORS = {
 
 export default function KPICard({
   title,
+  subPeriodLabel,
   variant,
   currentValue,
   targetValue,
@@ -33,7 +34,6 @@ export default function KPICard({
     return val;
   };
 
-  // Variation direction: for "lower is better", decrease = good (positive badge)
   const getVariationClass = () => {
     if (variation === null || variation === undefined) return 'neutral';
     if (lowerIsBetter) return variation <= 0 ? 'positive' : 'negative';
@@ -42,7 +42,6 @@ export default function KPICard({
 
   const variationClass = getVariationClass();
 
-  // Arrow icon based on improvement direction
   const VariationIcon = () => {
     if (variation === null || variation === undefined) return <Minus size={12} />;
     if (variationClass === 'positive') {
@@ -53,9 +52,19 @@ export default function KPICard({
 
   return (
     <div className="kpi-card animate-fade-in" onClick={onClick}>
-      <div className="kpi-card__label">{title}</div>
+      <div className="kpi-card__top">
+        <div className="kpi-card__label">{title}</div>
+        {subPeriodLabel && <div className="kpi-card__period-tag">{subPeriodLabel}</div>}
+      </div>
 
-      <div className="kpi-card__value">{formatValue(currentValue)}</div>
+      <div className="kpi-card__value-row">
+        <div className="kpi-card__value">{formatValue(currentValue)}</div>
+        {targetValue !== null && targetValue !== undefined && (
+          <div className="kpi-card__target-badge" title="Meta (Target) Oficial">
+            Meta: {formatValue(targetValue)}
+          </div>
+        )}
+      </div>
 
       <div className="kpi-card__badges">
         {variation !== null && variation !== undefined ? (
@@ -65,14 +74,14 @@ export default function KPICard({
               {variation > 0 ? '+' : ''}{variation.toFixed(1)}%
             </span>
             {variationAbsolute !== null && variationAbsolute !== undefined && (
-              <span className="kpi-card__diff">
-                {variationAbsolute > 0 ? '+' : ''}{formatValue(variationAbsolute)}
+              <span className="kpi-card__diff" title="Desvio Absoluto em p.p. / valor">
+                Desvio: {variationAbsolute > 0 ? '+' : ''}{formatValue(variationAbsolute)}
               </span>
             )}
           </>
         ) : (
           <span className="kpi-card__variation neutral">
-            <Minus size={12} /> — 
+            <Minus size={12} /> Sem variação
           </span>
         )}
       </div>
@@ -102,7 +111,7 @@ export default function KPICard({
 
       {previousLabel && (
         <div className="kpi-card__prev">
-          {previousLabel}: <strong>{formatValue(previousValue)}</strong>
+          <span>{previousLabel}:</span> <strong>{formatValue(previousValue)}</strong>
         </div>
       )}
     </div>

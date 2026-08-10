@@ -50,8 +50,8 @@ function CustomTooltip({ active, payload, label, unit }) {
       {data.target !== undefined && data.target !== null && (
         <div className="custom-tooltip__row">
           <span className="custom-tooltip__label">
-            <span className="custom-tooltip__dot" style={{ background: '#22C55E' }}></span>
-            Target
+            <span className="custom-tooltip__dot" style={{ background: '#10b981' }}></span>
+            Target (Meta)
           </span>
           <span className="custom-tooltip__value">{formatValue(data.target, unit)}</span>
         </div>
@@ -59,7 +59,7 @@ function CustomTooltip({ active, payload, label, unit }) {
 
       {data.currentAchievement !== undefined && data.currentAchievement !== null && (
         <div className="custom-tooltip__row">
-          <span className="custom-tooltip__label">Atingimento</span>
+          <span className="custom-tooltip__label">Atingimento Meta</span>
           <span className="custom-tooltip__value">{(data.currentAchievement * 100).toFixed(0)}%</span>
         </div>
       )}
@@ -87,7 +87,7 @@ function CustomLegend({ accentColor, lineColor, targetColor, hasTarget }) {
       {hasTarget && (
         <div className="custom-legend__item">
           <div className="custom-legend__marker--dashed" style={{ borderColor: targetColor }}></div>
-          <span>Target</span>
+          <span>Target (Meta)</span>
         </div>
       )}
     </div>
@@ -109,14 +109,13 @@ export default function ComparisonChart({
 
   const hasTarget = data.some(d => d.target !== undefined && d.target !== null);
 
-  // Filter out future months with no data
   const chartData = data.filter(d => d.currentResult !== null || d.previousResult !== null);
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', height: '360px', paddingBottom: '8px' }}>
-      <div style={{ flex: 1, minHeight: '300px', width: '100%' }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 10, left: 10 }}>
+    <div className="comparison-chart-wrapper">
+      <div className="comparison-chart-canvas">
+        <ResponsiveContainer width="100%" height={280}>
+          <ComposedChart data={chartData} margin={{ top: 20, right: 20, bottom: 10, left: 10 }}>
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
@@ -135,14 +134,14 @@ export default function ComparisonChart({
               axisLine={false}
               tickLine={false}
               tickFormatter={formatYAxis}
-              width={60}
+              width={55}
             />
             <Tooltip
               content={<CustomTooltip unit={unit} />}
               cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
             />
 
-            <Bar dataKey="currentResult" radius={[4, 4, 0, 0]} maxBarSize={40}>
+            <Bar dataKey="currentResult" radius={[4, 4, 0, 0]} maxBarSize={38}>
               {chartData.map((entry, index) => {
                 let fill = accentColor;
                 if (entry.isBest) fill = '#22C55E';

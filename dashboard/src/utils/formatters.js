@@ -5,7 +5,27 @@ export const formatPercent = (value, decimals = 1) => {
 
 export const formatCurrency = (value, decimals = 2) => {
   if (value === null || value === undefined) return '-';
-  return `$${value.toFixed(decimals)}M`;
+  const sign = value < 0 ? '-' : '';
+  return `${sign}$${Math.abs(value).toFixed(decimals)}M`;
+};
+
+export const formatThousands = (value, decimals = 0) => {
+  if (value === null || value === undefined) return '-';
+  const sign = value < 0 ? '-' : '';
+  return `${sign}$${Math.abs(value).toFixed(decimals)}K`;
+};
+
+/**
+ * Formata um valor de acordo com a unidade do indicador.
+ * Usado pelos cards de KPI e pela matriz comparativa.
+ */
+export const formatMetricValue = (value, unit) => {
+  if (value === null || value === undefined || Number.isNaN(value)) return '—';
+  if (unit === '%' || unit === 'Ratio') return formatPercent(value, 2);
+  if (unit === 'MUSD') return formatCurrency(value);
+  if (unit === 'KUSD') return formatThousands(value);
+  if (unit === 'achievement') return `${(value * 100).toFixed(0)}%`;
+  return value;
 };
 
 export const formatVariation = (value) => {

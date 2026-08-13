@@ -1,17 +1,11 @@
-import { TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Area, AreaChart, ResponsiveContainer } from 'recharts';
-import { formatPercent, formatCurrency } from '../utils/formatters';
-
-const VARIANT_COLORS = {
-  logistic: '#3b82f6',
-  airfreight: '#14b8a6',
-  production: '#8b5cf6',
-};
+import { formatMetricValue } from '../utils/formatters';
 
 export default function KPICard({
   title,
   subPeriodLabel,
-  variant,
+  color = '#3B82F6',
   currentValue,
   targetValue,
   achievement,
@@ -24,15 +18,9 @@ export default function KPICard({
   previousValue,
   onClick,
 }) {
-  const color = VARIANT_COLORS[variant] || '#3b82f6';
+  const gradientId = `sparkGrad-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
-  const formatValue = (val) => {
-    if (val === null || val === undefined) return '—';
-    if (unit === '%' || unit === 'Ratio') return formatPercent(val);
-    if (unit === 'MUSD') return formatCurrency(val);
-    if (unit === 'achievement') return `${(val * 100).toFixed(0)}%`;
-    return val;
-  };
+  const formatValue = (val) => formatMetricValue(val, unit);
 
   const getVariationClass = () => {
     if (variation === null || variation === undefined) return 'neutral';
@@ -51,7 +39,7 @@ export default function KPICard({
   };
 
   return (
-    <div className="kpi-card animate-fade-in" onClick={onClick}>
+    <div className="kpi-card animate-fade-in" onClick={onClick} style={{ borderTop: `2px solid ${color}` }}>
       <div className="kpi-card__top">
         <div className="kpi-card__label">{title}</div>
         {subPeriodLabel && <div className="kpi-card__period-tag">{subPeriodLabel}</div>}
@@ -60,7 +48,7 @@ export default function KPICard({
       <div className="kpi-card__value-row">
         <div className="kpi-card__value">{formatValue(currentValue)}</div>
         {targetValue !== null && targetValue !== undefined && (
-          <div className="kpi-card__target-badge" title="Meta (Target) Oficial">
+          <div className="kpi-card__target-badge" title="Meta (Target) do período selecionado">
             Meta: {formatValue(targetValue)}
           </div>
         )}
@@ -68,20 +56,18 @@ export default function KPICard({
 
       <div className="kpi-card__badges">
         {variation !== null && variation !== undefined ? (
-          <>
-            <span className={`kpi-card__variation ${variationClass}`}>
-              <VariationIcon />
-              {variation > 0 ? '+' : ''}{variation.toFixed(1)}%
-            </span>
-            {variationAbsolute !== null && variationAbsolute !== undefined && (
-              <span className="kpi-card__diff" title="Desvio Absoluto em p.p. / valor">
-                Desvio: {variationAbsolute > 0 ? '+' : ''}{formatValue(variationAbsolute)}
-              </span>
-            )}
-          </>
+          <span className={`kpi-card__variation ${variationClass}`}>
+            <VariationIcon />
+            {variation > 0 ? '+' : ''}{variation.toFixed(1)}%
+          </span>
         ) : (
           <span className="kpi-card__variation neutral">
             <Minus size={12} /> Sem variação
+          </span>
+        )}
+        {achievement !== null && achievement !== undefined && (
+          <span className={`achievement-pill ${achievement >= 1 ? 'good' : 'alert'}`} title="Atingimento da meta no período">
+            {(achievement * 100).toFixed(0)}%
           </span>
         )}
       </div>
@@ -91,8 +77,8 @@ export default function KPICard({
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={sparklineData}>
               <defs>
-                <linearGradient id={`sparkGrad-${variant}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={0.35} />
                   <stop offset="100%" stopColor={color} stopOpacity={0} />
                 </linearGradient>
               </defs>
@@ -100,7 +86,7 @@ export default function KPICard({
                 type="monotone"
                 dataKey="value"
                 stroke={color}
-                fill={`url(#sparkGrad-${variant})`}
+                fill={`url(#${gradientId})`}
                 strokeWidth={1.5}
                 dot={false}
               />
@@ -111,7 +97,12 @@ export default function KPICard({
 
       {previousLabel && (
         <div className="kpi-card__prev">
-          <span>{previousLabel}:</span> <strong>{formatValue(previousValue)}</strong>
+          <span>Período anterior ({previousLabel}):</span> <strong>{formatValue(previousValue)}</strong>
+          {variationAbsolute !== null && variationAbsolute !== undefined && (
+            <span className="kpi-card__diff">
+              {' '}· Desvio {variationAbsolute > 0 ? '+' : ''}{formatValue(variationAbsolute)}
+            </span>
+          )}
         </div>
       )}
     </div>

@@ -33,7 +33,7 @@ function CustomTooltip({ active, payload, label, unit }) {
       
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
-          <span className="custom-tooltip__dot" style={{ background: '#E7194A' }}></span>
+          <span className="custom-tooltip__dot" style={{ background: '#3B82F6' }}></span>
           Atual (2026)
         </span>
         <span className="custom-tooltip__value">{formatValue(data.currentResult, unit)}</span>
@@ -41,7 +41,7 @@ function CustomTooltip({ active, payload, label, unit }) {
       
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
-          <span className="custom-tooltip__dot" style={{ background: '#9E9E9E' }}></span>
+          <span className="custom-tooltip__dot" style={{ background: '#A78BFA' }}></span>
           Anterior (2025)
         </span>
         <span className="custom-tooltip__value">{formatValue(data.previousResult, unit)}</span>
@@ -50,7 +50,7 @@ function CustomTooltip({ active, payload, label, unit }) {
       {data.target !== undefined && data.target !== null && (
         <div className="custom-tooltip__row">
           <span className="custom-tooltip__label">
-            <span className="custom-tooltip__dot" style={{ background: '#10b981' }}></span>
+            <span className="custom-tooltip__dot" style={{ background: '#F59E0B' }}></span>
             Target (Meta)
           </span>
           <span className="custom-tooltip__value">{formatValue(data.target, unit)}</span>
@@ -94,12 +94,16 @@ function CustomLegend({ accentColor, lineColor, targetColor, hasTarget }) {
   );
 }
 
+/* Paleta: barras sempre em tons de azul; linhas de target e ano anterior em cores não-vermelhas. */
+const BAR_BEST = '#7DD3FC';   // azul claro — melhor período
+const BAR_WORST = '#1E3A8A';  // azul escuro — pior período
+
 export default function ComparisonChart({
   data,
   unit,
-  accentColor = '#E7194A',
-  lineColor = '#9E9E9E',
-  targetColor = '#22C55E',
+  accentColor = '#3B82F6',
+  lineColor = '#A78BFA',
+  targetColor = '#F59E0B',
   selectedPeriod,
   onPeriodClick,
 }) {
@@ -154,8 +158,8 @@ export default function ComparisonChart({
             <Bar dataKey="currentResult" radius={[4, 4, 0, 0]} maxBarSize={38}>
               {chartData.map((entry, index) => {
                 let fill = accentColor;
-                if (entry.isBest) fill = '#22C55E';
-                if (entry.isWorst) fill = '#E7194A';
+                if (entry.isBest) fill = BAR_BEST;
+                if (entry.isWorst) fill = BAR_WORST;
 
                 const isSelected = entry.period === selectedPeriod;
                 const opacity = selectedPeriod ? (isSelected ? 1.0 : 0.35) : 0.85;

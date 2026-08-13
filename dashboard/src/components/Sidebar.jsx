@@ -3,7 +3,9 @@ import {
   DollarSign,
   Plane,
   Package,
-  HelpCircle
+  HelpCircle,
+  BarChart2,
+  AlertTriangle
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -11,9 +13,16 @@ const NAV_ITEMS = [
   { id: 'logisticCost', icon: DollarSign, label: 'War Room Report', badge: 'KPI %' },
   { id: 'airFreight', icon: Plane, label: 'Air Freight', badge: 'Aéreo' },
   { id: 'logisticsVsProd', icon: Package, label: 'Cost x Product', badge: 'Ratio' },
+  { id: 'analytics', icon: BarChart2, label: 'Analytics', badge: 'Novo' },
 ];
 
-export default function Sidebar({ activeItem = 'dashboard', onNavigate, onOpenHelp }) {
+export default function Sidebar({ 
+  activeItem = 'dashboard', 
+  onNavigate, 
+  onOpenHelp,
+  alertsCount = 0,
+  kpisWithAlerts = [],
+}) {
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
@@ -26,17 +35,31 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onOpenHe
 
       <nav className="sidebar__nav">
         <div className="sidebar__section-label">PAINÉIS DISPONÍVEIS</div>
-        {NAV_ITEMS.map(({ id, icon: Icon, label, badge }) => (
-          <button
-            key={id}
-            className={`sidebar__item ${activeItem === id ? 'active' : ''}`}
-            onClick={() => onNavigate?.(id)}
-          >
-            <Icon size={16} />
-            <span className="sidebar__item-label">{label}</span>
-            {badge && <span className="sidebar__item-badge">{badge}</span>}
-          </button>
-        ))}
+        {NAV_ITEMS.map(({ id, icon: Icon, label, badge }) => {
+          const hasAlert = kpisWithAlerts.includes(id);
+          const isAnalytics = id === 'analytics';
+          
+          return (
+            <button
+              key={id}
+              className={`sidebar__item ${activeItem === id ? 'active' : ''} ${hasAlert ? 'sidebar__item--has-alert' : ''}`}
+              onClick={() => onNavigate?.(id)}
+            >
+              <Icon size={16} />
+              <span className="sidebar__item-label">{label}</span>
+              {hasAlert && (
+                <span className="sidebar__item-warning" title="Alerta de inconsistência ou oscilação detectada">
+                  <AlertTriangle size={12} className="text-warning" />
+                </span>
+              )}
+              {isAnalytics && alertsCount > 0 ? (
+                <span className="sidebar__item-badge sidebar__item-badge--alert">{alertsCount}</span>
+              ) : (
+                badge && <span className="sidebar__item-badge">{badge}</span>
+              )}
+            </button>
+          );
+        })}
       </nav>
 
       <div className="sidebar__help-box" onClick={onOpenHelp}>

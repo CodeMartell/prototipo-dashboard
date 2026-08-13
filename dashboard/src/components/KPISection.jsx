@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import ComparisonChart from './ComparisonChart';
 import DetailTable from './DetailTable';
 import ActionPlanPanel from './ActionPlanPanel';
@@ -93,9 +93,17 @@ function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey
 
 export default function KPISection({
   kpiKey, title, icon: Icon, monthlyData, quarterlyData,
-  accentColor, lowerIsBetter, unit, selectedYear, period,
+  accentColor, lowerIsBetter, unit, selectedYear, period, activePeriodLabel,
 }) {
   const [showTable, setShowTable] = useState(false);
+  const [localSelectedPeriod, setLocalSelectedPeriod] = useState(null);
+
+  // Sync or reset local selection when the global active period label or grouping period type changes
+  useEffect(() => {
+    setLocalSelectedPeriod(null);
+  }, [activePeriodLabel, period]);
+
+  const activePeriod = localSelectedPeriod || activePeriodLabel;
 
   const chartData = useMemo(() => {
     const raw = buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey);
@@ -153,7 +161,14 @@ export default function KPISection({
       <div className="chart-panel">
         <div className="chart-panel-body">
           {!showTable ? (
-            <ComparisonChart data={chartData} unit={unit} lowerIsBetter={lowerIsBetter} accentColor={accentColor} />
+            <ComparisonChart
+              data={chartData}
+              unit={unit}
+              lowerIsBetter={lowerIsBetter}
+              accentColor={accentColor}
+              selectedPeriod={activePeriod}
+              onPeriodClick={setLocalSelectedPeriod}
+            />
           ) : (
             <DetailTable
               data={chartData}
@@ -162,14 +177,44 @@ export default function KPISection({
               bestPeriod={chartData.find((d) => d.isBest)?.period}
               worstPeriod={chartData.find((d) => d.isWorst)?.period}
               anomalies={chartData.filter((d) => d.isAnomaly).map((d) => d.period)}
+              selectedPeriod={activePeriod}
+              onPeriodClick={setLocalSelectedPeriod}
             />
           )}
         </div>
       </div>
 
+      {/* Dynamic Focus Period Header */}
+      <div className="kpi-section__period-focus">
+        <div className="kpi-section__period-focus-badge" style={{ borderLeft: `3px solid ${accentColor}` }}>
+          Período em Foco: <strong>{activePeriod} / {selectedYear.substring(1)}</strong>
+        </div>
+        <div className="kpi-section__period-focus-hint">
+          {localSelectedPeriod ? (
+            <button className="kpi-section__period-reset-btn" onClick={() => setLocalSelectedPeriod(null)}>
+              Resetar para padrão global ({activePeriodLabel})
+            </button>
+          ) : (
+            <span>Clique em uma coluna do gráfico ou linha da tabela para selecionar outro mês</span>
+          )}
+        </div>
+      </div>
+
       <div className="kpi-section__actions">
-        <ActionPlanPanel kpiName={title} period={period} insight={INSIGHTS[kpiKey]} />
-        <EvidencePanel kpiName={title} />
+        <ActionPlanPanel
+          kpiKey={kpiKey}
+          kpiName={title}
+          period={period}
+          selectedYear={selectedYear}
+          periodLabel={activePeriod}
+          insight={INSIGHTS[kpiKey]}
+        />
+        <EvidencePanel
+          kpiKey={kpiKey}
+          kpiName={title}
+          selectedYear={selectedYear}
+          periodLabel={activePeriod}
+        />
       </div>
     </div>
   );

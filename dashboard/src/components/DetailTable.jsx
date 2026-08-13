@@ -16,6 +16,8 @@ export default function DetailTable({
   bestPeriod,
   worstPeriod,
   anomalies = [],
+  selectedPeriod,
+  onPeriodClick,
 }) {
   return (
     <div className="data-table__container">
@@ -32,14 +34,23 @@ export default function DetailTable({
             const isBest = row.period === bestPeriod;
             const isWorst = row.period === worstPeriod;
             const isAnomaly = anomalies.includes(row.period);
+            const isSelected = row.period === selectedPeriod;
 
-            let rowClass = '';
-            if (isBest) rowClass = 'row-best';
-            else if (isWorst) rowClass = 'row-worst';
-            else if (isAnomaly) rowClass = 'row-anomaly';
+            let rowClasses = [];
+            if (isBest) rowClasses.push('row-best');
+            else if (isWorst) rowClasses.push('row-worst');
+            else if (isAnomaly) rowClasses.push('row-anomaly');
+            if (isSelected) rowClasses.push('row-selected');
+
+            const rowClass = rowClasses.join(' ');
 
             return (
-              <tr key={row.period || rowIndex} className={rowClass}>
+              <tr
+                key={row.period || rowIndex}
+                className={rowClass}
+                onClick={() => onPeriodClick && onPeriodClick(row.period)}
+                style={{ cursor: onPeriodClick ? 'pointer' : 'default' }}
+              >
                 {columns.map((col, colIndex) => {
                   const value = row[col.key];
                   const formatted = formatCell(value, col.format);

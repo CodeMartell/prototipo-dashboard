@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Upload, FileText, X } from 'lucide-react';
 
 const MOCK_FILES = [
@@ -7,22 +7,43 @@ const MOCK_FILES = [
   'Relatorio_Logistica_Q1_2026.xlsx',
 ];
 
-export default function EvidencePanel({ kpiName }) {
-  const [files, setFiles] = useState([]);
+export default function EvidencePanel({
+  kpiKey,
+  kpiName,
+  selectedYear,
+  periodLabel,
+}) {
+  const storageKey = `ev_${kpiKey || 'kpi'}_${selectedYear || 'Y26'}_${periodLabel || 'Jan'}`;
+
+  // Read files from localStorage on initialization
+  const [files, setFiles] = useState(() => {
+    const saved = localStorage.getItem(storageKey);
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Load files when storageKey changes
+  useEffect(() => {
+    const saved = localStorage.getItem(storageKey);
+    setFiles(saved ? JSON.parse(saved) : []);
+  }, [storageKey]);
 
   const handleAddFile = () => {
     const randomFile = MOCK_FILES[Math.floor(Math.random() * MOCK_FILES.length)];
     const timestamp = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    setFiles((prev) => [...prev, { name: randomFile, addedAt: timestamp, id: Date.now() }]);
+    const newFiles = [...files, { name: randomFile, addedAt: timestamp, id: Date.now() }];
+    setFiles(newFiles);
+    localStorage.setItem(storageKey, JSON.stringify(newFiles));
   };
 
   const handleRemoveFile = (id) => {
-    setFiles((prev) => prev.filter((f) => f.id !== id));
+    const newFiles = files.filter((f) => f.id !== id);
+    setFiles(newFiles);
+    localStorage.setItem(storageKey, JSON.stringify(newFiles));
   };
 
   return (
     <div>
-      <div className="evidence-panel__title">Evidências — {kpiName}</div>
+      <div className="evidence-panel__title">Evidências — {kpiName} ({periodLabel})</div>
       <div className="evidence-panel" onClick={handleAddFile}>
         <div className="evidence-panel__dropzone">
           <div className="evidence-panel__dropzone-icon">

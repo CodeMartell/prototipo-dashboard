@@ -100,6 +100,8 @@ export default function ComparisonChart({
   accentColor = '#E7194A',
   lineColor = '#9E9E9E',
   targetColor = '#22C55E',
+  selectedPeriod,
+  onPeriodClick,
 }) {
   const formatYAxis = (val) => {
     if (unit === '%' || unit === 'Ratio') return `${(val * 100).toFixed(1)}%`;
@@ -115,7 +117,15 @@ export default function ComparisonChart({
     <div className="comparison-chart-wrapper">
       <div className="comparison-chart-canvas">
         <ResponsiveContainer width="100%" height={280}>
-          <ComposedChart data={chartData} margin={{ top: 20, right: 20, bottom: 10, left: 10 }}>
+          <ComposedChart
+            data={chartData}
+            margin={{ top: 20, right: 20, bottom: 10, left: 10 }}
+            onClick={(nextState) => {
+              if (onPeriodClick && nextState && nextState.activeLabel) {
+                onPeriodClick(nextState.activeLabel);
+              }
+            }}
+          >
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
@@ -146,7 +156,22 @@ export default function ComparisonChart({
                 let fill = accentColor;
                 if (entry.isBest) fill = '#22C55E';
                 if (entry.isWorst) fill = '#E7194A';
-                return <Cell key={`cell-${index}`} fill={fill} fillOpacity={entry.currentResult === null ? 0 : 0.85} />;
+
+                const isSelected = entry.period === selectedPeriod;
+                const opacity = selectedPeriod ? (isSelected ? 1.0 : 0.35) : 0.85;
+                const stroke = isSelected ? '#FFFFFF' : 'none';
+                const strokeWidth = isSelected ? 2 : 0;
+
+                return (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={fill}
+                    fillOpacity={entry.currentResult === null ? 0 : opacity}
+                    stroke={stroke}
+                    strokeWidth={strokeWidth}
+                    style={{ cursor: 'pointer' }}
+                  />
+                );
               })}
             </Bar>
 

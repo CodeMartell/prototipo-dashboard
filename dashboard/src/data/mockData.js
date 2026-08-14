@@ -2,22 +2,40 @@ export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', '
 
 export const KPI_CONFIG = {
   logisticCost: {
-    name: 'Logistic Cost KPI TV',
+    name: 'War Room',
     unit: '%',
     lowerIsBetter: true,
-    colors: { primary: '#3b82f6', secondary: '#ef4444', target: '#10b981' }
+    colors: { primary: '#3b82f6', secondary: '#60a5fa', target: '#f59e0b' }
+  },
+  incidentialCost: {
+    name: 'Incidential Cost',
+    unit: '%',
+    lowerIsBetter: true,
+    colors: { primary: '#2563eb', secondary: '#93c5fd', target: '#f59e0b' }
+  },
+  totalCost: {
+    name: 'Total Cost',
+    unit: 'MUSD',
+    lowerIsBetter: true,
+    colors: { primary: '#1d4ed8', secondary: '#60a5fa', target: '#f59e0b' }
+  },
+  demurrage: {
+    name: 'Demurrage',
+    unit: 'KUSD',
+    lowerIsBetter: true,
+    colors: { primary: '#0ea5e9', secondary: '#7dd3fc', target: '#f59e0b' }
   },
   airFreight: {
-    name: 'Air Freight KPI TV',
+    name: 'Air Freight',
     unit: '%',
     lowerIsBetter: true,
-    colors: { primary: '#8b5cf6', secondary: '#f59e0b', target: '#10b981' }
+    colors: { primary: '#38bdf8', secondary: '#bae6fd', target: '#f59e0b' }
   },
   logisticsVsProd: {
     name: 'Logistics Cost x Product Amount',
     unit: 'Ratio',
     lowerIsBetter: true,
-    colors: { primary: '#ec4899', secondary: '#14b8a6' }
+    colors: { primary: '#0284c7', secondary: '#7dd3fc' }
   }
 };
 
@@ -106,6 +124,129 @@ export const logisticsCostVsProdData = [
   { month: 'Oct', year: 'Y26', logisticsCost: 1.60, productionAmount: 52.98, ratio: 0.0302 },
   { month: 'Nov', year: 'Y26', logisticsCost: 1.30, productionAmount: 27.08, ratio: 0.0480 },
   { month: 'Dec', year: 'Y26', logisticsCost: 1.48, productionAmount: 32.03, ratio: 0.0462 },
+];
+
+/* Incidential Cost — custos incidentais (avarias, reentregas, retrabalho) como % do faturamento */
+export const incidentialCostData = [
+  // Y25
+  { month: 'Jan', year: 'Y25', target: 0.0080, result: 0.0092, achievement: 0.870 },
+  { month: 'Feb', year: 'Y25', target: 0.0080, result: 0.0071, achievement: 1.127 },
+  { month: 'Mar', year: 'Y25', target: 0.0080, result: 0.0085, achievement: 0.941 },
+  { month: 'Apr', year: 'Y25', target: 0.0080, result: 0.0104, achievement: 0.769 },
+  { month: 'May', year: 'Y25', target: 0.0080, result: 0.0078, achievement: 1.026 },
+  { month: 'Jun', year: 'Y25', target: 0.0080, result: 0.0065, achievement: 1.231 },
+  { month: 'Jul', year: 'Y25', target: 0.0080, result: 0.0088, achievement: 0.909 },
+  { month: 'Aug', year: 'Y25', target: 0.0080, result: 0.0074, achievement: 1.081 },
+  { month: 'Sep', year: 'Y25', target: 0.0080, result: 0.0059, achievement: 1.356 },
+  { month: 'Oct', year: 'Y25', target: 0.0080, result: 0.0062, achievement: 1.290 },
+  { month: 'Nov', year: 'Y25', target: 0.0080, result: 0.0115, achievement: 0.696 },
+  { month: 'Dec', year: 'Y25', target: 0.0080, result: 0.0083, achievement: 0.964 },
+  // Y26
+  { month: 'Jan', year: 'Y26', target: 0.0065, result: 0.0072, achievement: 0.903 },
+  { month: 'Feb', year: 'Y26', target: 0.0065, result: 0.0058, achievement: 1.121 },
+  { month: 'Mar', year: 'Y26', target: 0.0065, result: 0.0081, achievement: 0.802 },
+  { month: 'Apr', year: 'Y26', target: 0.0065, result: 0.0069, achievement: 0.942 },
+  { month: 'May', year: 'Y26', target: 0.0065, result: 0.0063, achievement: 1.032 },
+  { month: 'Jun', year: 'Y26', target: 0.0065, result: 0.0055, achievement: 1.182 },
+  { month: 'Jul', year: 'Y26', target: 0.0065, result: 0.0074, achievement: 0.878 },
+  { month: 'Aug', year: 'Y26', target: 0.0065, result: 0.0061, achievement: 1.066 },
+  { month: 'Sep', year: 'Y26', target: 0.0065, result: 0.0048, achievement: 1.354 },
+  { month: 'Oct', year: 'Y26', target: 0.0065, result: 0.0052, achievement: 1.250 },
+  { month: 'Nov', year: 'Y26', target: 0.0065, result: 0.0070, achievement: 0.929 },
+  { month: 'Dec', year: 'Y26', target: 0.0065, result: 0.0066, achievement: 0.985 },
+];
+
+/* Total Cost — custo logístico total em MUSD (valores absolutos, somados nos agrupamentos) */
+export const totalCostData = [
+  // Y25
+  { month: 'Jan', year: 'Y25', target: 2.70, result: 2.66, achievement: 1.015 },
+  { month: 'Feb', year: 'Y25', target: 2.00, result: 1.91, achievement: 1.047 },
+  { month: 'Mar', year: 'Y25', target: 2.05, result: 1.97, achievement: 1.041 },
+  { month: 'Apr', year: 'Y25', target: 2.10, result: 2.20, achievement: 0.955 },
+  { month: 'May', year: 'Y25', target: 2.15, result: 2.07, achievement: 1.039 },
+  { month: 'Jun', year: 'Y25', target: 2.05, result: 1.97, achievement: 1.041 },
+  { month: 'Jul', year: 'Y25', target: 2.40, result: 2.55, achievement: 0.941 },
+  { month: 'Aug', year: 'Y25', target: 2.40, result: 2.33, achievement: 1.030 },
+  { month: 'Sep', year: 'Y25', target: 1.60, result: 1.48, achievement: 1.081 },
+  { month: 'Oct', year: 'Y25', target: 1.65, result: 1.58, achievement: 1.044 },
+  { month: 'Nov', year: 'Y25', target: 1.50, result: 1.65, achievement: 0.909 },
+  { month: 'Dec', year: 'Y25', target: 1.40, result: 1.36, achievement: 1.029 },
+  // Y26
+  { month: 'Jan', year: 'Y26', target: 2.45, result: 2.38, achievement: 1.029 },
+  { month: 'Feb', year: 'Y26', target: 1.70, result: 1.61, achievement: 1.056 },
+  { month: 'Mar', year: 'Y26', target: 2.60, result: 2.77, achievement: 0.939 },
+  { month: 'Apr', year: 'Y26', target: 2.80, result: 2.77, achievement: 1.011 },
+  { month: 'May', year: 'Y26', target: 2.60, result: 2.70, achievement: 0.963 },
+  { month: 'Jun', year: 'Y26', target: 2.50, result: 2.45, achievement: 1.020 },
+  { month: 'Jul', year: 'Y26', target: 2.90, result: 3.02, achievement: 0.960 },
+  { month: 'Aug', year: 'Y26', target: 2.65, result: 2.58, achievement: 1.027 },
+  { month: 'Sep', year: 'Y26', target: 1.55, result: 1.46, achievement: 1.062 },
+  { month: 'Oct', year: 'Y26', target: 1.65, result: 1.60, achievement: 1.031 },
+  { month: 'Nov', year: 'Y26', target: 1.35, result: 1.30, achievement: 1.038 },
+  { month: 'Dec', year: 'Y26', target: 1.55, result: 1.48, achievement: 1.047 },
+];
+
+/* Demurrage — sobrestadia de contêineres em KUSD (valores absolutos, somados nos agrupamentos) */
+export const demurrageData = [
+  // Y25
+  { month: 'Jan', year: 'Y25', target: 50, result: 62, achievement: 0.806 },
+  { month: 'Feb', year: 'Y25', target: 50, result: 41, achievement: 1.220 },
+  { month: 'Mar', year: 'Y25', target: 50, result: 55, achievement: 0.909 },
+  { month: 'Apr', year: 'Y25', target: 50, result: 71, achievement: 0.704 },
+  { month: 'May', year: 'Y25', target: 50, result: 48, achievement: 1.042 },
+  { month: 'Jun', year: 'Y25', target: 50, result: 36, achievement: 1.389 },
+  { month: 'Jul', year: 'Y25', target: 50, result: 58, achievement: 0.862 },
+  { month: 'Aug', year: 'Y25', target: 50, result: 44, achievement: 1.136 },
+  { month: 'Sep', year: 'Y25', target: 50, result: 29, achievement: 1.724 },
+  { month: 'Oct', year: 'Y25', target: 50, result: 33, achievement: 1.515 },
+  { month: 'Nov', year: 'Y25', target: 50, result: 86, achievement: 0.581 },
+  { month: 'Dec', year: 'Y25', target: 50, result: 52, achievement: 0.962 },
+  // Y26
+  { month: 'Jan', year: 'Y26', target: 40, result: 47, achievement: 0.851 },
+  { month: 'Feb', year: 'Y26', target: 40, result: 32, achievement: 1.250 },
+  { month: 'Mar', year: 'Y26', target: 40, result: 51, achievement: 0.784 },
+  { month: 'Apr', year: 'Y26', target: 40, result: 43, achievement: 0.930 },
+  { month: 'May', year: 'Y26', target: 40, result: 38, achievement: 1.053 },
+  { month: 'Jun', year: 'Y26', target: 40, result: 29, achievement: 1.379 },
+  { month: 'Jul', year: 'Y26', target: 40, result: 49, achievement: 0.816 },
+  { month: 'Aug', year: 'Y26', target: 40, result: 36, achievement: 1.111 },
+  { month: 'Sep', year: 'Y26', target: 40, result: 24, achievement: 1.667 },
+  { month: 'Oct', year: 'Y26', target: 40, result: 27, achievement: 1.481 },
+  { month: 'Nov', year: 'Y26', target: 40, result: 44, achievement: 0.909 },
+  { month: 'Dec', year: 'Y26', target: 40, result: 35, achievement: 1.143 },
+];
+
+export const quarterlyIncidentialCost = [
+  { quarter: 'Q1', year: 'Y25', target: 0.0080, result: 0.00827, achievement: 0.967 },
+  { quarter: 'Q2', year: 'Y25', target: 0.0080, result: 0.00823, achievement: 0.972 },
+  { quarter: 'Q3', year: 'Y25', target: 0.0080, result: 0.00737, achievement: 1.086 },
+  { quarter: 'Q4', year: 'Y25', target: 0.0080, result: 0.00867, achievement: 0.923 },
+  { quarter: 'Q1', year: 'Y26', target: 0.0065, result: 0.00703, achievement: 0.924 },
+  { quarter: 'Q2', year: 'Y26', target: 0.0065, result: 0.00623, achievement: 1.043 },
+  { quarter: 'Q3', year: 'Y26', target: 0.0065, result: 0.00610, achievement: 1.066 },
+  { quarter: 'Q4', year: 'Y26', target: 0.0065, result: 0.00627, achievement: 1.037 },
+];
+
+export const quarterlyTotalCost = [
+  { quarter: 'Q1', year: 'Y25', target: 6.75, result: 6.54, achievement: 1.032 },
+  { quarter: 'Q2', year: 'Y25', target: 6.30, result: 6.24, achievement: 1.010 },
+  { quarter: 'Q3', year: 'Y25', target: 6.40, result: 6.36, achievement: 1.006 },
+  { quarter: 'Q4', year: 'Y25', target: 4.55, result: 4.59, achievement: 0.991 },
+  { quarter: 'Q1', year: 'Y26', target: 6.75, result: 6.76, achievement: 0.999 },
+  { quarter: 'Q2', year: 'Y26', target: 7.90, result: 7.92, achievement: 0.997 },
+  { quarter: 'Q3', year: 'Y26', target: 7.10, result: 7.06, achievement: 1.006 },
+  { quarter: 'Q4', year: 'Y26', target: 4.55, result: 4.38, achievement: 1.039 },
+];
+
+export const quarterlyDemurrage = [
+  { quarter: 'Q1', year: 'Y25', target: 150, result: 158, achievement: 0.949 },
+  { quarter: 'Q2', year: 'Y25', target: 150, result: 155, achievement: 0.968 },
+  { quarter: 'Q3', year: 'Y25', target: 150, result: 131, achievement: 1.145 },
+  { quarter: 'Q4', year: 'Y25', target: 150, result: 171, achievement: 0.877 },
+  { quarter: 'Q1', year: 'Y26', target: 120, result: 130, achievement: 0.923 },
+  { quarter: 'Q2', year: 'Y26', target: 120, result: 110, achievement: 1.091 },
+  { quarter: 'Q3', year: 'Y26', target: 120, result: 109, achievement: 1.101 },
+  { quarter: 'Q4', year: 'Y26', target: 120, result: 106, achievement: 1.132 },
 ];
 
 export const quarterlyLogisticCost = [

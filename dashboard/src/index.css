@@ -478,7 +478,7 @@ body {
    ================================ */
 .kpi-cards-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-5);
   margin-bottom: var(--space-7);
 }
@@ -499,7 +499,7 @@ body {
 
 .kpi-card:hover {
   background: var(--bg-card-hover);
-  border-color: rgba(231, 25, 74, 0.35);
+  border-color: rgba(59, 130, 246, 0.45);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1747,14 +1747,13 @@ body {
 /* ================================
    RESPONSIVE MEDIA QUERIES
    ================================ */
-@media (max-width: 1200px) {
-  .header__active-period { display: none; }
+@media (max-width: 1440px) {
+  .kpi-cards-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 1024px) {
-  .kpi-cards-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi-cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .kpi-section__actions { grid-template-columns: 1fr; }
-  .active-period-banner { flex-direction: column; align-items: flex-start; }
 }
 
 @media (max-width: 768px) {
@@ -1797,9 +1796,8 @@ select:focus-visible {
 /* Cards gain a restrained institutional emphasis on interaction. */
 .kpi-card:hover,
 .chart-panel:hover,
-.period-filter-card:hover,
-.comparison-card:hover {
-  border-color: rgba(231, 25, 74, 0.30);
+.period-filter-card:hover {
+  border-color: rgba(59, 130, 246, 0.35);
 }
 
 /* ==========================================================================
@@ -2703,3 +2701,82 @@ select:focus-visible {
   }
 }
 
+
+/* ==========================================================================
+   CARDS DE INDICADORES (5 KPIs) — AJUSTE COMPACTO
+   ========================================================================== */
+.kpi-cards-grid .kpi-card {
+  padding: var(--space-4) var(--space-4);
+  cursor: default;
+}
+
+.kpi-cards-grid .kpi-card__label {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.kpi-cards-grid .kpi-card__value {
+  font-size: 1.4rem;
+}
+
+.kpi-cards-grid .kpi-card__value-row {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.kpi-cards-grid .kpi-card__target-badge {
+  white-space: nowrap;
+}
+
+.kpi-cards-grid .kpi-card__badges {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.kpi-cards-grid .kpi-card__prev {
+  line-height: 1.4;
+}
+
+.kpi-card__period-tag {
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   MATRIZ COMPARATIVA — AGRUPAMENTO PASSADO x ATUAL
+   ========================================================================== */
+.kpi-matrix-table th.matrix-group {
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.kpi-matrix-table th.matrix-group--past,
+.kpi-matrix-table td.matrix-cell--past {
+  background: rgba(148, 163, 184, 0.06);
+}
+
+.kpi-matrix-table th.matrix-group--current,
+.kpi-matrix-table td.matrix-cell-highlight {
+  background: rgba(59, 130, 246, 0.07);
+}
+
+.kpi-matrix-table th.matrix-group--past {
+  color: #A78BFA;
+}
+
+.kpi-matrix-table th.matrix-group--current {
+  color: #60A5FA;
+}
+
+.kpi-matrix-table th[rowspan] {
+  vertical-align: bottom;
+}
+
+.matrix-cell-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: var(--space-2);
+  vertical-align: middle;
+}

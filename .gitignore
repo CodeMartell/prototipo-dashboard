@@ -24,3 +24,7 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+
+# Planilhas geradas e cache local do dashboard
+kpi_reports/
+dados_dashboard.xlsx

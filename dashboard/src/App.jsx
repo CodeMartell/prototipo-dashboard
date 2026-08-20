@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import KPISection from './components/KPISection';
@@ -37,9 +37,38 @@ function App() {
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
 
   // --- ESTADOS DO MOTOR DE ANALYTICS ---
+  // Iniciados com mocks; substituídos pelos dados da API quando disponível.
   const [logisticCostState, setLogisticCostState] = useState(logisticCostData);
   const [airFreightState, setAirFreightState] = useState(airFreightData);
   const [logisticsVsProdState, setLogisticsVsProdState] = useState(logisticsCostVsProdData);
+
+  // Indica a origem dos dados atualmente exibidos
+  const [dataSource, setDataSource] = useState('mock'); // 'mock' | 'api'
+
+  // --- CARREGAMENTO DE DADOS DA API ---
+  const loadFromApi = useCallback(() => {
+    fetch('/api/dashboard')
+      .then((res) => {
+        if (!res.ok) throw new Error(`API retornou status ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (data.logistic_cost?.length)   setLogisticCostState(data.logistic_cost);
+        if (data.air_freight?.length)     setAirFreightState(data.air_freight);
+        if (data.logistics_vs_prod?.length) setLogisticsVsProdState(data.logistics_vs_prod);
+        setDataSource('api');
+        console.info('[DataLens] Dados carregados da API com sucesso.');
+      })
+      .catch((err) => {
+        console.warn('[DataLens] API indisponível, usando dados mock:', err.message);
+        setDataSource('mock');
+      });
+  }, []);
+
+  // Carrega dados da API ao montar o componente
+  useEffect(() => {
+    loadFromApi();
+  }, [loadFromApi]);
 
   const availableYears = useMemo(() => {
     return getAvailableYears([logisticCostState, airFreightState, logisticsVsProdState]);
@@ -239,6 +268,7 @@ function App() {
     setLogisticCostState(logisticCostData);
     setAirFreightState(airFreightData);
     setLogisticsVsProdState(logisticsCostVsProdData);
+    setDataSource('mock');
     localStorage.setItem('analytics_dismissed_alerts', '[]');
     localStorage.setItem('analytics_verified_alerts', '[]');
 
@@ -656,8 +686,28 @@ function App() {
           )}
         </main>
 
-        <footer className="dashboard-footer">
-          Dashboard KPI Logístico — Protótipo v1.1 | Motor de Analytics & Integridade Homologado | LG Electronics DXI
+        <footer className="dashboard-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+          <span>Dashboard KPI Logístico — Protótipo v1.1 | Motor de Analytics &amp; Integridade Homologado | LG Electronics DXI</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
+            <span style={{
+              display: 'inline-block', padding: '2px 8px', borderRadius: '9999px',
+              background: dataSource === 'api' ? '#16a34a' : '#d97706',
+              color: '#fff', fontWeight: 600, letterSpacing: '0.02em',
+            }}>
+              {dataSource === 'api' ? '● API' : '● MOCK'}
+            </span>
+            <button
+              onClick={loadFromApi}
+              style={{
+                background: 'transparent', border: '1px solid rgba(255,255,255,0.3)',
+                color: 'inherit', borderRadius: '6px', padding: '2px 10px',
+                cursor: 'pointer', fontSize: '0.75rem',
+              }}
+              title="Recarregar dados da API"
+            >
+              ↻ Recarregar
+            </button>
+          </span>
         </footer>
       </div>
 

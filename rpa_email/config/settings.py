@@ -37,7 +37,11 @@ class Settings:
 
     @classmethod
     def from_env(cls, env_file: Path | None = None) -> "Settings":
-        load_dotenv(env_file or ROOT_DIR / ".env")
+        if env_file:
+            load_dotenv(env_file)
+        else:
+            load_dotenv(ROOT_DIR.parent / ".env")
+            load_dotenv(ROOT_DIR / ".env")
         required = {
             "EMAIL_USER": os.getenv("EMAIL_USER", "").strip(),
             "EMAIL_PASSWORD": os.getenv("EMAIL_PASSWORD", "").strip(),

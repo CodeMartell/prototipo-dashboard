@@ -352,6 +352,73 @@ class EmailProcessingService:
                         )
                     )
 
+                    if attachment_count > 0:
+                        try:
+                            from rpa_email.app.extractor import KpiExtractor
+                            from rpa_email.app.kpi_repository import KpiPostgresRepository
+                            extractor = KpiExtractor(attachment_folder)
+                            ext_res = extractor.extract()
+
+                            # 1. Tenta gravar no PostgreSQL
+                            try:
+                                kpi_repo = KpiPostgresRepository(self.settings.database_url)
+                                kpi_repo.initialize()
+                                kpi_map = {
+                                    "logistic_cost": ext_res.logistic_cost,
+                                    "air_freight": ext_res.air_freight,
+                                    "incidental_cost": ext_res.incidental_cost,
+                                    "total_cost": ext_res.total_cost,
+                                    "demurrage": ext_res.demurrage,
+                                }
+                                for kpi_k, rows in kpi_map.items():
+                                    if rows:
+                                        kpi_repo.upsert_standard_kpi(kpi_k, rows)
+                                if ext_res.logistics_vs_prod:
+                                    kpi_repo.upsert_logistics_vs_prod(ext_res.logistics_vs_prod)
+                                LOGGER.info("[DB] KPIs persistidos no PostgreSQL com sucesso.")
+                            except Exception as db_err:
+                                LOGGER.warning("[DB] PostgreSQL indisponivel (%s). Atualizando cache local...", db_err)
+
+                            # 2. Atualiza cache local dados_dashboard.xlsx
+                            try:
+                                from rpa_email.bot_local import _write_excel_cache
+                                from pathlib import Path
+                                root_project = Path(__file__).resolve().parents[2]
+                                excel_path = root_project / "dados_dashboard.xlsx"
+                                cache_dict = {
+                                    "logistic_cost": [
+                                        {"month": r.month, "year": r.year, "target": r.target, "result": r.result, "achievement": r.achievement}
+                                        for r in ext_res.logistic_cost
+                                    ],
+                                    "air_freight": [
+                                        {"month": r.month, "year": r.year, "target": r.target, "result": r.result, "achievement": r.achievement}
+                                        for r in ext_res.air_freight
+                                    ],
+                                    "incidental_cost": [
+                                        {"month": r.month, "year": r.year, "target": r.target, "result": r.result, "achievement": r.achievement}
+                                        for r in ext_res.incidental_cost
+                                    ],
+                                    "total_cost": [
+                                        {"month": r.month, "year": r.year, "target": r.target, "result": r.result, "achievement": r.achievement}
+                                        for r in ext_res.total_cost
+                                    ],
+                                    "demurrage": [
+                                        {"month": r.month, "year": r.year, "target": r.target, "result": r.result, "achievement": r.achievement}
+                                        for r in ext_res.demurrage
+                                    ],
+                                    "logistics_vs_prod": [
+                                        {"month": r.month, "year": r.year, "logisticsCost": r.logistics_cost, "productionAmount": r.production_amount, "ratio": r.ratio}
+                                        for r in ext_res.logistics_vs_prod
+                                    ],
+                                }
+                                _write_excel_cache(cache_dict, excel_path)
+                                LOGGER.info("[EXCEL] Cache local dados_dashboard.xlsx atualizado com sucesso.")
+                            except Exception as xlsx_err:
+                                LOGGER.warning("[EXCEL] Nao foi possivel atualizar o cache Excel: %s", xlsx_err)
+
+                        except Exception as kpi_exc:
+                            LOGGER.warning("Nao foi possivel extrair/persistir KPIs dos anexos: %s", kpi_exc)
+
                     self._record(
                         message=message,
                         uid=uid,

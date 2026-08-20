@@ -24,6 +24,7 @@ import {
   quarterlyTotalCost,
   quarterlyDemurrage,
   calculateVariation,
+  getAvailableYears,
 } from './data/mockData';
 
 import { runFullAnalysis, getDefaultConfigs } from './utils/analyticsEngine';
@@ -39,6 +40,10 @@ function App() {
   const [logisticCostState, setLogisticCostState] = useState(logisticCostData);
   const [airFreightState, setAirFreightState] = useState(airFreightData);
   const [logisticsVsProdState, setLogisticsVsProdState] = useState(logisticsCostVsProdData);
+
+  const availableYears = useMemo(() => {
+    return getAvailableYears([logisticCostState, airFreightState, logisticsVsProdState]);
+  }, [logisticCostState, airFreightState, logisticsVsProdState]);
 
   const [configs, setConfigs] = useState(() => {
     const saved = localStorage.getItem('analytics_configs');
@@ -464,6 +469,14 @@ function App() {
               alerts={alerts}
               auditLog={auditLog}
               configs={configs}
+              datasets={{
+                logisticCost: logisticCostState,
+                airFreight: airFreightState,
+                logisticsVsProd: logisticsVsProdState,
+              }}
+              availableYears={availableYears}
+              selectedYear={selectedYear}
+              onSelectYear={setSelectedYear}
               onUpdateConfig={handleUpdateConfig}
               onRestoreDefaults={handleRestoreDefaults}
               onRunAnalysis={handleRunAnalysis}

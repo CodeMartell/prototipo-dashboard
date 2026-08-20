@@ -2139,6 +2139,162 @@ select:focus-visible {
   flex-shrink: 0;
 }
 
+/* Barra de Seleção de Ano & Comparação */
+.analytics-year-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-5);
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.analytics-year-toolbar__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.analytics-year-selector-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.toolbar-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.analytics-year-select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.analytics-year-select:hover {
+  border-color: var(--border-light);
+}
+
+.analytics-year-select:focus {
+  border-color: var(--accent-red);
+}
+
+.analytics-year-comparator-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.comparison-year-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.comparison-connector {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.analytics-year-toolbar__right {
+  display: flex;
+  align-items: center;
+}
+
+.analytics-status-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-light);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+}
+
+.vs-tag {
+  color: var(--text-muted);
+}
+
+.vs-tag strong {
+  color: var(--text-primary);
+}
+
+.analytics-stat-card__val-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.comp-delta-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.comp-delta-badge.positive {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--accent-green);
+}
+
+.comp-delta-badge.negative {
+  background: rgba(231, 25, 74, 0.12);
+  color: var(--accent-red);
+}
+
+.comp-delta-badge.neutral {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+
+.period-badge-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.badge-year-tag {
+  font-family: var(--font-mono);
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
 /* Grid de Estatísticas */
 .analytics-stats-grid {
   display: grid;

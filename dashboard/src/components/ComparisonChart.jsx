@@ -19,7 +19,7 @@ const formatValue = (val, unit) => {
   return val;
 };
 
-function CustomTooltip({ active, payload, label, unit }) {
+function CustomTooltip({ active, payload, label, unit, currentYearLabel = '2026', prevYearLabel = '2025' }) {
   if (!active || !payload || !payload.length) return null;
   
   const data = payload[0]?.payload;
@@ -34,7 +34,7 @@ function CustomTooltip({ active, payload, label, unit }) {
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
           <span className="custom-tooltip__dot" style={{ background: '#3B82F6' }}></span>
-          Atual (2026)
+          Atual ({currentYearLabel})
         </span>
         <span className="custom-tooltip__value">{formatValue(data.currentResult, unit)}</span>
       </div>
@@ -42,7 +42,7 @@ function CustomTooltip({ active, payload, label, unit }) {
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
           <span className="custom-tooltip__dot" style={{ background: '#A78BFA' }}></span>
-          Anterior (2025)
+          Anterior ({prevYearLabel})
         </span>
         <span className="custom-tooltip__value">{formatValue(data.previousResult, unit)}</span>
       </div>
@@ -73,16 +73,16 @@ function CustomTooltip({ active, payload, label, unit }) {
   );
 }
 
-function CustomLegend({ accentColor, lineColor, targetColor, hasTarget }) {
+function CustomLegend({ accentColor, lineColor, targetColor, hasTarget, currentYearLabel = '2026', prevYearLabel = '2025' }) {
   return (
     <div className="custom-legend">
       <div className="custom-legend__item">
         <div className="custom-legend__marker--bar" style={{ background: accentColor }}></div>
-        <span>2026 (Realizado)</span>
+        <span>{currentYearLabel} (Realizado)</span>
       </div>
       <div className="custom-legend__item">
         <div className="custom-legend__marker" style={{ background: lineColor }}></div>
-        <span>2025 (Ano Anterior)</span>
+        <span>{prevYearLabel} (Ano Anterior)</span>
       </div>
       {hasTarget && (
         <div className="custom-legend__item">
@@ -106,6 +106,8 @@ export default function ComparisonChart({
   targetColor = '#F59E0B',
   selectedPeriod,
   onPeriodClick,
+  currentYearLabel = '2026',
+  prevYearLabel = '2025',
 }) {
   const formatYAxis = (val) => {
     if (unit === '%' || unit === 'Ratio') return `${(val * 100).toFixed(1)}%`;
@@ -151,7 +153,13 @@ export default function ComparisonChart({
               width={55}
             />
             <Tooltip
-              content={<CustomTooltip unit={unit} />}
+              content={
+                <CustomTooltip 
+                  unit={unit} 
+                  currentYearLabel={currentYearLabel}
+                  prevYearLabel={prevYearLabel}
+                />
+              }
               cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
             />
 
@@ -209,6 +217,8 @@ export default function ComparisonChart({
         lineColor={lineColor}
         targetColor={targetColor}
         hasTarget={hasTarget}
+        currentYearLabel={currentYearLabel}
+        prevYearLabel={prevYearLabel}
       />
     </div>
   );

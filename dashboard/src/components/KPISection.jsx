@@ -121,22 +121,22 @@ export default function KPISection({
     return raw.map((d) => ({ ...d, isBest: d.period === bestPeriod, isWorst: d.period === worstPeriod, isAnomaly: anomalyPeriods.includes(d.period) }));
   }, [monthlyData, quarterlyData, period, selectedYear, kpiKey, lowerIsBetter]);
 
+  const prevYearLabel = `20${(parseInt(selectedYear.replace(/\D/g, ''), 10) || 26) - 1}`;
+  const currentYearLabel = `20${selectedYear.replace(/\D/g, '') || '26'}`;
+
   const columns = useMemo(() => {
     const fmt = unit === '%' || unit === 'Ratio' ? 'percent' : unit === 'MUSD' ? 'currency' : 'number';
     const cols = [
       { key: 'period', label: 'Período' },
-      { key: 'previousResult', label: '2025', format: fmt },
-      { key: 'currentResult', label: '2026 (Realizado)', format: fmt, highlight: true },
+      { key: 'previousResult', label: prevYearLabel, format: fmt },
+      { key: 'currentResult', label: `${currentYearLabel} (Realizado)`, format: fmt, highlight: true },
     ];
     if (kpiKey !== 'logisticsVsProd') {
       cols.splice(2, 0, { key: 'target', label: 'Target', format: fmt });
       cols.push({ key: 'currentAchievement', label: 'Atingimento', format: 'achievement', highlight: true });
     }
     return cols;
-  }, [unit, kpiKey]);
-
-  const prevYearLabel = `20${parseInt(selectedYear.substring(1)) - 1}`;
-  const currentYearLabel = `20${selectedYear.substring(1)}`;
+  }, [unit, kpiKey, prevYearLabel, currentYearLabel]);
 
   return (
     <div className="kpi-section" id={`kpi-${kpiKey}`}>
@@ -168,6 +168,8 @@ export default function KPISection({
               accentColor={accentColor}
               selectedPeriod={activePeriod}
               onPeriodClick={setLocalSelectedPeriod}
+              currentYearLabel={currentYearLabel}
+              prevYearLabel={prevYearLabel}
             />
           ) : (
             <DetailTable

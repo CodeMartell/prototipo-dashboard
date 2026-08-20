@@ -297,7 +297,9 @@ export default function LoginPage() {
        ───────────────────────────────────────────── */
     await new Promise(r => setTimeout(r, 1500));
     setIsLoading(false);
-    setAuthError('Credenciais inválidas. Verifique seu e-mail e senha.');
+    // Redirecionamento temporário para validação da integração.
+    // Substituir pela lógica de autenticação real antes de produção.
+    navigate('/dashboard');
   };
 
   return (

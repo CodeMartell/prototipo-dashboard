@@ -1,0 +1,13 @@
+.git
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+**/*.pyc
+.pytest_cache
+
+rpa_email/.env
+rpa_email/resources/attachments
+
+dashboard/node_modules
+dashboard/dist

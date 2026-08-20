@@ -13,3 +13,14 @@ Thumbs.db
 *.pdf
 RELATORIO_*.md
 generate_report_pdf.py
+
+# Credenciais e arquivos gerados pelo RPA
+rpa_email/.env
+rpa_email/resources/attachments/
+
+# Cache e arquivos compilados do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/

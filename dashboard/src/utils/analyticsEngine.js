@@ -52,6 +52,7 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
         id: `${kpiKey}-dup-${key}-${Math.random().toString(36).substr(2, 5)}`,
         kpiKey,
         kpiName,
+        year: item.year,
         type: 'inconsistency',
         subtype: 'duplicate',
         severity: 'high',
@@ -81,6 +82,7 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
         id: `${kpiKey}-null-${item.year}-${item.month}`,
         kpiKey,
         kpiName,
+        year: item.year,
         type: 'inconsistency',
         subtype: 'missing',
         severity: 'high',
@@ -106,6 +108,7 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
         id: `${kpiKey}-range-${item.year}-${item.month}`,
         kpiKey,
         kpiName,
+        year: item.year,
         type: 'inconsistency',
         subtype: 'out_of_bounds',
         severity: 'high',
@@ -119,14 +122,13 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
 
     // C. Verificar conflito de cálculo (Apenas para KPI de Ratio)
     if (kpiKey === 'logisticsVsProd' && item.logisticsCost !== undefined && item.productionAmount !== undefined) {
-      // ratio calculado deve ser logisticsCost / productionAmount
       const expectedRatio = item.productionAmount > 0 ? (item.logisticsCost / item.productionAmount) : 0;
-      // Compara com tolerância de 0.002
       if (Math.abs(val - expectedRatio) > 0.002) {
         alerts.push({
           id: `${kpiKey}-conflict-${item.year}-${item.month}`,
           kpiKey,
           kpiName,
+          year: item.year,
           type: 'inconsistency',
           subtype: 'conflict',
           severity: 'high',
@@ -148,6 +150,7 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
           id: `${kpiKey}-zscore-${item.year}-${item.month}`,
           kpiKey,
           kpiName,
+          year: item.year,
           type: 'anomaly',
           subtype: 'zscore',
           severity: Math.abs(zScore) > (config.zScoreThreshold + 1) ? 'high' : 'medium',
@@ -165,7 +168,6 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
       const prevItem = sortedData[index - 1];
       const prevVal = prevItem[valueField];
       
-      // Apenas compara se ambos forem numéricos válidos e se estiverem no mesmo ano ou anos adjacentes
       if (prevVal !== null && prevVal !== undefined && !isNaN(prevVal) && prevVal > 0) {
         const variation = ((val - prevVal) / prevVal) * 100;
         
@@ -178,6 +180,7 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
             id: `${kpiKey}-mom-${item.year}-${item.month}`,
             kpiKey,
             kpiName,
+            year: item.year,
             type: 'anomaly',
             subtype: 'mom_variation',
             severity: Math.abs(variation) > (config.momThreshold * 1.5) ? 'high' : 'medium',
@@ -230,6 +233,48 @@ export const runFullAnalysis = (datasets, configs) => {
     ...airFreightAlerts,
     ...logisticsVsProdAlerts
   ];
+};
+
+/**
+ * Calcula métricas agregadas de integridade e anomalias para um ano específico ou base total
+ */
+export const calculateYearlyStats = (datasets, alerts = [], targetYear = 'all') => {
+  const isAll = targetYear === 'all';
+  
+  // Contagem de registros do ano
+  let recordCount = 0;
+  const countInArray = (arr) => {
+    if (!Array.isArray(arr)) return 0;
+    return isAll ? arr.length : arr.filter(d => d.year === targetYear).length;
+  };
+
+  recordCount += countInArray(datasets.logisticCost);
+  recordCount += countInArray(datasets.airFreight);
+  recordCount += countInArray(datasets.logisticsVsProd);
+
+  // Filtragem de alertas do ano
+  const yearAlerts = isAll
+    ? alerts
+    : alerts.filter(a => a.year === targetYear || a.period?.includes(targetYear.replace('Y', '20')));
+
+  const inconsistencyCount = yearAlerts.filter(a => a.type === 'inconsistency').length;
+  const anomalyCount = yearAlerts.filter(a => a.type === 'anomaly').length;
+  const highCount = yearAlerts.filter(a => a.severity === 'high').length;
+  const mediumCount = yearAlerts.filter(a => a.severity === 'medium').length;
+
+  const integrityScore = recordCount > 0
+    ? Math.max(0, 100 - (inconsistencyCount / recordCount) * 100)
+    : 100;
+
+  return {
+    recordCount,
+    yearAlerts,
+    inconsistencyCount,
+    anomalyCount,
+    highCount,
+    mediumCount,
+    integrityScore
+  };
 };
 
 /**

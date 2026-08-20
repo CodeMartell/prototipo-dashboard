@@ -8,3 +8,8 @@ Thumbs.db
 ~$*
 .vscode/
 .idea/
+
+# Relatorios e arquivos gerados
+*.pdf
+RELATORIO_*.md
+generate_report_pdf.py

@@ -4,7 +4,8 @@ import {
   Bell, 
   AlertTriangle, 
   X, 
-  CheckCircle2 
+  CheckCircle2,
+  LogOut,
 } from 'lucide-react';
 
 export default function Header({ 
@@ -12,6 +13,8 @@ export default function Header({
   onNavigate,
   onVerifyAlert,
   onDismissAlert,
+  user,
+  onLogout,
 }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -138,10 +141,12 @@ export default function Header({
         </div>
 
         <div className="header__user">
-          <div className="header__avatar">LG</div>
+          <div className="header__avatar">
+            {(user?.name || user?.email || 'U').slice(0, 2).toUpperCase()}
+          </div>
           <div className="header__user-info">
-            <span className="header__user-name">Logística & Admin</span>
-            <span className="header__user-role">LG Electronics · DXI</span>
+            <span className="header__user-name">{user?.name || user?.email || 'Usuário'}</span>
+            <span className="header__user-role">{user?.role || '—'}</span>
           </div>
         </div>
 
@@ -149,6 +154,9 @@ export default function Header({
           <button className="btn btn--primary">
             <Download size={14} />
             Exportar
+          </button>
+          <button className="btn btn--icon" onClick={onLogout} title="Sair">
+            <LogOut size={14} />
           </button>
         </div>
       </div>

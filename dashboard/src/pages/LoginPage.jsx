@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { login } from '../services/api';
 import './LoginPage.css';
 
 /* ══════════════════════════════════════════════
@@ -289,17 +290,14 @@ export default function LoginPage() {
     setErrors({ email: '', password: '' });
     setIsLoading(true);
 
-    /* ─────────────────────────────────────────────
-       Placeholder — substituir pela chamada real:
-         const res = await authService.login({ email, password });
-         if (res.ok) navigate('/dashboard');
-         else setAuthError('Credenciais inválidas.');
-       ───────────────────────────────────────────── */
-    await new Promise(r => setTimeout(r, 1500));
-    setIsLoading(false);
-    // Redirecionamento temporário para validação da integração.
-    // Substituir pela lógica de autenticação real antes de produção.
-    navigate('/dashboard');
+    try {
+      await login(email, password);
+      navigate('/dashboard');
+    } catch (err) {
+      setAuthError(err.message || 'Não foi possível entrar. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

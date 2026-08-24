@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import KPISection from './components/KPISection';
@@ -8,6 +9,7 @@ import KPIComparisonMatrix from './components/KPIComparisonMatrix';
 import MetricsModal from './components/MetricsModal';
 import AnalyticsPanel from './components/AnalyticsPanel';
 import { DollarSign, Plane, Package, Calendar, Lightbulb, AlertTriangle } from 'lucide-react';
+import { fetchDashboardData, getCurrentUser, logout, UnauthorizedError } from './services/api';
 
 import {
   MONTHS,
@@ -30,6 +32,9 @@ import {
 import { runFullAnalysis, getDefaultConfigs } from './utils/analyticsEngine';
 
 function App() {
+  const navigate = useNavigate();
+  const [currentUser] = useState(() => getCurrentUser());
+
   const [selectedYear, setSelectedYear] = useState('Y26');
   const [period, setPeriod] = useState('monthly'); // 'monthly' | 'quarterly' | 'semiannual' | 'annual'
   const [selectedSubPeriod, setSelectedSubPeriod] = useState('May'); // 'Jan'..'Dec', 'Q1'..'Q4', 'H1'..'H2', 'Y26'
@@ -47,23 +52,30 @@ function App() {
 
   // --- CARREGAMENTO DE DADOS DA API ---
   const loadFromApi = useCallback(() => {
-    fetch('/api/dashboard')
-      .then((res) => {
-        if (!res.ok) throw new Error(`API retornou status ${res.status}`);
-        return res.json();
-      })
+    fetchDashboardData()
       .then((data) => {
-        if (data.logistic_cost?.length)   setLogisticCostState(data.logistic_cost);
-        if (data.air_freight?.length)     setAirFreightState(data.air_freight);
+        if (data.logistic_cost?.length) setLogisticCostState(data.logistic_cost);
+        if (data.air_freight?.length) setAirFreightState(data.air_freight);
         if (data.logistics_vs_prod?.length) setLogisticsVsProdState(data.logistics_vs_prod);
         setDataSource('api');
         console.info('[DataLens] Dados carregados da API com sucesso.');
       })
       .catch((err) => {
+        if (err instanceof UnauthorizedError) {
+          navigate('/login');
+          return;
+        }
+        // Tabela ainda não populada pelo bot de extração, API fora do ar,
+        // etc — mantém a tela funcional com dado mock em vez de quebrar.
         console.warn('[DataLens] API indisponível, usando dados mock:', err.message);
         setDataSource('mock');
       });
-  }, []);
+  }, [navigate]);
+
+  const handleLogout = useCallback(() => {
+    logout();
+    navigate('/login');
+  }, [navigate]);
 
   // Carrega dados da API ao montar o componente
   useEffect(() => {
@@ -491,6 +503,8 @@ function App() {
           onNavigate={handleSidebarNavigate}
           onVerifyAlert={handleVerifyAlert}
           onDismissAlert={handleDismissAlert}
+          user={currentUser}
+          onLogout={handleLogout}
         />
 
         <main className="dashboard-main">

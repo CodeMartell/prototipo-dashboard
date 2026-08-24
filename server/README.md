@@ -39,38 +39,51 @@ API em `http://localhost:5001` — docs em `/docs`.
 
 ## Estrutura
 
+```
 server/
-├── main.py # entry point, registra rotas e middlewares
+├── main.py                        # entry point, registra rotas e middlewares
 ├── app/
-│ ├── controllers/ # recebe HTTP, valida entrada, devolve resposta
-│ │ ├── auth_controller.py # login
-│ │ ├── user_controller.py # criar usuário (ADMIN)
-│ │ ├── dashboard_controller.py # GET /api/kpis/*
-│ │ ├── analysis_controller.py # GET /api/analysis/* (anomalia, YoY)
-│ │ └── ingestion_controller.py # POST /api/ingestion/kpi-report
-│ ├── services/ # regra de negócio
-│ │ ├── auth_service.py
-│ │ ├── user_service.py
-│ │ ├── dashboard_service.py
-│ │ ├── analysis_service.py
-│ │ └── ingestion_service.py
-│ ├── repositories/ # única camada que faz SQL
-│ │ ├── user_repository.py
-│ │ ├── role_repository.py
-│ │ ├── dashboard_repository.py
-│ │ └── processed_email_repository.py
-│ ├── models/ # tabelas (SQLAlchemy)
-│ │ ├── user.py / role.py
-│ │ ├── kpi.py # 5 tabelas de KPI + logistics_vs_prod
-│ │ └── processed_email.py
-│ ├── schemas/ # contratos de entrada/saída (Pydantic)
-│ ├── database/ # engine + sessão do Postgres
-│ └── core/ # config, JWT, exceções, logging, dependencies
-├── alembic/ # migrations versionadas
+│   ├── controllers/                # recebe HTTP, valida entrada, devolve resposta
+│   │   ├── auth_controller.py        # login
+│   │   ├── user_controller.py        # criar usuário (ADMIN)
+│   │   ├── dashboard_controller.py   # GET /api/kpis/*
+│   │   ├── analysis_controller.py    # GET /api/analysis/* (anomalia, YoY)
+│   │   └── ingestion_controller.py   # POST /api/ingestion/kpi-report
+│   ├── services/                   # regra de negócio
+│   │   ├── auth_service.py
+│   │   ├── user_service.py
+│   │   ├── dashboard_service.py
+│   │   ├── analysis_service.py
+│   │   └── ingestion_service.py
+│   ├── repositories/                # única camada que faz SQL
+│   │   ├── user_repository.py
+│   │   ├── role_repository.py
+│   │   ├── dashboard_repository.py
+│   │   └── processed_email_repository.py
+│   ├── models/                      # tabelas (SQLAlchemy)
+│   │   ├── user.py / role.py
+│   │   ├── kpi.py                     # 5 tabelas de KPI + logistics_vs_prod
+│   │   └── processed_email.py
+│   ├── schemas/                     # contratos de entrada/saída (Pydantic)
+│   ├── database/                    # engine + sessão do Postgres
+│   └── core/                        # config, JWT, exceções, logging, dependencies
+├── alembic/                        # migrations versionadas
 ├── scripts/
-│ ├── seed_roles.py # cria perfil ADMIN
-│ └── create_admin.py # cria o primeiro usuário
-└── tests/ # pytest (5 testes)
+│   ├── seed_roles.py                 # cria perfil ADMIN
+│   └── create_admin.py               # cria o primeiro usuário
+└── tests/                          # pytest (5 testes)
+```
+
+## Tecnologias
+
+- **Python 3.11+** / **FastAPI** — framework da API
+- **PostgreSQL** — banco de dados
+- **SQLAlchemy** — ORM
+- **Alembic** — versionamento de schema (migrations)
+- **Pydantic** — validação de schemas (entrada/saída)
+- **JWT (PyJWT) + bcrypt** — autenticação e hash de senha
+- **Docker** — Postgres local
+- **pytest** — testes automatizados
 
 
 ## Testes

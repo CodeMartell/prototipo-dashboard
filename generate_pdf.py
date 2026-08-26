@@ -188,7 +188,7 @@ def build_pdf():
     <b>Status:</b> Especificação Técnica de Integração e Layout v1.0<br/>
     <b>Data de Emissão:</b> 06 de Agosto de 2026<br/>
     <b>Prazo Prioritário do Dashboard (Go-Live):</b> 30 de Agosto de 2026<br/>
-    <b>Stakeholders Principais:</b> Ruy (Sponsor), Rafael (Usuário-Chave), Esdras (Engenharia de Dados)
+    <b>Stakeholders Principais:</b> Ruy (Sponsor), Rafael (PO da LG), Rômulo (PO do Projeto), Gilvan (Dev), Janaína (Dev), Huan (Dev)
     """
     
     meta_table = Table([[Paragraph(meta_text, meta_style)]], colWidths=[515])
@@ -308,7 +308,7 @@ def build_pdf():
     story.append(Paragraph("<b>3.1 Matriz de Stakeholders e Usuários-Chave</b>", h2_style))
     story.append(Paragraph("• <b>Ruy (Sponsor / Solicitante):</b> Responsável pela visão de negócio, homologação final dos KPIs e validação do protótipo visual.", bullet_style))
     story.append(Paragraph("• <b>Rafael (Usuário-Chave de Logística):</b> Responsável operacional pelo fornecimento da planilha <i>dados.xlsx</i> e esclarecimento de regras de negócio.", bullet_style))
-    story.append(Paragraph("• <b>Esdras (Engenharia de Dados):</b> Especialista responsável pela infraestrutura de dados e acessos aos sistemas corporativos (ARUM, GERP, Incident Cost).", bullet_style))
+    story.append(Paragraph("• <b>Janaína (Desenvolvedora):</b> Especialista responsável pela modelagem e extração de dados contábeis nos sistemas corporativos (ARUM, GERP, Incident Cost).", bullet_style))
     story.append(Paragraph("• <b>Equipe Financeira LG:</b> Origem dos relatórios periódicos de fechamento enviados por e-mail.", bullet_style))
 
     story.append(Paragraph("<b>3.2 Ecossistema de Sistemas Envolvidos</b>", h2_style))

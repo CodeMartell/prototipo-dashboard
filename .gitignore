@@ -13,3 +13,12 @@ Thumbs.db
 *.pdf
 RELATORIO_*.md
 generate_report_pdf.py
+
+# Pastas e rascunhos da documentação
+fluxo/
+scratch/
+
+# Scripts locais e testes
+scratch_extractor.py
+generate_pdd_docs.py
+test.png

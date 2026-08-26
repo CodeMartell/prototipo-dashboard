@@ -5,21 +5,25 @@ Não conhece HTTP nem banco — só recebe/devolve dados.
 """
 from datetime import datetime, timedelta, timezone
 
+import bcrypt
 import jwt
-from passlib.context import CryptContext
 
 from app.core.config import get_settings
 
 settings = get_settings()
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(raw_password: str) -> str:
-    return _pwd_context.hash(raw_password)
+    pwd_bytes = raw_password.encode("utf-8")
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
 
 
 def verify_password(raw_password: str, hashed_password: str) -> bool:
-    return _pwd_context.verify(raw_password, hashed_password)
+    try:
+        return bcrypt.checkpw(raw_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except Exception:
+        return False
 
 
 def create_access_token(subject: str, extra_claims: dict | None = None) -> str:

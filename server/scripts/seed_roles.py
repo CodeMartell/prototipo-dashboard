@@ -12,7 +12,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.database.session import SessionLocal
+from app.database.base import Base
+from app.database.session import SessionLocal, engine
+import app.models  # noqa: F401
 from app.models.role import Role
 from app.models.user import User  # noqa: F401 — necessário p/ resolver o relationship Role<->User
 
@@ -20,6 +22,7 @@ ROLES = ["ADMIN"]
 
 
 def seed_roles() -> None:
+    Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
         existing = {r.name for r in db.query(Role).all()}

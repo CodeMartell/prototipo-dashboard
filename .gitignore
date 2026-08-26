@@ -8,3 +8,23 @@ Thumbs.db
 ~$*
 .vscode/
 .idea/
+
+# Relatorios e arquivos gerados
+*.pdf
+RELATORIO_*.md
+generate_report_pdf.py
+
+# Credenciais e arquivos gerados pelo RPA
+rpa_email/.env
+rpa_email/resources/attachments/
+
+# Cache e arquivos compilados do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Planilhas geradas e cache local do dashboard
+kpi_reports/
+dados_dashboard.xlsx

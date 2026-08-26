@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   RefreshCw,
   Database,
@@ -10,16 +10,21 @@ import {
   Trash2,
   FlaskConical,
   X,
-  Info,
   ShieldCheck,
-  TrendingUp
+  TrendingUp,
+  Calendar,
+  ArrowRightLeft
 } from 'lucide-react';
-import { formatPercent } from '../utils/formatters';
+import { calculateYearlyStats } from '../utils/analyticsEngine';
 
 export default function AnalyticsPanel({
   alerts = [],
   auditLog = [],
   configs = {},
+  datasets = {},
+  availableYears = ['Y25', 'Y26'],
+  selectedYear = 'Y26',
+  onSelectYear,
   onUpdateConfig,
   onRestoreDefaults,
   onRunAnalysis,
@@ -34,24 +39,55 @@ export default function AnalyticsPanel({
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [filterKpi, setFilterKpi] = useState('all');
-
-  // Integridade de dados calculada: 100% se não houver alertas de inconsistência, proporcional ao total senão
-  const inconsistencyCount = alerts.filter(a => a.type === 'inconsistency').length;
-  const integrityScore = totalRecordsChecked > 0 
-    ? Math.max(0, 100 - (inconsistencyCount / totalRecordsChecked) * 100) 
-    : 100;
-
-  // Contadores de alertas por gravidade
-  const highAlerts = alerts.filter(a => a.severity === 'high').length;
-  const mediumAlerts = alerts.filter(a => a.severity === 'medium').length;
-
-  // Filtragem dos alertas ativos
-  const filteredAlerts = alerts.filter(alert => {
-    if (filterSeverity !== 'all' && alert.severity !== filterSeverity) return false;
-    if (filterType !== 'all' && alert.type !== filterType) return false;
-    if (filterKpi !== 'all' && alert.kpiKey !== filterKpi) return false;
-    return true;
+  
+  // Ano Base e Ano de Comparação selecionados no Analytics
+  const [analysisYear, setAnalysisYear] = useState(selectedYear || 'Y26'); // 'all' | 'Y25' | 'Y26'
+  const [comparisonYear, setComparisonYear] = useState(() => {
+    const prev = availableYears.find(y => y !== (selectedYear || 'Y26'));
+    return prev || 'Y25';
   });
+  const [isCompareMode, setIsCompareMode] = useState(false);
+
+  // Manipulação da mudança de ano de análise
+  const handleYearChange = (newYear) => {
+    setAnalysisYear(newYear);
+    if (onSelectYear && newYear !== 'all') {
+      onSelectYear(newYear);
+    }
+  };
+
+  // Estatísticas calculadas para o ano base
+  const baseStats = useMemo(() => {
+    return calculateYearlyStats(datasets, alerts, analysisYear);
+  }, [datasets, alerts, analysisYear]);
+
+  // Estatísticas calculadas para o ano de comparação
+  const compStats = useMemo(() => {
+    if (!isCompareMode || comparisonYear === 'none') return null;
+    return calculateYearlyStats(datasets, alerts, comparisonYear);
+  }, [datasets, alerts, comparisonYear, isCompareMode]);
+
+  // Contadores ativos
+  const currentTotalChecked = analysisYear === 'all' ? totalRecordsChecked : baseStats.recordCount;
+  const currentInconsistencyCount = baseStats.inconsistencyCount;
+  const currentIntegrityScore = baseStats.integrityScore;
+  const currentHighAlerts = baseStats.highCount;
+  const currentAnomalies = baseStats.anomalyCount;
+
+  // Filtragem dos alertas da tabela
+  const filteredAlerts = useMemo(() => {
+    return alerts.filter((alert) => {
+      // Filtro por Ano
+      if (analysisYear !== 'all') {
+        const isMatch = alert.year === analysisYear || alert.period?.includes(analysisYear.replace('Y', '20'));
+        if (!isMatch) return false;
+      }
+      if (filterSeverity !== 'all' && alert.severity !== filterSeverity) return false;
+      if (filterType !== 'all' && alert.type !== filterType) return false;
+      if (filterKpi !== 'all' && alert.kpiKey !== filterKpi) return false;
+      return true;
+    });
+  }, [alerts, analysisYear, filterSeverity, filterType, filterKpi]);
 
   const getSeverityClass = (severity) => {
     if (severity === 'high') return 'severity-high';
@@ -75,6 +111,11 @@ export default function AnalyticsPanel({
       case 'mom_variation': return 'Variação Abrupta';
       default: return subtype;
     }
+  };
+
+  const formatYearLabel = (y) => {
+    if (!y || y === 'all') return 'Todos os Anos';
+    return `20${y.replace('Y', '')}`;
   };
 
   return (
@@ -108,19 +149,95 @@ export default function AnalyticsPanel({
         </div>
       </div>
 
+      {/* Barra Integrada de Seleção de Ano & Comparação */}
+      <div className="analytics-year-toolbar">
+        <div className="analytics-year-toolbar__left">
+          <div className="analytics-year-selector-item">
+            <div className="toolbar-label">
+              <Calendar size={13} className="text-accent" />
+              <span>Ano de Análise:</span>
+            </div>
+            <select 
+              className="analytics-year-select"
+              value={analysisYear}
+              onChange={(e) => handleYearChange(e.target.value)}
+            >
+              <option value="all">Histórico Completo (Todos os Anos)</option>
+              {availableYears.map((y) => (
+                <option key={y} value={y}>
+                  Exercício 20{y.replace('Y', '')} ({y})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {analysisYear !== 'all' && (
+            <div className="analytics-year-comparator-group animate-fade-in">
+              <button 
+                type="button"
+                className={`btn btn--sm ${isCompareMode ? 'btn--accent' : 'btn--secondary'}`}
+                onClick={() => setIsCompareMode(!isCompareMode)}
+                title="Ativar comparação de integridade e anomalias com outro exercício"
+              >
+                <ArrowRightLeft size={12} />
+                {isCompareMode ? 'Modo Comparativo Ativo' : 'Comparar com outro Ano'}
+              </button>
+
+              {isCompareMode && (
+                <div className="comparison-year-picker animate-fade-in">
+                  <span className="comparison-connector">vs</span>
+                  <select
+                    className="analytics-year-select"
+                    value={comparisonYear}
+                    onChange={(e) => setComparisonYear(e.target.value)}
+                  >
+                    {availableYears
+                      .filter(y => y !== analysisYear)
+                      .map((y) => (
+                        <option key={y} value={y}>
+                          20{y.replace('Y', '')} ({y})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="analytics-year-toolbar__right">
+          <span className="analytics-status-pill">
+            <span className="status-dot"></span>
+            Exercício em Foco: <strong>{formatYearLabel(analysisYear)}</strong>
+            {isCompareMode && compStats && (
+              <span className="vs-tag"> vs <strong>{formatYearLabel(comparisonYear)}</strong></span>
+            )}
+          </span>
+        </div>
+      </div>
+
       {/* Grid de Resumo de Integridade */}
       <div className="analytics-stats-grid">
         <div className="analytics-stat-card">
           <div className="analytics-stat-card__icon text-success">
-            {integrityScore > 90 ? <ShieldCheck size={24} /> : <AlertTriangle size={24} className="text-warning" />}
+            {currentIntegrityScore > 90 ? <ShieldCheck size={24} /> : <AlertTriangle size={24} className="text-warning" />}
           </div>
           <div className="analytics-stat-card__data">
             <span className="analytics-stat-card__label">Integridade dos Dados</span>
-            <strong className="analytics-stat-card__value">
-              {integrityScore.toFixed(1)}%
-            </strong>
+            <div className="analytics-stat-card__val-row">
+              <strong className="analytics-stat-card__value">
+                {currentIntegrityScore.toFixed(1)}%
+              </strong>
+              {isCompareMode && compStats && (
+                <span className={`comp-delta-badge ${currentIntegrityScore >= compStats.integrityScore ? 'positive' : 'negative'}`}>
+                  {currentIntegrityScore >= compStats.integrityScore ? '▲' : '▼'}
+                  {Math.abs(currentIntegrityScore - compStats.integrityScore).toFixed(1)}% vs {formatYearLabel(comparisonYear)}
+                </span>
+              )}
+            </div>
             <span className="analytics-stat-card__hint">
-              {inconsistencyCount} de {totalRecordsChecked} pontos com inconsistências
+              {currentInconsistencyCount} de {currentTotalChecked} pontos com inconsistências
+              {isCompareMode && compStats && ` (vs ${compStats.inconsistencyCount} em ${formatYearLabel(comparisonYear)})`}
             </span>
           </div>
         </div>
@@ -131,9 +248,17 @@ export default function AnalyticsPanel({
           </div>
           <div className="analytics-stat-card__data">
             <span className="analytics-stat-card__label">Alertas Críticos</span>
-            <strong className="analytics-stat-card__value text-danger">
-              {highAlerts}
-            </strong>
+            <div className="analytics-stat-card__val-row">
+              <strong className="analytics-stat-card__value text-danger">
+                {currentHighAlerts}
+              </strong>
+              {isCompareMode && compStats && (
+                <span className={`comp-delta-badge ${currentHighAlerts <= compStats.highCount ? 'positive' : 'negative'}`}>
+                  {currentHighAlerts <= compStats.highCount ? '▼' : '▲'}
+                  {Math.abs(currentHighAlerts - compStats.highCount)} vs {formatYearLabel(comparisonYear)}
+                </span>
+              )}
+            </div>
             <span className="analytics-stat-card__hint">
               Requerem verificação manual urgente
             </span>
@@ -146,9 +271,17 @@ export default function AnalyticsPanel({
           </div>
           <div className="analytics-stat-card__data">
             <span className="analytics-stat-card__label">Oscilações Anômalas</span>
-            <strong className="analytics-stat-card__value text-warning">
-              {alerts.filter(a => a.type === 'anomaly').length}
-            </strong>
+            <div className="analytics-stat-card__val-row">
+              <strong className="analytics-stat-card__value text-warning">
+                {currentAnomalies}
+              </strong>
+              {isCompareMode && compStats && (
+                <span className={`comp-delta-badge ${currentAnomalies <= compStats.anomalyCount ? 'positive' : 'negative'}`}>
+                  {currentAnomalies <= compStats.anomalyCount ? '▼' : '▲'}
+                  {Math.abs(currentAnomalies - compStats.anomalyCount)} vs {formatYearLabel(comparisonYear)}
+                </span>
+              )}
+            </div>
             <span className="analytics-stat-card__hint">
               Desvios estatísticos do padrão MoM / Z-Score
             </span>
@@ -161,11 +294,18 @@ export default function AnalyticsPanel({
           </div>
           <div className="analytics-stat-card__data">
             <span className="analytics-stat-card__label">Total Analisado</span>
-            <strong className="analytics-stat-card__value">
-              {totalRecordsChecked}
-            </strong>
+            <div className="analytics-stat-card__val-row">
+              <strong className="analytics-stat-card__value">
+                {currentTotalChecked}
+              </strong>
+              {isCompareMode && compStats && (
+                <span className="comp-delta-badge neutral">
+                  {compStats.recordCount} em {formatYearLabel(comparisonYear)}
+                </span>
+              )}
+            </div>
             <span className="analytics-stat-card__hint">
-              Registros históricos validados
+              {analysisYear === 'all' ? 'Base histórica consolidada' : `Registros de ${formatYearLabel(analysisYear)}`}
             </span>
           </div>
         </div>
@@ -180,7 +320,7 @@ export default function AnalyticsPanel({
           >
             <AlertTriangle size={14} />
             Alertas Ativos
-            {alerts.length > 0 && <span className="tab-badge">{alerts.length}</span>}
+            {filteredAlerts.length > 0 && <span className="tab-badge">{filteredAlerts.length}</span>}
           </button>
           <button 
             className={`analytics-tab ${activeTab === 'configs' ? 'active' : ''}`}
@@ -217,6 +357,7 @@ export default function AnalyticsPanel({
                   <option value="logisticsVsProd">Cost x Product Ratio</option>
                 </select>
               </div>
+
               <div className="filter-group">
                 <label>Tipo:</label>
                 <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
@@ -225,12 +366,23 @@ export default function AnalyticsPanel({
                   <option value="anomaly">Oscilações Anômalas</option>
                 </select>
               </div>
+
               <div className="filter-group">
                 <label>Severidade:</label>
                 <select value={filterSeverity} onChange={(e) => setFilterSeverity(e.target.value)}>
                   <option value="all">Todas as Severidades</option>
                   <option value="high">Crítica</option>
                   <option value="medium">Moderada</option>
+                </select>
+              </div>
+
+              <div className="filter-group">
+                <label>Ano:</label>
+                <select value={analysisYear} onChange={(e) => handleYearChange(e.target.value)}>
+                  <option value="all">Todos os Anos</option>
+                  {availableYears.map(y => (
+                    <option key={y} value={y}>20{y.replace('Y', '')}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -243,7 +395,7 @@ export default function AnalyticsPanel({
                 <p>
                   {alerts.length === 0 
                     ? 'Parabéns! Todos os dados históricos dos KPIs estão consistentes e livres de anomalias.' 
-                    : 'Nenhum alerta corresponde aos filtros aplicados.'}
+                    : `Nenhum alerta pendente para o filtro selecionado (${formatYearLabel(analysisYear)}).`}
                 </p>
               </div>
             ) : (
@@ -252,7 +404,7 @@ export default function AnalyticsPanel({
                   <thead>
                     <tr>
                       <th>Indicador</th>
-                      <th>Período</th>
+                      <th>Período / Ano</th>
                       <th>Classificação</th>
                       <th>Subtipo</th>
                       <th>Alerta Visual / Mensagem</th>
@@ -265,7 +417,14 @@ export default function AnalyticsPanel({
                         <td className="cell-kpi-name">
                           <strong>{alert.kpiName}</strong>
                         </td>
-                        <td><span className="badge-period">{alert.period}</span></td>
+                        <td>
+                          <div className="period-badge-container">
+                            <span className="badge-period">{alert.period}</span>
+                            {alert.year && (
+                              <span className="badge-year-tag">20{alert.year.replace('Y', '')}</span>
+                            )}
+                          </div>
+                        </td>
                         <td>
                           <span className={`severity-badge ${getSeverityClass(alert.severity)}`}>
                             {getSeverityLabel(alert.severity)}

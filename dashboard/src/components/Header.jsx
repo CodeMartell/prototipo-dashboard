@@ -1,30 +1,22 @@
 import { useState, useRef, useEffect } from 'react';
 import { 
-  RefreshCw, 
   Download, 
-  HelpCircle, 
-  CalendarCheck, 
   Bell, 
   AlertTriangle, 
   X, 
-  CheckCircle2 
+  CheckCircle2,
+  LogOut,
 } from 'lucide-react';
 
 export default function Header({ 
-  onOpenHelp, 
-  activePeriodText, 
   alerts = [], 
   onNavigate,
   onVerifyAlert,
   onDismissAlert,
-  onRunAnalysis,
-  isAnalyzing = false
+  user,
+  onLogout,
 }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' });
-  const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  
   const dropdownRef = useRef(null);
 
   // Close notifications dropdown when clicking outside
@@ -60,21 +52,6 @@ export default function Header({
       </div>
 
       <div className="header__right">
-        {activePeriodText && (
-          <div className="header__active-period" title="Período de Referência dos Dados Ativos">
-            <CalendarCheck size={14} className="header__period-icon" />
-            <div className="header__period-text">
-              <span>Referência dos Dados</span>
-              <strong>{activePeriodText}</strong>
-            </div>
-          </div>
-        )}
-
-        <div className="header__meta">
-          Última atualização<br />
-          <strong>{dateStr} — {timeStr}</strong>
-        </div>
-
         {/* Sino de Notificações com Dropdown */}
         <div className="header__notifications" ref={dropdownRef}>
           <button 
@@ -164,30 +141,22 @@ export default function Header({
         </div>
 
         <div className="header__user">
-          <div className="header__avatar">LG</div>
+          <div className="header__avatar">
+            {(user?.name || user?.email || 'U').slice(0, 2).toUpperCase()}
+          </div>
           <div className="header__user-info">
-            <span className="header__user-name">Logística & Admin</span>
-            <span className="header__user-role">LG Electronics · DXI</span>
+            <span className="header__user-name">{user?.name || user?.email || 'Usuário'}</span>
+            <span className="header__user-role">{user?.role || '—'}</span>
           </div>
         </div>
 
         <div className="header__actions">
-          <button className="btn btn--accent" onClick={onOpenHelp} title="Entenda a origem de todos os dados e fórmulas">
-            <HelpCircle size={14} />
-            Origem dos Dados
-          </button>
-          <button 
-            className={`btn ${isAnalyzing ? 'btn--active' : ''}`} 
-            onClick={onRunAnalysis}
-            disabled={isAnalyzing}
-            title="Executar motor de análise de consistência"
-          >
-            <RefreshCw size={14} className={isAnalyzing ? 'animate-spin' : ''} />
-            Analisar
-          </button>
           <button className="btn btn--primary">
             <Download size={14} />
             Exportar
+          </button>
+          <button className="btn btn--icon" onClick={onLogout} title="Sair">
+            <LogOut size={14} />
           </button>
         </div>
       </div>

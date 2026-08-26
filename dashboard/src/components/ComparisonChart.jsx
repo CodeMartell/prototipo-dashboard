@@ -19,7 +19,7 @@ const formatValue = (val, unit) => {
   return val;
 };
 
-function CustomTooltip({ active, payload, label, unit }) {
+function CustomTooltip({ active, payload, label, unit, currentYearLabel = '2026', prevYearLabel = '2025' }) {
   if (!active || !payload || !payload.length) return null;
   
   const data = payload[0]?.payload;
@@ -33,16 +33,16 @@ function CustomTooltip({ active, payload, label, unit }) {
       
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
-          <span className="custom-tooltip__dot" style={{ background: '#E7194A' }}></span>
-          Atual (2026)
+          <span className="custom-tooltip__dot" style={{ background: '#3B82F6' }}></span>
+          Atual ({currentYearLabel})
         </span>
         <span className="custom-tooltip__value">{formatValue(data.currentResult, unit)}</span>
       </div>
       
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
-          <span className="custom-tooltip__dot" style={{ background: '#9E9E9E' }}></span>
-          Anterior (2025)
+          <span className="custom-tooltip__dot" style={{ background: '#A78BFA' }}></span>
+          Anterior ({prevYearLabel})
         </span>
         <span className="custom-tooltip__value">{formatValue(data.previousResult, unit)}</span>
       </div>
@@ -50,7 +50,7 @@ function CustomTooltip({ active, payload, label, unit }) {
       {data.target !== undefined && data.target !== null && (
         <div className="custom-tooltip__row">
           <span className="custom-tooltip__label">
-            <span className="custom-tooltip__dot" style={{ background: '#10b981' }}></span>
+            <span className="custom-tooltip__dot" style={{ background: '#F59E0B' }}></span>
             Target (Meta)
           </span>
           <span className="custom-tooltip__value">{formatValue(data.target, unit)}</span>
@@ -73,16 +73,16 @@ function CustomTooltip({ active, payload, label, unit }) {
   );
 }
 
-function CustomLegend({ accentColor, lineColor, targetColor, hasTarget }) {
+function CustomLegend({ accentColor, lineColor, targetColor, hasTarget, currentYearLabel = '2026', prevYearLabel = '2025' }) {
   return (
     <div className="custom-legend">
       <div className="custom-legend__item">
         <div className="custom-legend__marker--bar" style={{ background: accentColor }}></div>
-        <span>2026 (Realizado)</span>
+        <span>{currentYearLabel} (Realizado)</span>
       </div>
       <div className="custom-legend__item">
         <div className="custom-legend__marker" style={{ background: lineColor }}></div>
-        <span>2025 (Ano Anterior)</span>
+        <span>{prevYearLabel} (Ano Anterior)</span>
       </div>
       {hasTarget && (
         <div className="custom-legend__item">
@@ -94,14 +94,20 @@ function CustomLegend({ accentColor, lineColor, targetColor, hasTarget }) {
   );
 }
 
+/* Paleta: barras sempre em tons de azul; linhas de target e ano anterior em cores não-vermelhas. */
+const BAR_BEST = '#7DD3FC';   // azul claro — melhor período
+const BAR_WORST = '#1E3A8A';  // azul escuro — pior período
+
 export default function ComparisonChart({
   data,
   unit,
-  accentColor = '#E7194A',
-  lineColor = '#9E9E9E',
-  targetColor = '#22C55E',
+  accentColor = '#3B82F6',
+  lineColor = '#A78BFA',
+  targetColor = '#F59E0B',
   selectedPeriod,
   onPeriodClick,
+  currentYearLabel = '2026',
+  prevYearLabel = '2025',
 }) {
   const formatYAxis = (val) => {
     if (unit === '%' || unit === 'Ratio') return `${(val * 100).toFixed(1)}%`;
@@ -147,15 +153,21 @@ export default function ComparisonChart({
               width={55}
             />
             <Tooltip
-              content={<CustomTooltip unit={unit} />}
+              content={
+                <CustomTooltip 
+                  unit={unit} 
+                  currentYearLabel={currentYearLabel}
+                  prevYearLabel={prevYearLabel}
+                />
+              }
               cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
             />
 
             <Bar dataKey="currentResult" radius={[4, 4, 0, 0]} maxBarSize={38}>
               {chartData.map((entry, index) => {
                 let fill = accentColor;
-                if (entry.isBest) fill = '#22C55E';
-                if (entry.isWorst) fill = '#E7194A';
+                if (entry.isBest) fill = BAR_BEST;
+                if (entry.isWorst) fill = BAR_WORST;
 
                 const isSelected = entry.period === selectedPeriod;
                 const opacity = selectedPeriod ? (isSelected ? 1.0 : 0.35) : 0.85;
@@ -205,6 +217,8 @@ export default function ComparisonChart({
         lineColor={lineColor}
         targetColor={targetColor}
         hasTarget={hasTarget}
+        currentYearLabel={currentYearLabel}
+        prevYearLabel={prevYearLabel}
       />
     </div>
   );

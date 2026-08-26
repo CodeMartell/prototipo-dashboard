@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Database, HelpCircle, Calculator, CheckCircle2, TrendingDown, Layers } from 'lucide-react';
+import { X, Database, HelpCircle, Calculator, CheckCircle2, Layers } from 'lucide-react';
 
 const METRICS_EXPLANATIONS = [
   {

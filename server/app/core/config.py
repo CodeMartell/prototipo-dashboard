@@ -28,7 +28,11 @@ class Settings(BaseSettings):
     # Fallback de dados (compatibilidade com o protótipo atual)
     EXCEL_FALLBACK_PATH: str = "dados_dashboard.xlsx"
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 @lru_cache

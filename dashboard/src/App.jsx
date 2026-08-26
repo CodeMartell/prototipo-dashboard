@@ -116,8 +116,8 @@ function App() {
     localStorage.setItem('analytics_audit_log', JSON.stringify(auditLog));
   }, [auditLog]);
 
-  // Executar a análise de dados
-  const runAnalysis = () => {
+  // Executar a análise de dados com dependências completas
+  const runAnalysis = useCallback(() => {
     const results = runFullAnalysis(
       {
         logisticCost: logisticCostState,
@@ -136,12 +136,12 @@ function App() {
     }));
 
     setAlerts(processedAlerts);
-  };
+  }, [logisticCostState, airFreightState, logisticsVsProdState, configs]);
 
   // Re-analisa se dados ou regras mudarem
   useEffect(() => {
     runAnalysis();
-  }, [logisticCostState, airFreightState, logisticsVsProdState, configs]);
+  }, [runAnalysis]);
 
   // --- EVENTOS DO PAINEL DE ANALYTICS ---
   
@@ -329,7 +329,7 @@ function App() {
   };
 
   // Seleciona os registros do período ativo (mês, trimestre, semestre ou ano) para um determinado ano
-  const selectPeriodRows = (monthlyArr, quarterlyArr, year) => {
+  const selectPeriodRows = useCallback((monthlyArr, quarterlyArr, year) => {
     if (period === 'monthly') {
       return monthlyArr.filter((d) => d.year === year && d.month === selectedSubPeriod);
     }
@@ -341,10 +341,10 @@ function App() {
       return quarterlyArr.filter((d) => d.year === year && qList.includes(d.quarter));
     }
     return quarterlyArr.filter((d) => d.year === year);
-  };
+  }, [period, selectedSubPeriod]);
 
   // Calcula realizado, meta e atingimento de um ano específico no período ativo
-  const getPeriodStats = (monthlyArr, quarterlyArr, year, valueKey, aggregate) => {
+  const getPeriodStats = useCallback((monthlyArr, quarterlyArr, year, valueKey, aggregate) => {
     const isRatio = valueKey === 'ratio';
     const rows = selectPeriodRows(monthlyArr, quarterlyArr, year);
 
@@ -361,10 +361,10 @@ function App() {
     }
 
     return { result, target, achievement };
-  };
+  }, [selectPeriodRows]);
 
   // Helper: métricas completas (atual + período anterior) para o período selecionado
-  const getSubPeriodMetric = (monthlyArr, quarterlyArr, valueKey = 'result', aggregate = 'avg') => {
+  const getSubPeriodMetric = useCallback((monthlyArr, quarterlyArr, valueKey = 'result', aggregate = 'avg') => {
     const isAnnual = period === 'annual';
     const subLabel = isAnnual ? currentYearLabel : `${selectedSubPeriod}/${currentYearLabel.substring(2)}`;
     const prevSubLabel = isAnnual ? prevYearLabel : `${selectedSubPeriod}/${prevYearLabel.substring(2)}`;
@@ -398,16 +398,16 @@ function App() {
       subLabel,
       prevSubLabel,
     };
-  };
+  }, [period, currentYearLabel, selectedSubPeriod, prevYearLabel, getPeriodStats, selectedYear, prevYear]);
 
   // Definição dos indicadores exibidos nos cards e na matriz comparativa
-  const KPI_DEFINITIONS = [
+  const KPI_DEFINITIONS = useMemo(() => [
     { key: 'warRoom', name: 'War Room', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#3B82F6', monthly: logisticCostState, quarterly: quarterlyLogisticCost, description: 'Custo logístico sobre faturamento' },
     { key: 'incidentialCost', name: 'Incidential Cost', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#2563EB', monthly: incidentialCostData, quarterly: quarterlyIncidentialCost, description: 'Custos incidentais sobre faturamento' },
     { key: 'totalCost', name: 'Total Cost', unit: 'MUSD', aggregate: 'sum', valueKey: 'result', color: '#1D4ED8', monthly: totalCostData, quarterly: quarterlyTotalCost, description: 'Custo logístico total' },
     { key: 'demurrage', name: 'Demurrage', unit: 'KUSD', aggregate: 'sum', valueKey: 'result', color: '#0EA5E9', monthly: demurrageData, quarterly: quarterlyDemurrage, description: 'Sobrestadia de contêineres' },
     { key: 'airFreight', name: 'Air Freight', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#38BDF8', monthly: airFreightState, quarterly: quarterlyAirFreight, description: 'Frete aéreo sobre faturamento' },
-  ];
+  ], [logisticCostState, airFreightState]);
 
   const kpiMetrics = useMemo(
     () =>
@@ -416,20 +416,18 @@ function App() {
         lowerIsBetter: true,
         ...getSubPeriodMetric(def.monthly, def.quarterly, def.valueKey, def.aggregate),
       })),
-    [logisticCostState, airFreightState, selectedYear, period, selectedSubPeriod]
+    [KPI_DEFINITIONS, getSubPeriodMetric]
   );
 
   const logCostInfo = useMemo(
     () => getSubPeriodMetric(logisticCostState, quarterlyLogisticCost, 'result'),
-    [logisticCostState, selectedYear, period, selectedSubPeriod]
+    [logisticCostState, getSubPeriodMetric]
   );
 
   const airFreightInfo = useMemo(
     () => getSubPeriodMetric(airFreightState, quarterlyAirFreight, 'result'),
-    [airFreightState, selectedYear, period, selectedSubPeriod]
+    [airFreightState, getSubPeriodMetric]
   );
-
-
 
   // Totals for production and logistics cost up to selected subperiod
   const kpi3Latest = useMemo(() => {
@@ -448,27 +446,6 @@ function App() {
     const totalProd = filtered.reduce((s, d) => s + (d.productionAmount || 0), 0);
     return { totalCost, totalProd };
   }, [logisticsVsProdState, selectedYear, period, selectedSubPeriod]);
-
-  const kpi3PrevTotals = useMemo(() => {
-    const prevData = logisticsVsProdState.filter((d) => d.year === prevYear && d.ratio !== null);
-    if (prevData.length === 0) return { totalCost: null, totalProd: null };
-
-    let filtered = prevData;
-    if (period === 'monthly') {
-      const monthIdx = MONTHS.indexOf(selectedSubPeriod);
-      if (monthIdx !== -1) {
-        filtered = prevData.slice(0, monthIdx + 1);
-      }
-    }
-
-    return {
-      totalCost: filtered.reduce((s, d) => s + (d.logisticsCost || 0), 0),
-      totalProd: filtered.reduce((s, d) => s + (d.productionAmount || 0), 0),
-    };
-  }, [logisticsVsProdState, selectedYear, prevYear, period, selectedSubPeriod]);
-
-  const prodVariation = kpi3PrevTotals.totalProd ? calculateVariation(kpi3Latest.totalProd, kpi3PrevTotals.totalProd) : null;
-  const costVariation = kpi3PrevTotals.totalCost ? calculateVariation(kpi3Latest.totalCost, kpi3PrevTotals.totalCost) : null;
 
   const handleSidebarNavigate = (itemId) => {
     setActiveTab(itemId);

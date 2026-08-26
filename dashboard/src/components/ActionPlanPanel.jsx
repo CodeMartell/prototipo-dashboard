@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp, Lightbulb, FileText } from 'lucide-react';
 export default function ActionPlanPanel({
   kpiKey,
   kpiName,
-  period,
+  _period,
   selectedYear,
   periodLabel,
   insight,

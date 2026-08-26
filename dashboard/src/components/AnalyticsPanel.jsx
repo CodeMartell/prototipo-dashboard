@@ -13,8 +13,7 @@ import {
   ShieldCheck,
   TrendingUp,
   Calendar,
-  ArrowRightLeft,
-  Filter
+  ArrowRightLeft
 } from 'lucide-react';
 import { calculateYearlyStats } from '../utils/analyticsEngine';
 

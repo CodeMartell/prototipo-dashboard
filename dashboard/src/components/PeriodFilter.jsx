@@ -7,37 +7,37 @@ export default function PeriodFilter({
   onSubPeriodChange,
 }) {
   const periods = [
-    { key: 'monthly', label: 'Mensal' },
-    { key: 'quarterly', label: 'Trimestral' },
-    { key: 'semiannual', label: 'Semestral' },
-    { key: 'annual', label: 'Anual' },
+    { key: 'monthly', label: 'Monthly' },
+    { key: 'quarterly', label: 'Quarterly' },
+    { key: 'semiannual', label: 'Semiannual' },
+    { key: 'annual', label: 'Annual' },
   ];
 
   const monthOptions = [
     { key: 'Jan', label: 'Jan' },
-    { key: 'Feb', label: 'Fev' },
+    { key: 'Feb', label: 'Feb' },
     { key: 'Mar', label: 'Mar' },
-    { key: 'Apr', label: 'Abr' },
-    { key: 'May', label: 'Mai' },
+    { key: 'Apr', label: 'Apr' },
+    { key: 'May', label: 'May' },
     { key: 'Jun', label: 'Jun' },
     { key: 'Jul', label: 'Jul' },
-    { key: 'Aug', label: 'Ago' },
-    { key: 'Sep', label: 'Set' },
-    { key: 'Oct', label: 'Out' },
+    { key: 'Aug', label: 'Aug' },
+    { key: 'Sep', label: 'Sep' },
+    { key: 'Oct', label: 'Oct' },
     { key: 'Nov', label: 'Nov' },
-    { key: 'Dec', label: 'Dez' },
+    { key: 'Dec', label: 'Dec' },
   ];
 
   const quarterOptions = [
-    { key: 'Q1', label: '1º Trim (Q1)' },
-    { key: 'Q2', label: '2º Trim (Q2)' },
-    { key: 'Q3', label: '3º Trim (Q3)' },
-    { key: 'Q4', label: '4º Trim (Q4)' },
+    { key: 'Q1', label: '1st Qtr (Q1)' },
+    { key: 'Q2', label: '2nd Qtr (Q2)' },
+    { key: 'Q3', label: '3rd Qtr (Q3)' },
+    { key: 'Q4', label: '4th Qtr (Q4)' },
   ];
 
   const semesterOptions = [
-    { key: 'H1', label: '1º Sem (H1)' },
-    { key: 'H2', label: '2º Sem (H2)' },
+    { key: 'H1', label: '1st Sem (H1)' },
+    { key: 'H2', label: '2nd Sem (H2)' },
   ];
 
   return (
@@ -58,7 +58,7 @@ export default function PeriodFilter({
       {/* Specific Sub-Period Selector */}
       {activePeriod === 'monthly' && (
         <div className="sub-period-filter">
-          <span className="sub-period-filter__label">Mês em Verificação:</span>
+          <span className="sub-period-filter__label">Month under Verification:</span>
           <div className="sub-period-pills-scroll">
             {monthOptions.map((m) => (
               <button
@@ -75,7 +75,7 @@ export default function PeriodFilter({
 
       {activePeriod === 'quarterly' && (
         <div className="sub-period-filter">
-          <span className="sub-period-filter__label">Trimestre em Verificação:</span>
+          <span className="sub-period-filter__label">Quarter under Verification:</span>
           <div className="sub-period-pills-scroll">
             {quarterOptions.map((q) => (
               <button
@@ -92,7 +92,7 @@ export default function PeriodFilter({
 
       {activePeriod === 'semiannual' && (
         <div className="sub-period-filter">
-          <span className="sub-period-filter__label">Semestre em Verificação:</span>
+          <span className="sub-period-filter__label">Semester under Verification:</span>
           <div className="sub-period-pills-scroll">
             {semesterOptions.map((s) => (
               <button

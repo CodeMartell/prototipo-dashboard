@@ -35,22 +35,33 @@ function App() {
   const navigate = useNavigate();
   const [currentUser] = useState(() => getCurrentUser());
 
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
   const [selectedYear, setSelectedYear] = useState('Y26');
   const [period, setPeriod] = useState('monthly'); // 'monthly' | 'quarterly' | 'semiannual' | 'annual'
   const [selectedSubPeriod, setSelectedSubPeriod] = useState('May'); // 'Jan'..'Dec', 'Q1'..'Q4', 'H1'..'H2', 'Y26'
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
 
-  // --- ESTADOS DO MOTOR DE ANALYTICS ---
-  // Iniciados com mocks; substituídos pelos dados da API quando disponível.
+  // --- ANALYTICS ENGINE STATES ---
+  // Initialized with mocks; replaced by API data when available.
   const [logisticCostState, setLogisticCostState] = useState(logisticCostData);
   const [airFreightState, setAirFreightState] = useState(airFreightData);
   const [logisticsVsProdState, setLogisticsVsProdState] = useState(logisticsCostVsProdData);
 
-  // Indica a origem dos dados atualmente exibidos
+  // Indicates data source of currently displayed metrics
   const [dataSource, setDataSource] = useState('mock'); // 'mock' | 'api'
 
-  // --- CARREGAMENTO DE DADOS DA API ---
+  // --- LOADING API DATA ---
   const loadFromApi = useCallback(() => {
     fetchDashboardData()
       .then((data) => {
@@ -58,16 +69,14 @@ function App() {
         if (data.air_freight?.length) setAirFreightState(data.air_freight);
         if (data.logistics_vs_prod?.length) setLogisticsVsProdState(data.logistics_vs_prod);
         setDataSource('api');
-        console.info('[DataLens] Dados carregados da API com sucesso.');
+        console.info('[DataLens] Data loaded from API successfully.');
       })
       .catch((err) => {
         if (err instanceof UnauthorizedError) {
           navigate('/login');
           return;
         }
-        // Tabela ainda não populada pelo bot de extração, API fora do ar,
-        // etc — mantém a tela funcional com dado mock em vez de quebrar.
-        console.warn('[DataLens] API indisponível, usando dados mock:', err.message);
+        console.warn('[DataLens] API unavailable, using mock data:', err.message);
         setDataSource('mock');
       });
   }, [navigate]);
@@ -77,7 +86,7 @@ function App() {
     navigate('/login');
   }, [navigate]);
 
-  // Carrega dados da API ao montar o componente
+  // Load API data on component mount
   useEffect(() => {
     loadFromApi();
   }, [loadFromApi]);
@@ -96,10 +105,10 @@ function App() {
     return saved ? JSON.parse(saved) : [
       {
         id: 'initial',
-        action: 'Sistema Inicializado',
-        details: 'Motor de análise de consistência e anomalias ativado.',
+        action: 'System Initialized',
+        details: 'Consistency and anomaly analysis engine activated.',
         timestamp: new Date().toISOString(),
-        user: 'Sistema'
+        user: 'System'
       }
     ];
   });
@@ -162,17 +171,17 @@ function App() {
       
       const newLog = {
         id: `log-${Date.now()}`,
-        action: 'Análise Executada',
-        details: `Varredura sob demanda concluída. ${results.length} irregularidades identificadas na base histórica.`,
+        action: 'Analysis Executed',
+        details: `On-demand scan completed. ${results.length} irregularities identified in historical database.`,
         timestamp: new Date().toISOString(),
-        user: 'Logística & Admin'
+        user: 'Logistics & Admin'
       };
       setAuditLog(prev => [newLog, ...prev]);
     }, 800);
   };
 
   const handleInjectErrors = () => {
-    // 1. Custo Logístico: nulo em Nov/Y25 e estouro May/Y26
+    // 1. Logistics Cost: null in Nov/Y25 and spike in May/Y26
     const newLogCost = logisticCostState.map(d => {
       if (d.month === 'Nov' && d.year === 'Y25') {
         return { ...d, result: null };
@@ -183,7 +192,7 @@ function App() {
       return d;
     });
 
-    // 2. Air Freight: pico extremo Jan/Y26 e duplicata em Jun/Y26
+    // 2. Air Freight: extreme spike in Jan/Y26 and duplicate in Jun/Y26
     let newAirFreight = airFreightState.map(d => {
       if (d.month === 'Jan' && d.year === 'Y26') {
         return { ...d, result: 0.045 }; // 4.5% (>1.0% max)
@@ -195,15 +204,15 @@ function App() {
       newAirFreight.push({ month: 'Jun', year: 'Y26', target: 0.0022, result: 0.0085, achievement: 0.25 });
     }
 
-    // 3. Ratio: conflito matemático em Nov/Y26
+    // 3. Ratio: mathematical conflict in Nov/Y26
     const newLogVsProd = logisticsVsProdState.map(d => {
       if (d.month === 'Nov' && d.year === 'Y26') {
-        return { ...d, ratio: 0.0850 }; // Custo 1.30 / Produção 27.08 != 0.0850
+        return { ...d, ratio: 0.0850 }; // Cost 1.30 / Prod 27.08 != 0.0850
       }
       return d;
     });
 
-    // Limpar estados locais de descartados para que os alertas reapareçam
+    // Clear local dismissed states so alerts reappear
     localStorage.setItem('analytics_dismissed_alerts', '[]');
     localStorage.setItem('analytics_verified_alerts', '[]');
 
@@ -213,10 +222,10 @@ function App() {
 
     const newLog = {
       id: `log-${Date.now()}`,
-      action: 'Injeção de Erros',
-      details: 'Inconsistências artificiais injetadas no banco de dados para validação operacional do sistema.',
+      action: 'Error Injection',
+      details: 'Artificial inconsistencies injected into database for system operational validation.',
       timestamp: new Date().toISOString(),
-      user: 'Logística & Admin'
+      user: 'Logistics & Admin'
     };
     setAuditLog(prev => [newLog, ...prev]);
   };
@@ -235,10 +244,10 @@ function App() {
 
     const newLog = {
       id: `log-${Date.now()}`,
-      action: 'Alerta Verificado',
-      details: `Verificação efetuada: ${alert.kpiName} (${alert.period}) - ${alert.message}`,
+      action: 'Alert Verified',
+      details: `Verification completed: ${alert.kpiName} (${alert.period}) - ${alert.message}`,
       timestamp: new Date().toISOString(),
-      user: 'Logística & Admin'
+      user: 'Logistics & Admin'
     };
     setAuditLog(prev => [newLog, ...prev]);
   };
@@ -257,10 +266,10 @@ function App() {
 
     const newLog = {
       id: `log-${Date.now()}`,
-      action: 'Alerta Descartado',
-      details: `Descarte efetuado pelo operador: ${alert.kpiName} (${alert.period}) - ${alert.message}`,
+      action: 'Alert Dismissed',
+      details: `Dismissal performed by operator: ${alert.kpiName} (${alert.period}) - ${alert.message}`,
       timestamp: new Date().toISOString(),
-      user: 'Logística & Admin'
+      user: 'Logistics & Admin'
     };
     setAuditLog(prev => [newLog, ...prev]);
   };
@@ -286,10 +295,10 @@ function App() {
 
     const newLog = {
       id: `log-${Date.now()}`,
-      action: 'Padrões Restaurados',
-      details: 'Parâmetros de fábrica e base de dados original recarregados com sucesso.',
+      action: 'Defaults Restored',
+      details: 'Factory parameters and original database reloaded successfully.',
       timestamp: new Date().toISOString(),
-      user: 'Logística & Admin'
+      user: 'Logistics & Admin'
     };
     setAuditLog(prev => [newLog, ...prev]);
   };
@@ -298,7 +307,7 @@ function App() {
     setAuditLog([]);
   };
 
-  // --- FILTROS DE ALERTA PARA BADGES E INTERFACE ---
+  // --- ALERT FILTERS FOR BADGES AND UI ---
   const activeAlerts = useMemo(() => alerts.filter(a => !a.verified), [alerts]);
   
   const kpisWithAlerts = useMemo(() => {
@@ -311,7 +320,7 @@ function App() {
   const currentYearLabel = `20${selectedYear.substring(1)}`;
   const prevYearLabel = `20${prevYear.substring(1)}`;
 
-  // Reset do subperíodo ao mudar o tipo
+  // Reset subperiod when period type changes
   const handlePeriodChange = (newPeriod) => {
     setPeriod(newPeriod);
     if (newPeriod === 'monthly') setSelectedSubPeriod('May');
@@ -320,7 +329,7 @@ function App() {
     else setSelectedSubPeriod(selectedYear);
   };
 
-  // Agrega uma lista de registros de um campo (média para taxas, soma para valores absolutos)
+  // Aggregate field values (avg for rates, sum for absolute values)
   const aggregateField = (rows, field, mode) => {
     const valid = rows.filter((d) => d[field] !== null && d[field] !== undefined);
     if (!valid.length) return null;
@@ -328,7 +337,7 @@ function App() {
     return mode === 'sum' ? total : total / valid.length;
   };
 
-  // Seleciona os registros do período ativo (mês, trimestre, semestre ou ano) para um determinado ano
+  // Select period rows for active period
   const selectPeriodRows = useCallback((monthlyArr, quarterlyArr, year) => {
     if (period === 'monthly') {
       return monthlyArr.filter((d) => d.year === year && d.month === selectedSubPeriod);
@@ -343,7 +352,7 @@ function App() {
     return quarterlyArr.filter((d) => d.year === year);
   }, [period, selectedSubPeriod]);
 
-  // Calcula realizado, meta e atingimento de um ano específico no período ativo
+  // Calculate period stats
   const getPeriodStats = useCallback((monthlyArr, quarterlyArr, year, valueKey, aggregate) => {
     const isRatio = valueKey === 'ratio';
     const rows = selectPeriodRows(monthlyArr, quarterlyArr, year);
@@ -363,7 +372,7 @@ function App() {
     return { result, target, achievement };
   }, [selectPeriodRows]);
 
-  // Helper: métricas completas (atual + período anterior) para o período selecionado
+  // Subperiod metrics helper
   const getSubPeriodMetric = useCallback((monthlyArr, quarterlyArr, valueKey = 'result', aggregate = 'avg') => {
     const isAnnual = period === 'annual';
     const subLabel = isAnnual ? currentYearLabel : `${selectedSubPeriod}/${currentYearLabel.substring(2)}`;
@@ -379,7 +388,7 @@ function App() {
       variationAbs = current.result - previous.result;
     }
 
-    // Sparkline com a série mensal do ano selecionado
+    // Sparkline with monthly series of selected year
     const sparkline = monthlyArr
       .filter((d) => d.year === selectedYear && d[valueKey] !== null && d[valueKey] !== undefined)
       .map((d) => ({ value: d[valueKey] }));
@@ -400,13 +409,13 @@ function App() {
     };
   }, [period, currentYearLabel, selectedSubPeriod, prevYearLabel, getPeriodStats, selectedYear, prevYear]);
 
-  // Definição dos indicadores exibidos nos cards e na matriz comparativa
+  // KPI Definitions for cards and comparative matrix
   const KPI_DEFINITIONS = useMemo(() => [
-    { key: 'warRoom', name: 'War Room', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#3B82F6', monthly: logisticCostState, quarterly: quarterlyLogisticCost, description: 'Custo logístico sobre faturamento' },
-    { key: 'incidentialCost', name: 'Incidential Cost', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#2563EB', monthly: incidentialCostData, quarterly: quarterlyIncidentialCost, description: 'Custos incidentais sobre faturamento' },
-    { key: 'totalCost', name: 'Total Cost', unit: 'MUSD', aggregate: 'sum', valueKey: 'result', color: '#1D4ED8', monthly: totalCostData, quarterly: quarterlyTotalCost, description: 'Custo logístico total' },
-    { key: 'demurrage', name: 'Demurrage', unit: 'KUSD', aggregate: 'sum', valueKey: 'result', color: '#0EA5E9', monthly: demurrageData, quarterly: quarterlyDemurrage, description: 'Sobrestadia de contêineres' },
-    { key: 'airFreight', name: 'Air Freight', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#38BDF8', monthly: airFreightState, quarterly: quarterlyAirFreight, description: 'Frete aéreo sobre faturamento' },
+    { key: 'warRoom', name: 'War Room', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#3B82F6', monthly: logisticCostState, quarterly: quarterlyLogisticCost, description: 'Logistics cost over revenue' },
+    { key: 'incidentialCost', name: 'Incidential Cost', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#2563EB', monthly: incidentialCostData, quarterly: quarterlyIncidentialCost, description: 'Incidential costs over revenue' },
+    { key: 'totalCost', name: 'Total Cost', unit: 'MUSD', aggregate: 'sum', valueKey: 'result', color: '#1D4ED8', monthly: totalCostData, quarterly: quarterlyTotalCost, description: 'Total logistics cost' },
+    { key: 'demurrage', name: 'Demurrage', unit: 'KUSD', aggregate: 'sum', valueKey: 'result', color: '#0EA5E9', monthly: demurrageData, quarterly: quarterlyDemurrage, description: 'Container demurrage' },
+    { key: 'airFreight', name: 'Air Freight', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#38BDF8', monthly: airFreightState, quarterly: quarterlyAirFreight, description: 'Air freight over revenue' },
   ], [logisticCostState, airFreightState]);
 
   const kpiMetrics = useMemo(
@@ -459,7 +468,7 @@ function App() {
     }
   };
 
-  // Filtrar alertas para exibição inline por indicador
+  // Filter inline alerts per indicator
   const lcAlerts = useMemo(() => activeAlerts.filter(a => a.kpiKey === 'logisticCost'), [activeAlerts]);
   const afAlerts = useMemo(() => activeAlerts.filter(a => a.kpiKey === 'airFreight'), [activeAlerts]);
   const lpAlerts = useMemo(() => activeAlerts.filter(a => a.kpiKey === 'logisticsVsProd'), [activeAlerts]);
@@ -482,6 +491,8 @@ function App() {
           onDismissAlert={handleDismissAlert}
           user={currentUser}
           onLogout={handleLogout}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
 
         <main className="dashboard-main">
@@ -515,7 +526,7 @@ function App() {
                 <div className="period-filter-card">
                   <div className="period-filter-card__label">
                     <Calendar size={14} />
-                    Filtro de Período & Agrupamento
+                    Period Filter & Grouping
                   </div>
                   <PeriodFilter
                     activePeriod={period}
@@ -526,7 +537,7 @@ function App() {
                 </div>
               </div>
 
-              {/* Cards de Indicadores — variam conforme o período selecionado */}
+              {/* Indicator Cards Grid */}
               <div className="kpi-cards-grid">
                 {kpiMetrics.map((m) => (
                   <KPICard
@@ -548,31 +559,31 @@ function App() {
                 ))}
               </div>
 
-              {/* Banner de aviso geral sobre inconsistências da base */}
+              {/* Global warning banner */}
               {activeAlerts.length > 0 && (
                 <div className="global-warning-banner animate-fade-in">
                   <AlertTriangle size={18} className="text-warning" />
                   <div className="global-warning-banner__text">
-                    <strong>Alerta de Qualidade de Dados:</strong> O motor de análise detectou {activeAlerts.length} inconsistência(s) ou oscilação(ões) anômala(s) na base histórica de KPIs.
+                    <strong>Data Quality Alert:</strong> Analysis engine detected {activeAlerts.length} inconsistency(ies) or anomalous fluctuation(s) in historical KPI database.
                   </div>
                   <button className="btn btn--sm btn--primary" onClick={() => setActiveTab('analytics')}>
-                    Revisar no Analytics
+                    Review in Analytics
                   </button>
                 </div>
               )}
 
-              {/* Dynamic Insight Banner based on Active Sidebar View */}
+              {/* Dynamic Insight Banner */}
               {activeTab !== 'dashboard' && activeTab !== 'analytics' && (
                 <div className="insight-banner animate-fade-in" style={{ marginBottom: '1.5rem' }}>
                   <Lightbulb size={20} style={{ color: 'var(--accent-amber)', flexShrink: 0 }} />
                   <div>
                     <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)', display: 'block' }}>
-                      Insight Executivo — {activeTab === 'logisticCost' ? 'War Room Report (Logistic Cost KPI TV)' : activeTab === 'airFreight' ? 'Air Freight KPI TV' : 'Logistic Cost x Product Amount'}
+                      Executive Insight — {activeTab === 'logisticCost' ? 'War Room Report (Logistic Cost KPI TV)' : activeTab === 'airFreight' ? 'Air Freight KPI TV' : 'Logistic Cost x Product Amount'}
                     </strong>
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                      {activeTab === 'logisticCost' && `No período ${selectedSubPeriod}/${currentYearLabel.substring(2)}, o custo logístico situou-se em ${logCostInfo.latest ? (logCostInfo.latest * 100).toFixed(2) + '%' : 'N/A'}.`}
-                      {activeTab === 'airFreight' && `O uso de frete aéreo em ${selectedSubPeriod} registrou ${airFreightInfo.latest ? (airFreightInfo.latest * 100).toFixed(2) + '%' : 'N/A'}.`}
-                      {activeTab === 'logisticsVsProd' && `O volume acumulado de produção até ${selectedSubPeriod} atingiu $${kpi3Latest.totalProd ? kpi3Latest.totalProd.toFixed(2) : '0'} MUSD.`}
+                      {activeTab === 'logisticCost' && `In period ${selectedSubPeriod}/${currentYearLabel.substring(2)}, logistics cost was at ${logCostInfo.latest ? (logCostInfo.latest * 100).toFixed(2) + '%' : 'N/A'}.`}
+                      {activeTab === 'airFreight' && `Air freight usage in ${selectedSubPeriod} recorded ${airFreightInfo.latest ? (airFreightInfo.latest * 100).toFixed(2) + '%' : 'N/A'}.`}
+                      {activeTab === 'logisticsVsProd' && `YTD accumulated production volume up to ${selectedSubPeriod} reached $${kpi3Latest.totalProd ? kpi3Latest.totalProd.toFixed(2) : '0'} MUSD.`}
                     </span>
                   </div>
                 </div>
@@ -593,16 +604,16 @@ function App() {
                     <div className="kpi-inline-warning animate-fade-in">
                       <AlertTriangle size={14} className="text-warning" />
                       <div className="kpi-inline-warning__text">
-                        <strong>Validação de Dados:</strong> Detectado(s) {lcAlerts.length} alerta(s) no histórico. Último registro crítico em <strong>{lcAlerts[0].period}</strong>: {lcAlerts[0].message}
+                        <strong>Data Validation:</strong> Detected {lcAlerts.length} alert(s) in historical data. Latest critical record in <strong>{lcAlerts[0].period}</strong>: {lcAlerts[0].message}
                       </div>
                       <button className="btn btn--sm btn--accent" onClick={() => setActiveTab('analytics')}>
-                        Auditar Registro
+                        Audit Record
                       </button>
                     </div>
                   )}
                   <KPISection
                     kpiKey="logisticCost"
-                    title="Evolução do Custo Logístico (War Room Report)"
+                    title="Logistics Cost Evolution (War Room Report)"
                     icon={DollarSign}
                     monthlyData={logisticCostState}
                     quarterlyData={quarterlyLogisticCost}
@@ -622,10 +633,10 @@ function App() {
                     <div className="kpi-inline-warning animate-fade-in">
                       <AlertTriangle size={14} className="text-warning" />
                       <div className="kpi-inline-warning__text">
-                        <strong>Validação de Dados:</strong> Detectado(s) {afAlerts.length} alerta(s) no histórico. Último registro crítico em <strong>{afAlerts[0].period}</strong>: {afAlerts[0].message}
+                        <strong>Data Validation:</strong> Detected {afAlerts.length} alert(s) in historical data. Latest critical record in <strong>{afAlerts[0].period}</strong>: {afAlerts[0].message}
                       </div>
                       <button className="btn btn--sm btn--accent" onClick={() => setActiveTab('analytics')}>
-                        Auditar Registro
+                        Audit Record
                       </button>
                     </div>
                   )}
@@ -651,10 +662,10 @@ function App() {
                     <div className="kpi-inline-warning animate-fade-in">
                       <AlertTriangle size={14} className="text-warning" />
                       <div className="kpi-inline-warning__text">
-                        <strong>Validação de Dados:</strong> Detectado(s) {lpAlerts.length} alerta(s) no histórico. Último registro crítico em <strong>{lpAlerts[0].period}</strong>: {lpAlerts[0].message}
+                        <strong>Data Validation:</strong> Detected {lpAlerts.length} alert(s) in historical data. Latest critical record in <strong>{lpAlerts[0].period}</strong>: {lpAlerts[0].message}
                       </div>
                       <button className="btn btn--sm btn--accent" onClick={() => setActiveTab('analytics')}>
-                        Auditar Registro
+                        Audit Record
                       </button>
                     </div>
                   )}
@@ -678,7 +689,7 @@ function App() {
         </main>
 
         <footer className="dashboard-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-          <span>Dashboard KPI Logístico — Protótipo v1.1 | Motor de Analytics &amp; Integridade Homologado | LG Electronics DXI</span>
+          <span>Logistics KPI Dashboard — Prototype v1.1 | Homologated Analytics &amp; Integrity Engine | LG Electronics DXI</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
             <span style={{
               display: 'inline-block', padding: '2px 8px', borderRadius: '9999px',
@@ -694,9 +705,9 @@ function App() {
                 color: 'inherit', borderRadius: '6px', padding: '2px 10px',
                 cursor: 'pointer', fontSize: '0.75rem',
               }}
-              title="Recarregar dados da API"
+              title="Reload API data"
             >
-              ↻ Recarregar
+              ↻ Reload
             </button>
           </span>
         </footer>

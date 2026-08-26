@@ -48,8 +48,8 @@ export default function KPICard({
       <div className="kpi-card__value-row">
         <div className="kpi-card__value">{formatValue(currentValue)}</div>
         {targetValue !== null && targetValue !== undefined && (
-          <div className="kpi-card__target-badge" title="Meta (Target) do período selecionado">
-            Meta: {formatValue(targetValue)}
+          <div className="kpi-card__target-badge" title="Target for selected period">
+            Target: {formatValue(targetValue)}
           </div>
         )}
       </div>
@@ -62,11 +62,11 @@ export default function KPICard({
           </span>
         ) : (
           <span className="kpi-card__variation neutral">
-            <Minus size={12} /> Sem variação
+            <Minus size={12} /> No variation
           </span>
         )}
         {achievement !== null && achievement !== undefined && (
-          <span className={`achievement-pill ${achievement >= 1 ? 'good' : 'alert'}`} title="Atingimento da meta no período">
+          <span className={`achievement-pill ${achievement >= 1 ? 'good' : 'alert'}`} title="Target achievement for period">
             {(achievement * 100).toFixed(0)}%
           </span>
         )}
@@ -97,10 +97,10 @@ export default function KPICard({
 
       {previousLabel && (
         <div className="kpi-card__prev">
-          <span>Período anterior ({previousLabel}):</span> <strong>{formatValue(previousValue)}</strong>
+          <span>Previous period ({previousLabel}):</span> <strong>{formatValue(previousValue)}</strong>
           {variationAbsolute !== null && variationAbsolute !== undefined && (
             <span className="kpi-card__diff">
-              {' '}· Desvio {variationAbsolute > 0 ? '+' : ''}{formatValue(variationAbsolute)}
+              {' '}· Deviation {variationAbsolute > 0 ? '+' : ''}{formatValue(variationAbsolute)}
             </span>
           )}
         </div>

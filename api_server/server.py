@@ -16,8 +16,9 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, g, abort
 from flask_cors import CORS
+import time
 
 # ---------------------------------------------------------------------------
 # Ambiente
@@ -40,6 +41,51 @@ logging.basicConfig(
 )
 LOGGER = logging.getLogger(__name__)
 
+# Configura logger de auditoria
+AUDIT_LOGGER = logging.getLogger("audit")
+audit_handler = logging.FileHandler(ROOT_DIR / "audit.log")
+audit_handler.setFormatter(logging.Formatter("%(asctime)s | AUDIT | %(message)s"))
+AUDIT_LOGGER.addHandler(audit_handler)
+AUDIT_LOGGER.setLevel(logging.INFO)
+
+# Token simples estático para autorização básica
+AUTH_TOKEN = os.getenv("API_SECRET_TOKEN", "super-secret-token")
+
+
+# ---------------------------------------------------------------------------
+# Middleware (Logs de Acesso e Autenticação)
+# ---------------------------------------------------------------------------
+
+@app.before_request
+def before_request():
+    g.start_time = time.time()
+
+@app.after_request
+def after_request(response):
+    if request.path.startswith("/api/"):
+        duration = time.time() - getattr(g, "start_time", time.time())
+        LOGGER.info(
+            "[ACCESS] %s %s %s %s %s %.3fs",
+            request.remote_addr,
+            request.method,
+            request.path,
+            request.scheme,
+            response.status_code,
+            duration
+        )
+    return response
+
+def require_auth(f):
+    """Decorator para exigir autenticação simples baseada em token."""
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get("Authorization")
+        if not token or token != f"Bearer {AUTH_TOKEN}":
+            AUDIT_LOGGER.warning(f"Tentativa de acesso negado em {request.path} do IP {request.remote_addr}")
+            abort(401, description="Não autorizado")
+        return f(*args, **kwargs)
+    return decorated
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -201,6 +247,31 @@ def _get_kpi_data() -> tuple[dict, str]:
 # ---------------------------------------------------------------------------
 # Rotas
 # ---------------------------------------------------------------------------
+
+@app.post("/api/auth/login")
+def login():
+    """Endpoint de login simples para gerar o token estático."""
+    data = request.get_json() or {}
+    email = data.get("email")
+    password = data.get("password")
+    
+    # Validação estática simples
+    if email == "admin@empresa.com" and password == os.getenv("ADMIN_PASSWORD", "admin"):
+        AUDIT_LOGGER.info(f"Login bem-sucedido para o usuário: {email}")
+        return jsonify({"access_token": AUTH_TOKEN})
+    
+    AUDIT_LOGGER.warning(f"Falha de login para o e-mail: {email} (IP: {request.remote_addr})")
+    return jsonify({"error": "Credenciais inválidas"}), 401
+
+@app.get("/api/auth/me")
+@require_auth
+def auth_me():
+    """Retorna dados mockados do usuário logado."""
+    return jsonify({
+        "email": "admin@empresa.com",
+        "name": "Administrador",
+        "role": "ADMIN"
+    })
 
 @app.get("/api/dashboard")
 def dashboard():

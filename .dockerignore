@@ -11,3 +11,17 @@ rpa_email/resources/attachments
 
 dashboard/node_modules
 dashboard/dist
+
+# Pastas e rascunhos locais da documentação
+fluxo/
+scratch/
+
+# Scripts locais e testes
+scratch_extractor.py
+generate_pdd_docs.py
+generate_pdf.py
+generate_report_pdf.py
+generate_pdfs.py
+generate_rfc_pdf.py
+test.png
+*.pdf

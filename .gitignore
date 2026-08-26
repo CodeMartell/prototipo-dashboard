@@ -21,4 +21,5 @@ scratch/
 # Scripts locais e testes
 scratch_extractor.py
 generate_pdd_docs.py
+generate_pdf.py
 test.png

@@ -273,13 +273,13 @@ export default function LoginPage() {
     setMouseNorm(null);
   }, []);
 
-  /* Validação */
+  /* Validation */
   const validateEmail = (v) => {
-    if (!v) return 'E-mail é obrigatório.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Informe um e-mail corporativo válido.';
+    if (!v) return 'Email is required.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Please enter a valid corporate email.';
     return '';
   };
-  const validatePassword = (v) => (!v ? 'Senha é obrigatória.' : '');
+  const validatePassword = (v) => (!v ? 'Password is required.' : '');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -294,7 +294,7 @@ export default function LoginPage() {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setAuthError(err.message || 'Não foi possível entrar. Tente novamente.');
+      setAuthError(err.message || 'Unable to sign in. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -307,15 +307,15 @@ export default function LoginPage() {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Background interativo */}
+      {/* Interactive Background */}
       <AnalyticBackground parallax={parallax} mouseNorm={mouseNorm} />
 
-      {/* Card de login */}
+      {/* Login Card */}
       <div className="login-card" role="main">
         <div className="login-card__header">
           <div className="login-card__logo-mark"><DataLensIcon size={18} /></div>
           <h1 className="login-card__title">DataLens</h1>
-          <p className="login-card__subtitle">Acesse sua conta corporativa para continuar.</p>
+          <p className="login-card__subtitle">Access your corporate account to continue.</p>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>
@@ -323,21 +323,21 @@ export default function LoginPage() {
             <div className="login-error-banner" role="alert">
               <AlertTriangle size={14} className="login-error-banner__icon" />
               <div className="login-error-banner__text">
-                <strong>Acesso negado</strong>
+                <strong>Access denied</strong>
                 {authError}
               </div>
             </div>
           )}
 
-          {/* E-mail */}
+          {/* Email */}
           <div className={`form-field${errors.email ? ' form-field--error' : ''}`}>
-            <label className="form-field__label" htmlFor="login-email">E-mail corporativo</label>
+            <label className="form-field__label" htmlFor="login-email">Corporate Email</label>
             <div className="form-field__input-wrap">
               <Mail size={15} className="form-field__icon" aria-hidden="true" />
               <input
                 id="login-email" type="email"
                 className={`form-field__input${errors.email ? ' is-error' : ''}`}
-                placeholder="seu.nome@empresa.com"
+                placeholder="your.name@company.com"
                 value={email}
                 onChange={e => {
                   setEmail(e.target.value);
@@ -357,9 +357,9 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Senha */}
+          {/* Password */}
           <div className={`form-field${errors.password ? ' form-field--error' : ''}`}>
-            <label className="form-field__label" htmlFor="login-password">Senha</label>
+            <label className="form-field__label" htmlFor="login-password">Password</label>
             <div className="form-field__input-wrap">
               <Lock size={15} className="form-field__icon" aria-hidden="true" />
               <input
@@ -380,7 +380,7 @@ export default function LoginPage() {
                 disabled={isLoading} />
               <button type="button" className="form-field__eye-btn"
                 onClick={() => setShowPass(v => !v)}
-                aria-label={showPass ? 'Ocultar senha' : 'Exibir senha'}>
+                aria-label={showPass ? 'Hide password' : 'Show password'}>
                 {showPass ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
               </button>
             </div>
@@ -393,20 +393,20 @@ export default function LoginPage() {
 
           <button type="submit" className="btn-login" disabled={isLoading} aria-busy={isLoading}>
             {isLoading
-              ? (<><span className="btn-login__spinner" aria-hidden="true" />Verificando acesso…</>)
-              : 'Entrar'}
+              ? (<><span className="btn-login__spinner" aria-hidden="true" />Verifying access…</>)
+              : 'Sign In'}
           </button>
 
           <div className="login-form__forgot">
             <button type="button" className="login-form__forgot-link" onClick={() => {}}>
-              Esqueci minha senha
+              Forgot my password
             </button>
           </div>
         </form>
 
         <footer className="login-card__footer">
           <ShieldCheck size={11} aria-hidden="true" />
-          <span>Acesso restrito a colaboradores autorizados.</span>
+          <span>Restricted access to authorized employees.</span>
         </footer>
       </div>
     </div>

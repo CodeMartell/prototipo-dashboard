@@ -9,11 +9,11 @@ import {
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Visão Geral', badge: 'Global' },
+  { id: 'dashboard', icon: LayoutDashboard, label: 'Overview', badge: 'Global' },
   { id: 'logisticCost', icon: DollarSign, label: 'War Room Report', badge: 'KPI %' },
-  { id: 'airFreight', icon: Plane, label: 'Air Freight', badge: 'Aéreo' },
+  { id: 'airFreight', icon: Plane, label: 'Air Freight', badge: 'Air' },
   { id: 'logisticsVsProd', icon: Package, label: 'Cost x Product', badge: 'Ratio' },
-  { id: 'analytics', icon: BarChart2, label: 'Analytics', badge: 'Novo' },
+  { id: 'analytics', icon: BarChart2, label: 'Analytics', badge: 'New' },
 ];
 
 export default function Sidebar({ 
@@ -34,7 +34,7 @@ export default function Sidebar({
       </div>
 
       <nav className="sidebar__nav">
-        <div className="sidebar__section-label">PAINÉIS DISPONÍVEIS</div>
+        <div className="sidebar__section-label">AVAILABLE DASHBOARDS</div>
         {NAV_ITEMS.map(({ id, icon: Icon, label, badge }) => {
           const hasAlert = kpisWithAlerts.includes(id);
           const isAnalytics = id === 'analytics';
@@ -48,7 +48,7 @@ export default function Sidebar({
               <Icon size={16} />
               <span className="sidebar__item-label">{label}</span>
               {hasAlert && (
-                <span className="sidebar__item-warning" title="Alerta de inconsistência ou oscilação detectada">
+                <span className="sidebar__item-warning" title="Inconsistency or fluctuation alert detected">
                   <AlertTriangle size={12} className="text-warning" />
                 </span>
               )}
@@ -65,13 +65,13 @@ export default function Sidebar({
       <div className="sidebar__help-box" onClick={onOpenHelp}>
         <HelpCircle size={16} />
         <div>
-          <strong>Origem dos Dados?</strong>
-          <span>Entenda todas as métricas</span>
+          <strong>Data Origin?</strong>
+          <span>Understand all metrics</span>
         </div>
       </div>
 
       <div className="sidebar__footer">
-        Plataforma Logística · LG DXI
+        Logistics Platform · LG DXI
       </div>
     </aside>
   );

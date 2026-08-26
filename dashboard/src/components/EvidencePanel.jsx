@@ -3,8 +3,8 @@ import { Upload, FileText, X } from 'lucide-react';
 
 const MOCK_FILES = [
   'War_Room_Report_Jan2026.pdf',
-  'Email_Evidencia_Frete_Aereo.png',
-  'Relatorio_Logistica_Q1_2026.xlsx',
+  'Air_Freight_Evidence_Email.png',
+  'Logistics_Report_Q1_2026.xlsx',
 ];
 
 export default function EvidencePanel({
@@ -29,7 +29,7 @@ export default function EvidencePanel({
 
   const handleAddFile = () => {
     const randomFile = MOCK_FILES[Math.floor(Math.random() * MOCK_FILES.length)];
-    const timestamp = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     const newFiles = [...files, { name: randomFile, addedAt: timestamp, id: Date.now() }];
     setFiles(newFiles);
     localStorage.setItem(storageKey, JSON.stringify(newFiles));
@@ -43,17 +43,17 @@ export default function EvidencePanel({
 
   return (
     <div>
-      <div className="evidence-panel__title">Evidências — {kpiName} ({periodLabel})</div>
+      <div className="evidence-panel__title">Evidences — {kpiName} ({periodLabel})</div>
       <div className="evidence-panel" onClick={handleAddFile}>
         <div className="evidence-panel__dropzone">
           <div className="evidence-panel__dropzone-icon">
             <Upload size={28} />
           </div>
           <div className="evidence-panel__dropzone-text">
-            Arraste arquivos ou clique para anexar
+            Drag files or click to attach
           </div>
           <div className="evidence-panel__dropzone-hint">
-            Anexe prints ou referências do relatório original recebido por e-mail
+            Attach screenshots or references from original report received via email
           </div>
         </div>
       </div>

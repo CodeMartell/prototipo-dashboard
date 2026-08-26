@@ -45,7 +45,7 @@ export default function ActionPlanPanel({
       <div className="action-plan-panel__header" onClick={() => setIsExpanded(!isExpanded)}>
         <h3>
           <FileText size={16} style={{ color: 'var(--highlight-accent)' }} />
-          Plano de Ação — {kpiName} ({periodLabel})
+          Action Plan — {kpiName} ({periodLabel})
         </h3>
         {isExpanded ? (
           <ChevronUp size={18} style={{ color: 'var(--text-muted)' }} />
@@ -61,17 +61,17 @@ export default function ActionPlanPanel({
         </div>
 
         <div style={{ marginTop: 'var(--space-3)' }}>
-          <label className="small-label">Anotações / Próximos Passos</label>
+          <label className="small-label">Notes / Next Steps</label>
           <textarea
             className="action-plan-panel__textarea"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder={`Descreva as ações a serem tomadas para o período de ${periodLabel}...`}
+            placeholder={`Describe actions to be taken for the period of ${periodLabel}...`}
           />
           
           <div className="action-plan-panel__footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--space-2)' }}>
             <p className="action-plan-panel__note">
-              Vinculado a: {periodLabel} / {selectedYear ? selectedYear.substring(1) : ''}
+              Linked to: {periodLabel} / {selectedYear ? selectedYear.substring(1) : ''}
             </p>
             <span 
               className="action-plan-panel__status" 
@@ -85,11 +85,11 @@ export default function ActionPlanPanel({
             >
               {saveStatus === 'saving' ? (
                 <>
-                  <span className="loader-dots">Salvando...</span>
+                  <span className="loader-dots">Saving...</span>
                 </>
               ) : (
                 <>
-                  <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>✓</span> Salvo localmente
+                  <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>✓</span> Saved locally
                 </>
               )}
             </span>

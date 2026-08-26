@@ -34,7 +34,7 @@ function CustomTooltip({ active, payload, label, unit, currentYearLabel = '2026'
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
           <span className="custom-tooltip__dot" style={{ background: '#3B82F6' }}></span>
-          Atual ({currentYearLabel})
+          Actual ({currentYearLabel})
         </span>
         <span className="custom-tooltip__value">{formatValue(data.currentResult, unit)}</span>
       </div>
@@ -42,7 +42,7 @@ function CustomTooltip({ active, payload, label, unit, currentYearLabel = '2026'
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
           <span className="custom-tooltip__dot" style={{ background: '#A78BFA' }}></span>
-          Anterior ({prevYearLabel})
+          Previous ({prevYearLabel})
         </span>
         <span className="custom-tooltip__value">{formatValue(data.previousResult, unit)}</span>
       </div>
@@ -51,7 +51,7 @@ function CustomTooltip({ active, payload, label, unit, currentYearLabel = '2026'
         <div className="custom-tooltip__row">
           <span className="custom-tooltip__label">
             <span className="custom-tooltip__dot" style={{ background: '#F59E0B' }}></span>
-            Target (Meta)
+            Target
           </span>
           <span className="custom-tooltip__value">{formatValue(data.target, unit)}</span>
         </div>
@@ -59,14 +59,14 @@ function CustomTooltip({ active, payload, label, unit, currentYearLabel = '2026'
 
       {data.currentAchievement !== undefined && data.currentAchievement !== null && (
         <div className="custom-tooltip__row">
-          <span className="custom-tooltip__label">Atingimento Meta</span>
+          <span className="custom-tooltip__label">Target Achievement</span>
           <span className="custom-tooltip__value">{(data.currentAchievement * 100).toFixed(0)}%</span>
         </div>
       )}
 
       {variation !== null && (
         <div className="custom-tooltip__variation" style={{ color: variation > 0 ? 'var(--danger)' : 'var(--success)' }}>
-          Variação YoY: {variation > 0 ? '+' : ''}{variation.toFixed(1)}%
+          YoY Variation: {variation > 0 ? '+' : ''}{variation.toFixed(1)}%
         </div>
       )}
     </div>
@@ -78,16 +78,16 @@ function CustomLegend({ accentColor, lineColor, targetColor, hasTarget, currentY
     <div className="custom-legend">
       <div className="custom-legend__item">
         <div className="custom-legend__marker--bar" style={{ background: accentColor }}></div>
-        <span>{currentYearLabel} (Realizado)</span>
+        <span>{currentYearLabel} (Actual)</span>
       </div>
       <div className="custom-legend__item">
         <div className="custom-legend__marker" style={{ background: lineColor }}></div>
-        <span>{prevYearLabel} (Ano Anterior)</span>
+        <span>{prevYearLabel} (Previous Year)</span>
       </div>
       {hasTarget && (
         <div className="custom-legend__item">
           <div className="custom-legend__marker--dashed" style={{ borderColor: targetColor }}></div>
-          <span>Target (Meta)</span>
+          <span>Target</span>
         </div>
       )}
     </div>
@@ -135,18 +135,18 @@ export default function ComparisonChart({
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
-              stroke="rgba(189, 189, 189, 0.10)"
+              stroke="var(--border)"
             />
             <XAxis
               dataKey="period"
-              stroke="#616161"
-              tick={{ fill: '#BDBDBD', fontSize: 12 }}
+              stroke="var(--text-muted)"
+              tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              stroke="#616161"
-              tick={{ fill: '#BDBDBD', fontSize: 11 }}
+              stroke="var(--text-muted)"
+              tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               tickFormatter={formatYAxis}

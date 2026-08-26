@@ -4,7 +4,10 @@ import {
   Bell, 
   AlertTriangle, 
   X, 
-  CheckCircle2 
+  CheckCircle2,
+  LogOut,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 export default function Header({ 
@@ -12,6 +15,10 @@ export default function Header({
   onNavigate,
   onVerifyAlert,
   onDismissAlert,
+  user,
+  onLogout,
+  theme = 'dark',
+  onToggleTheme,
 }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -31,12 +38,12 @@ export default function Header({
 
   const getSubtypeLabel = (subtype) => {
     switch (subtype) {
-      case 'missing': return 'Ausente';
-      case 'out_of_bounds': return 'Fora do Limite';
-      case 'duplicate': return 'Duplicidade';
-      case 'conflict': return 'Conflito';
-      case 'zscore': return 'Desvio';
-      case 'mom_variation': return 'Oscilação';
+      case 'missing': return 'Missing';
+      case 'out_of_bounds': return 'Out of Bounds';
+      case 'duplicate': return 'Duplicate';
+      case 'conflict': return 'Conflict';
+      case 'zscore': return 'Deviation';
+      case 'mom_variation': return 'Fluctuation';
       default: return subtype;
     }
   };
@@ -49,12 +56,12 @@ export default function Header({
       </div>
 
       <div className="header__right">
-        {/* Sino de Notificações com Dropdown */}
+        {/* Notifications Bell with Dropdown */}
         <div className="header__notifications" ref={dropdownRef}>
           <button 
             className={`btn btn--icon header__bell-btn ${alerts.length > 0 ? 'has-notifications' : ''}`}
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-            title="Alertas de Integridade e Oscilações"
+            title="Integrity & Fluctuation Alerts"
           >
             <Bell size={15} />
             {alerts.length > 0 && (
@@ -66,8 +73,8 @@ export default function Header({
             <div className="notifications-dropdown animate-fade-in">
               <div className="notifications-dropdown__header">
                 <div>
-                  <strong>Notificações de Dados ({alerts.length})</strong>
-                  <span>Alertas ativos detectados</span>
+                  <strong>Data Notifications ({alerts.length})</strong>
+                  <span>Active alerts detected</span>
                 </div>
                 <button 
                   className="btn-close-dropdown" 
@@ -81,7 +88,7 @@ export default function Header({
                 {alerts.length === 0 ? (
                   <div className="notifications-empty">
                     <CheckCircle2 size={24} className="text-success" />
-                    <span>Nenhuma inconsistência ativa.</span>
+                    <span>No active inconsistencies found.</span>
                   </div>
                 ) : (
                   <div className="notifications-list">
@@ -100,7 +107,7 @@ export default function Header({
                               onVerifyAlert?.(alert.id);
                             }}
                           >
-                            Verificar
+                            Verify
                           </button>
                           <button 
                             className="btn-action-text text-muted" 
@@ -108,14 +115,14 @@ export default function Header({
                               onDismissAlert?.(alert.id);
                             }}
                           >
-                            Descartar
+                            Dismiss
                           </button>
                         </div>
                       </div>
                     ))}
                     {alerts.length > 4 && (
                       <div className="notifications-more">
-                        E mais {alerts.length - 4} alerta{alerts.length - 4 > 1 ? 's' : ''}...
+                        And {alerts.length - 4} more alert{alerts.length - 4 > 1 ? 's' : ''}...
                       </div>
                     )}
                   </div>
@@ -130,25 +137,39 @@ export default function Header({
                     onNavigate?.('analytics');
                   }}
                 >
-                  Ver todos os detalhes em Analytics
+                  View all details in Analytics
                 </button>
               </div>
             </div>
           )}
         </div>
 
+        {/* Theme Toggle Button */}
+        <button
+          className="btn btn--icon"
+          onClick={onToggleTheme}
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+        >
+          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
+
         <div className="header__user">
-          <div className="header__avatar">LG</div>
+          <div className="header__avatar">
+            {(user?.name || user?.email || 'U').slice(0, 2).toUpperCase()}
+          </div>
           <div className="header__user-info">
-            <span className="header__user-name">Logística & Admin</span>
-            <span className="header__user-role">LG Electronics · DXI</span>
+            <span className="header__user-name">{user?.name || user?.email || 'User'}</span>
+            <span className="header__user-role">{user?.role || '—'}</span>
           </div>
         </div>
 
         <div className="header__actions">
           <button className="btn btn--primary">
             <Download size={14} />
-            Exportar
+            Export
+          </button>
+          <button className="btn btn--icon" onClick={onLogout} title="Logout">
+            <LogOut size={14} />
           </button>
         </div>
       </div>

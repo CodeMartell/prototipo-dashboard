@@ -8,11 +8,11 @@ import { Table, BarChart3 } from 'lucide-react';
 
 const INSIGHTS = {
   logisticCost:
-    'Tendência de alta no custo logístico em Mar/26. Considerar renegociação de contratos de transporte ou revisão de rotas.',
+    'Uptrend in logistics cost in Mar/26. Consider renegotiating transport contracts or reviewing shipping routes.',
   airFreight:
-    'Uso de frete aéreo consistentemente acima do target em 2026. Avaliar possibilidade de antecipação de pedidos para transporte marítimo.',
+    'Air freight usage consistently above target in 2026. Evaluate advancing orders for sea freight shipping.',
   logisticsVsProd:
-    'Relação custo/produção estável em 2026 (~4.4%). Oportunidade de otimização em meses de maior produção.',
+    'Cost/production ratio stable in 2026 (~4.4%). Optimization opportunity in high-production months.',
 };
 
 function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey) {
@@ -127,13 +127,13 @@ export default function KPISection({
   const columns = useMemo(() => {
     const fmt = unit === '%' || unit === 'Ratio' ? 'percent' : unit === 'MUSD' ? 'currency' : 'number';
     const cols = [
-      { key: 'period', label: 'Período' },
+      { key: 'period', label: 'Period' },
       { key: 'previousResult', label: prevYearLabel, format: fmt },
-      { key: 'currentResult', label: `${currentYearLabel} (Realizado)`, format: fmt, highlight: true },
+      { key: 'currentResult', label: `${currentYearLabel} (Actual)`, format: fmt, highlight: true },
     ];
     if (kpiKey !== 'logisticsVsProd') {
       cols.splice(2, 0, { key: 'target', label: 'Target', format: fmt });
-      cols.push({ key: 'currentAchievement', label: 'Atingimento', format: 'achievement', highlight: true });
+      cols.push({ key: 'currentAchievement', label: 'Achievement', format: 'achievement', highlight: true });
     }
     return cols;
   }, [unit, kpiKey, prevYearLabel, currentYearLabel]);
@@ -153,7 +153,7 @@ export default function KPISection({
           </div>
           <button className={`btn ${showTable ? 'btn--active' : ''}`} onClick={() => setShowTable(!showTable)}>
             {showTable ? <BarChart3 size={14} /> : <Table size={14} />}
-            {showTable ? 'Gráfico' : 'Tabela'}
+            {showTable ? 'Chart' : 'Table'}
           </button>
         </div>
       </div>
@@ -189,15 +189,15 @@ export default function KPISection({
       {/* Dynamic Focus Period Header */}
       <div className="kpi-section__period-focus">
         <div className="kpi-section__period-focus-badge" style={{ borderLeft: `3px solid ${accentColor}` }}>
-          Período em Foco: <strong>{activePeriod} / {selectedYear.substring(1)}</strong>
+          Focused Period: <strong>{activePeriod} / {selectedYear.substring(1)}</strong>
         </div>
         <div className="kpi-section__period-focus-hint">
           {localSelectedPeriod ? (
             <button className="kpi-section__period-reset-btn" onClick={() => setLocalSelectedPeriod(null)}>
-              Resetar para padrão global ({activePeriodLabel})
+              Reset to global default ({activePeriodLabel})
             </button>
           ) : (
-            <span>Clique em uma coluna do gráfico ou linha da tabela para selecionar outro mês</span>
+            <span>Click on a chart column or table row to select another month</span>
           )}
         </div>
       </div>

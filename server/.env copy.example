@@ -1,0 +1,11 @@
+API_PORT=5001
+ENVIRONMENT=development
+
+DATABASE_URL=postgresql+psycopg://postgres:senha123@localhost:5432/dashboard_kpi
+JWT_SECRET=senha1234
+JWT_ALGORITHM=HS256
+JWT_EXPIRES_MINUTES=480
+
+FRONTEND_ORIGIN=http://localhost:5173
+
+EXCEL_FALLBACK_PATH=dados_dashboard.xlsx

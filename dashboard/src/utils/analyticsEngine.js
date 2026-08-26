@@ -43,7 +43,7 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
   const alerts = [];
   const sortedData = sortChronologically(data);
 
-  // 1. Verificar registros duplicados
+  // 1. Check for duplicate records
   const seenKeys = new Set();
   sortedData.forEach(item => {
     const key = `${item.year}-${item.month}`;
@@ -57,8 +57,8 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
         subtype: 'duplicate',
         severity: 'high',
         period: `${item.month}/${item.year.replace('Y', '20')}`,
-        message: `Registro duplicado encontrado para o período ${item.month}/${item.year.replace('Y', '20')}.`,
-        details: `Há mais de uma entrada de dados para o mesmo período no banco de dados.`,
+        message: `Duplicate record found for period ${item.month}/${item.year.replace('Y', '20')}.`,
+        details: `Multiple data entries exist for the same period in the database.`,
         item: { year: item.year, month: item.month },
         timestamp: new Date().toISOString()
       });
@@ -66,17 +66,17 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
     seenKeys.add(key);
   });
 
-  // Extrair valores válidos para análise estatística
+  // Extract valid items for statistical calculation
   const validItems = sortedData.filter(item => item[valueField] !== null && item[valueField] !== undefined && !isNaN(item[valueField]));
   const values = validItems.map(item => item[valueField]);
   const { mean, stdDev } = calculateStats(values);
 
-  // 2. Executar verificações para cada registro
+  // 2. Perform checks for each record
   sortedData.forEach((item, index) => {
     const val = item[valueField];
     const periodStr = `${item.month}/${item.year.replace('Y', '20')}`;
 
-    // A. Verificar Dados Nulos/Ausentes
+    // A. Check for Null / Missing Data
     if (val === null || val === undefined || isNaN(val)) {
       alerts.push({
         id: `${kpiKey}-null-${item.year}-${item.month}`,
@@ -87,15 +87,15 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
         subtype: 'missing',
         severity: 'high',
         period: periodStr,
-        message: `Valor ausente (nulo) detectado no indicador ${kpiName}.`,
-        details: `O registro para o período ${periodStr} não contém resultados numéricos.`,
+        message: `Missing (null) value detected in indicator ${kpiName}.`,
+        details: `The record for period ${periodStr} contains no numeric results.`,
         item: { year: item.year, month: item.month },
         timestamp: new Date().toISOString()
       });
-      return; // Pula outras verificações para este item, pois o valor é nulo
+      return; // Skip further checks for this item as value is null
     }
 
-    // B. Verificar Valores fora do intervalo esperado (Min/Max)
+    // B. Check for Out-of-Bounds Values (Min/Max)
     if (val < config.min || val > config.max) {
       const percentageValue = (val * 100).toFixed(2) + '%';
       const maxPercentage = (config.max * 100).toFixed(0) + '%';
@@ -113,14 +113,14 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
         subtype: 'out_of_bounds',
         severity: 'high',
         period: periodStr,
-        message: `Valor fora do limite esperado: ${displayVal}.`,
-        details: `O valor registrado de ${displayVal} excede a faixa operacional de segurança estabelecida ([${displayMin}, ${displayMax}]).`,
+        message: `Value outside expected limit: ${displayVal}.`,
+        details: `The recorded value of ${displayVal} exceeds the established operational safety range ([${displayMin}, ${displayMax}]).`,
         item: { year: item.year, month: item.month, value: val },
         timestamp: new Date().toISOString()
       });
     }
 
-    // C. Verificar conflito de cálculo (Apenas para KPI de Ratio)
+    // C. Check Calculation Conflict (Ratio KPI Only)
     if (kpiKey === 'logisticsVsProd' && item.logisticsCost !== undefined && item.productionAmount !== undefined) {
       const expectedRatio = item.productionAmount > 0 ? (item.logisticsCost / item.productionAmount) : 0;
       if (Math.abs(val - expectedRatio) > 0.002) {
@@ -133,15 +133,15 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
           subtype: 'conflict',
           severity: 'high',
           period: periodStr,
-          message: `Conflito matemático encontrado no cálculo de Ratio.`,
-          details: `O ratio informado (${val.toFixed(4)}) diverge do cálculo teórico (Custo ${item.logisticsCost} / Produção ${item.productionAmount} = ${expectedRatio.toFixed(4)}).`,
+          message: `Mathematical conflict found in Ratio calculation.`,
+          details: `The reported ratio (${val.toFixed(4)}) diverges from theoretical calculation (Cost ${item.logisticsCost} / Production ${item.productionAmount} = ${expectedRatio.toFixed(4)}).`,
           item: { year: item.year, month: item.month, value: val, expected: expectedRatio },
           timestamp: new Date().toISOString()
         });
       }
     }
 
-    // D. Verificar oscilação anômala por Z-Score (Desvio Padrão)
+    // D. Check Statistical Anomaly by Z-Score (Standard Deviation)
     if (stdDev > 0) {
       const zScore = (val - mean) / stdDev;
       if (Math.abs(zScore) > config.zScoreThreshold) {
@@ -155,15 +155,15 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
           subtype: 'zscore',
           severity: Math.abs(zScore) > (config.zScoreThreshold + 1) ? 'high' : 'medium',
           period: periodStr,
-          message: `Pico/queda estatisticamente anômala detectada (Z-Score: ${zScore > 0 ? '+' : ''}${zScore.toFixed(2)}).`,
-          details: `O valor de ${displayVal} representa um desvio extremo em relação ao padrão histórico médio do indicador.`,
+          message: `Statistically anomalous spike/drop detected (Z-Score: ${zScore > 0 ? '+' : ''}${zScore.toFixed(2)}).`,
+          details: `The value of ${displayVal} represents an extreme deviation from the historical average pattern of the indicator.`,
           item: { year: item.year, month: item.month, value: val, zScore },
           timestamp: new Date().toISOString()
         });
       }
     }
 
-    // E. Verificar oscilação anômala por variação abrupta MoM (Month-on-Month)
+    // E. Check Abrupt MoM Variation (Month-on-Month)
     if (index > 0) {
       const prevItem = sortedData[index - 1];
       const prevVal = prevItem[valueField];
@@ -174,7 +174,7 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
         if (Math.abs(variation) > config.momThreshold) {
           const displayVal = valueField === 'ratio' ? val.toFixed(4) : (val * 100).toFixed(2) + '%';
           const displayPrev = valueField === 'ratio' ? prevVal.toFixed(4) : (prevVal * 100).toFixed(2) + '%';
-          const direction = variation > 0 ? 'aumento' : 'queda';
+          const direction = variation > 0 ? 'increase' : 'decrease';
 
           alerts.push({
             id: `${kpiKey}-mom-${item.year}-${item.month}`,
@@ -185,8 +185,8 @@ export const analyzeIndicator = (kpiKey, kpiName, data, valueField, config) => {
             subtype: 'mom_variation',
             severity: Math.abs(variation) > (config.momThreshold * 1.5) ? 'high' : 'medium',
             period: periodStr,
-            message: `Oscilação abrupta em relação ao mês anterior (${variation > 0 ? '+' : ''}${variation.toFixed(1)}%).`,
-            details: `Identificada uma ${direction} brusca de ${displayPrev} para ${displayVal} comparado com ${prevItem.month}/${prevItem.year.replace('Y', '20')}.`,
+            message: `Abrupt fluctuation compared to previous month (${variation > 0 ? '+' : ''}${variation.toFixed(1)}%).`,
+            details: `Identified a sharp ${direction} from ${displayPrev} to ${displayVal} compared to ${prevItem.month}/${prevItem.year.replace('Y', '20')}.`,
             item: { year: item.year, month: item.month, value: val, prevValue: prevVal, variation },
             timestamp: new Date().toISOString()
           });

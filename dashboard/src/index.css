@@ -56,8 +56,8 @@
   /* =================================
      BORDERS
      ================================= */
-  --border: #303030;
-  --border-light: #252525;
+  --border: #3d3d3d;
+  --border-light: #333333;
 
   /* =================================
      SPACING
@@ -812,7 +812,7 @@ body {
 
 .data-table td {
   padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border);
   color: var(--text-secondary);
 }
 
@@ -1608,7 +1608,7 @@ body {
 
 .kpi-matrix-table-container {
   overflow-x: auto;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
 }
 
@@ -1633,7 +1633,7 @@ body {
 
 .kpi-matrix-table td {
   padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border);
   color: var(--text-secondary);
 }
 

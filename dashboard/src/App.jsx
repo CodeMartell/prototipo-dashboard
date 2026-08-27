@@ -8,7 +8,7 @@ import KPICard from './components/KPICard';
 import KPIComparisonMatrix from './components/KPIComparisonMatrix';
 import MetricsModal from './components/MetricsModal';
 import AnalyticsPanel from './components/AnalyticsPanel';
-import { DollarSign, Plane, Package, Calendar, Lightbulb, AlertTriangle } from 'lucide-react';
+import { DollarSign, Plane, Package, Calendar, Lightbulb, AlertTriangle, TrendingDown, Anchor, Layers } from 'lucide-react';
 import { fetchDashboardData, getCurrentUser, logout, UnauthorizedError } from './services/api';
 
 import {
@@ -411,11 +411,11 @@ function App() {
 
   // KPI Definitions for cards and comparative matrix
   const KPI_DEFINITIONS = useMemo(() => [
-    { key: 'warRoom', name: 'War Room', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#3B82F6', monthly: logisticCostState, quarterly: quarterlyLogisticCost, description: 'Logistics cost over revenue' },
-    { key: 'incidentialCost', name: 'Incidential Cost', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#2563EB', monthly: incidentialCostData, quarterly: quarterlyIncidentialCost, description: 'Incidential costs over revenue' },
-    { key: 'totalCost', name: 'Total Cost', unit: 'MUSD', aggregate: 'sum', valueKey: 'result', color: '#1D4ED8', monthly: totalCostData, quarterly: quarterlyTotalCost, description: 'Total logistics cost' },
-    { key: 'demurrage', name: 'Demurrage', unit: 'KUSD', aggregate: 'sum', valueKey: 'result', color: '#0EA5E9', monthly: demurrageData, quarterly: quarterlyDemurrage, description: 'Container demurrage' },
-    { key: 'airFreight', name: 'Air Freight', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#38BDF8', monthly: airFreightState, quarterly: quarterlyAirFreight, description: 'Air freight over revenue' },
+    { key: 'warRoom', name: 'War Room Report', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#3B82F6', monthly: logisticCostState, quarterly: quarterlyLogisticCost, description: 'Logistics cost over revenue' },
+    { key: 'incidentialCost', name: 'Logistics Cost Resin Consolidtion', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#2563EB', monthly: incidentialCostData, quarterly: quarterlyIncidentialCost, description: 'Incidential costs over revenue' },
+    { key: 'totalCost', name: 'Task Cost Reduction', unit: 'MUSD', aggregate: 'sum', valueKey: 'result', color: '#1D4ED8', monthly: totalCostData, quarterly: quarterlyTotalCost, description: 'Total logistics cost' },
+    { key: 'demurrage', name: 'KPI - Demurrage Cost', unit: 'KUSD', aggregate: 'sum', valueKey: 'result', color: '#0EA5E9', monthly: demurrageData, quarterly: quarterlyDemurrage, description: 'Container demurrage' },
+    { key: 'airFreight', name: 'KPI - Air Freight', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#38BDF8', monthly: airFreightState, quarterly: quarterlyAirFreight, description: 'Air freight over revenue' },
   ], [logisticCostState, airFreightState]);
 
   const kpiMetrics = useMemo(
@@ -461,10 +461,13 @@ function App() {
     if (itemId === 'dashboard') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (itemId !== 'analytics') {
-      const elem = document.getElementById(itemId);
-      if (elem) {
-        elem.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      // Small delay to allow the DOM to render the section before scrolling
+      setTimeout(() => {
+        const elem = document.getElementById(itemId);
+        if (elem) {
+          elem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
     }
   };
 
@@ -578,12 +581,15 @@ function App() {
                   <Lightbulb size={20} style={{ color: 'var(--accent-amber)', flexShrink: 0 }} />
                   <div>
                     <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)', display: 'block' }}>
-                      Executive Insight — {activeTab === 'logisticCost' ? 'War Room Report (Logistic Cost KPI TV)' : activeTab === 'airFreight' ? 'Air Freight KPI TV' : 'Logistic Cost x Product Amount'}
+                      Executive Insight — {activeTab === 'logisticCost' ? 'War Room Report' : activeTab === 'airFreight' ? 'KPI - Air Freight' : activeTab === 'logisticsVsProd' ? 'KPI - Logistics Cost x Prod Amount' : activeTab === 'totalCost' ? 'Task Cost Reduction' : activeTab === 'demurrage' ? 'KPI - Demurrage Cost' : activeTab === 'incidentialCost' ? 'Logistics Cost Resin Consolidtion' : ''}
                     </strong>
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                       {activeTab === 'logisticCost' && `In period ${selectedSubPeriod}/${currentYearLabel.substring(2)}, logistics cost was at ${logCostInfo.latest ? (logCostInfo.latest * 100).toFixed(2) + '%' : 'N/A'}.`}
                       {activeTab === 'airFreight' && `Air freight usage in ${selectedSubPeriod} recorded ${airFreightInfo.latest ? (airFreightInfo.latest * 100).toFixed(2) + '%' : 'N/A'}.`}
                       {activeTab === 'logisticsVsProd' && `YTD accumulated production volume up to ${selectedSubPeriod} reached $${kpi3Latest.totalProd ? kpi3Latest.totalProd.toFixed(2) : '0'} MUSD.`}
+                      {activeTab === 'totalCost' && `Task Cost Reduction tracking for period ${selectedSubPeriod}/${currentYearLabel.substring(2)}.`}
+                      {activeTab === 'demurrage' && `Demurrage cost tracking for period ${selectedSubPeriod}/${currentYearLabel.substring(2)}.`}
+                      {activeTab === 'incidentialCost' && `Logistics Cost Resin Consolidtion tracking for period ${selectedSubPeriod}/${currentYearLabel.substring(2)}.`}
                     </span>
                   </div>
                 </div>
@@ -613,7 +619,7 @@ function App() {
                   )}
                   <KPISection
                     kpiKey="logisticCost"
-                    title="Logistics Cost Evolution (War Room Report)"
+                    title="War Room Report"
                     icon={DollarSign}
                     monthlyData={logisticCostState}
                     quarterlyData={quarterlyLogisticCost}
@@ -642,7 +648,7 @@ function App() {
                   )}
                   <KPISection
                     kpiKey="airFreight"
-                    title="Air Freight KPI TV"
+                    title="KPI - Air Freight"
                     icon={Plane}
                     monthlyData={airFreightState}
                     quarterlyData={quarterlyAirFreight}
@@ -671,13 +677,67 @@ function App() {
                   )}
                   <KPISection
                     kpiKey="logisticsVsProd"
-                    title="Logistics Cost x Product Amount"
+                    title="KPI - Logistics Cost x Prod Amount"
                     icon={Package}
                     monthlyData={logisticsVsProdState}
                     quarterlyData={quarterlyLogisticsCostVsProd}
                     accentColor="#1D4ED8"
                     lowerIsBetter={true}
                     unit="Ratio"
+                    selectedYear={selectedYear}
+                    period={period}
+                    activePeriodLabel={selectedSubPeriod}
+                  />
+                </div>
+              )}
+
+              {(activeTab === 'dashboard' || activeTab === 'totalCost') && (
+                <div id="totalCost" className="kpi-detail-wrapper">
+                  <KPISection
+                    kpiKey="totalCost"
+                    title="Task Cost Reduction"
+                    icon={TrendingDown}
+                    monthlyData={totalCostData}
+                    quarterlyData={quarterlyTotalCost}
+                    accentColor="#1D4ED8"
+                    lowerIsBetter={true}
+                    unit="MUSD"
+                    selectedYear={selectedYear}
+                    period={period}
+                    activePeriodLabel={selectedSubPeriod}
+                  />
+                </div>
+              )}
+
+              {(activeTab === 'dashboard' || activeTab === 'demurrage') && (
+                <div id="demurrage" className="kpi-detail-wrapper">
+                  <KPISection
+                    kpiKey="demurrage"
+                    title="KPI - Demurrage Cost"
+                    icon={Anchor}
+                    monthlyData={demurrageData}
+                    quarterlyData={quarterlyDemurrage}
+                    accentColor="#0EA5E9"
+                    lowerIsBetter={true}
+                    unit="KUSD"
+                    selectedYear={selectedYear}
+                    period={period}
+                    activePeriodLabel={selectedSubPeriod}
+                  />
+                </div>
+              )}
+
+              {(activeTab === 'dashboard' || activeTab === 'incidentialCost') && (
+                <div id="incidentialCost" className="kpi-detail-wrapper">
+                  <KPISection
+                    kpiKey="incidentialCost"
+                    title="Logistics Cost Resin Consolidtion"
+                    icon={Layers}
+                    monthlyData={incidentialCostData}
+                    quarterlyData={quarterlyIncidentialCost}
+                    accentColor="#2563EB"
+                    lowerIsBetter={true}
+                    unit="%"
                     selectedYear={selectedYear}
                     period={period}
                     activePeriodLabel={selectedSubPeriod}

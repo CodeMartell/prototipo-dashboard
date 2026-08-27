@@ -5,14 +5,20 @@ import {
   Package,
   HelpCircle,
   BarChart2,
-  AlertTriangle
+  AlertTriangle,
+  TrendingDown,
+  Anchor,
+  Layers
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Overview', badge: 'Global' },
   { id: 'logisticCost', icon: DollarSign, label: 'War Room Report', badge: 'KPI %' },
+  { id: 'totalCost', icon: TrendingDown, label: 'Task Cost Reduction', badge: 'MUSD' },
   { id: 'airFreight', icon: Plane, label: 'Air Freight', badge: 'Air' },
-  { id: 'logisticsVsProd', icon: Package, label: 'Cost x Product', badge: 'Ratio' },
+  { id: 'demurrage', icon: Anchor, label: 'Demurrage Cost', badge: 'KUSD' },
+  { id: 'logisticsVsProd', icon: Package, label: 'Logistics Cost x Prod Amount', badge: 'Ratio' },
+  { id: 'incidentialCost', icon: Layers, label: 'Logistics Cost Resin Consolidtion', badge: '%' },
   { id: 'analytics', icon: BarChart2, label: 'Analytics', badge: 'New' },
 ];
 

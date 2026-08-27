@@ -78,3 +78,9 @@ def test_blank_email_metadata_is_rejected(field):
     data["email"][field] = "   "
     with pytest.raises(ValidationError):
         IngestionPayload(**data)
+
+
+def test_future_year_in_supported_format_is_accepted():
+    parsed = IngestionPayload(**payload(year="Y30"))
+
+    assert parsed.records[0].year == "Y30"

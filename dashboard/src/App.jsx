@@ -54,22 +54,23 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
 
-  // --- ANALYTICS ENGINE STATES ---
-  // Initialized with mocks; replaced by API data when available.
-  const [logisticCostState, setLogisticCostState] = useState(logisticCostData);
-  const [airFreightState, setAirFreightState] = useState(airFreightData);
-  const [logisticsVsProdState, setLogisticsVsProdState] = useState(logisticsCostVsProdData);
+  // Mocks são permitidos apenas em desenvolvimento ou quando habilitados
+  // explicitamente. Em produção, falha da API nunca pode parecer dado real.
+  const allowMockFallback = import.meta.env.DEV || import.meta.env.VITE_ALLOW_MOCK_FALLBACK === 'true';
+  const [logisticCostState, setLogisticCostState] = useState(() => allowMockFallback ? logisticCostData : []);
+  const [airFreightState, setAirFreightState] = useState(() => allowMockFallback ? airFreightData : []);
+  const [logisticsVsProdState, setLogisticsVsProdState] = useState(() => allowMockFallback ? logisticsCostVsProdData : []);
 
   // Indicates data source of currently displayed metrics
-  const [dataSource, setDataSource] = useState('mock'); // 'mock' | 'api'
+  const [dataSource, setDataSource] = useState(allowMockFallback ? 'mock' : 'loading');
 
   // --- LOADING API DATA ---
   const loadFromApi = useCallback(() => {
     fetchDashboardData()
       .then((data) => {
-        if (data.logistic_cost?.length) setLogisticCostState(data.logistic_cost);
-        if (data.air_freight?.length) setAirFreightState(data.air_freight);
-        if (data.logistics_vs_prod?.length) setLogisticsVsProdState(data.logistics_vs_prod);
+        setLogisticCostState(data.logistic_cost || []);
+        setAirFreightState(data.air_freight || []);
+        setLogisticsVsProdState(data.logistics_vs_prod || []);
         setDataSource('api');
         console.info('[DataLens] Data loaded from API successfully.');
       })
@@ -78,10 +79,18 @@ function App() {
           navigate('/login');
           return;
         }
-        console.warn('[DataLens] API unavailable, using mock data:', err.message);
-        setDataSource('mock');
+        if (allowMockFallback) {
+          console.warn('[DataLens] API unavailable, using explicitly allowed mock data:', err.message);
+          setDataSource('mock');
+        } else {
+          setLogisticCostState([]);
+          setAirFreightState([]);
+          setLogisticsVsProdState([]);
+          setDataSource('error');
+          console.error('[DataLens] API unavailable; production data was not replaced by mocks:', err.message);
+        }
       });
-  }, [navigate]);
+  }, [allowMockFallback, navigate]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -419,7 +428,7 @@ function App() {
     { key: 'demurrage', name: 'Demurrage Cost', unit: 'KUSD', aggregate: 'sum', valueKey: 'result', color: '#0EA5E9', monthly: demurrageData, quarterly: quarterlyDemurrage, description: 'Container demurrage' },
     { key: 'airFreight', name: 'Air Freight', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#38BDF8', monthly: airFreightState, quarterly: quarterlyAirFreight, description: 'Air freight over revenue' },
     { key: 'logisticsVsProd', name: 'Logistics Cost x Prod Amount', unit: 'Ratio', aggregate: 'avg', valueKey: 'ratio', color: '#7C3AED', monthly: logisticsVsProdState, quarterly: quarterlyLogisticsCostVsProd, description: 'Cost vs production ratio' },
-  ], [logisticCostState, airFreightState]);
+  ], [logisticCostState, airFreightState, logisticsVsProdState]);
 
   const kpiMetrics = useMemo(
     () =>
@@ -758,10 +767,10 @@ function App() {
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
             <span style={{
               display: 'inline-block', padding: '2px 8px', borderRadius: '9999px',
-              background: dataSource === 'api' ? '#16a34a' : '#d97706',
+              background: dataSource === 'api' ? '#16a34a' : dataSource === 'error' ? '#dc2626' : '#d97706',
               color: '#fff', fontWeight: 600, letterSpacing: '0.02em',
             }}>
-              {dataSource === 'api' ? '● API' : '● MOCK'}
+              {dataSource === 'api' ? '● API' : dataSource === 'error' ? '● API OFFLINE' : dataSource === 'loading' ? '● LOADING' : '● MOCK'}
             </span>
             <button
               onClick={loadFromApi}

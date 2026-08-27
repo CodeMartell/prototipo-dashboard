@@ -48,6 +48,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   frontend:
     build:
@@ -62,7 +68,8 @@ services:
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
   rpa-bot:
     build:
@@ -70,10 +77,6 @@ services:
       dockerfile: Dockerfile.email-rpa
     container_name: datalens-rpa
     environment:
-      # NOTA: o bot ainda escreve direto no Postgres nesta versão.
-      # Quando o Épico 2/3 migrar para chamar POST /api/ingestion/kpi-report,
-      # trocar DATABASE_URL por API_URL + credenciais de login do bot.
-      DATABASE_URL: postgresql://${POSTGRES_USER:-dashboard}:${POSTGRES_PASSWORD:-dashboard}@postgres:5432/${POSTGRES_DB:-dashboard}
       EMAIL_USER: ${EMAIL_USER:-}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
       IMAP_HOST: ${IMAP_HOST:-imap.gmail.com}
@@ -83,11 +86,18 @@ services:
       EMAIL_SENDER_FILTER: ${EMAIL_SENDER_FILTER:-}
       EMAIL_DATE_FROM: ${EMAIL_DATE_FROM:-2026-01-01}
       EMAIL_DATE_TO: ${EMAIL_DATE_TO:-2026-12-31}
+      ATTACHMENTS_DIR: /app/rpa_email/resources/attachments
+      RPA_API_URL: http://api:5001
+      RPA_API_EMAIL: ${RPA_API_EMAIL:?defina RPA_API_EMAIL no .env}
+      RPA_API_PASSWORD: ${RPA_API_PASSWORD:?defina RPA_API_PASSWORD no .env}
+      RPA_API_TIMEOUT: ${RPA_API_TIMEOUT:-20}
+      RPA_HISTORY_PATH: /app/rpa_email/resources/history/email_history.db
     depends_on:
-      postgres:
+      api:
         condition: service_healthy
     volumes:
       - email_attachments:/app/rpa_email/resources/attachments
+      - email_history:/app/rpa_email/resources/history
     profiles:
       - full
       - rpa
@@ -97,6 +107,8 @@ volumes:
     name: datalens_pg_data
   email_attachments:
     name: datalens_email_attachments
+  email_history:
+    name: datalens_email_history
 
 networks:
   default:

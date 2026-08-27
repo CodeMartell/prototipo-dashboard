@@ -12,7 +12,7 @@ const formatCell = (value, format) => {
 export default function DetailTable({
   data,
   columns,
-  lowerIsBetter,
+  _lowerIsBetter,
   bestPeriod,
   worstPeriod,
   anomalies = [],

@@ -2,10 +2,10 @@ import React from 'react';
 import { formatMetricValue } from '../utils/formatters';
 
 const PERIOD_NOUN = {
-  monthly: 'Mês',
-  quarterly: 'Trimestre',
-  semiannual: 'Semestre',
-  annual: 'Ano',
+  monthly: 'Month',
+  quarterly: 'Quarter',
+  semiannual: 'Semester',
+  annual: 'Year',
 };
 
 export default function KPIComparisonMatrix({
@@ -20,7 +20,7 @@ export default function KPIComparisonMatrix({
   const isAnnual = periodType === 'annual';
   const currentPeriodLabel = isAnnual ? currentYearLabel : `${selectedSubPeriod}/${currentYearLabel.substring(2)}`;
   const prevPeriodLabel = isAnnual ? prevYearLabel : `${selectedSubPeriod}/${prevYearLabel.substring(2)}`;
-  const periodNoun = PERIOD_NOUN[periodType] || 'Período';
+  const periodNoun = PERIOD_NOUN[periodType] || 'Period';
 
   const renderAchievement = (value) => {
     if (value === null || value === undefined) return '—';
@@ -35,10 +35,10 @@ export default function KPIComparisonMatrix({
     <div className="kpi-matrix-panel animate-fade-in">
       <div className="kpi-matrix-header">
         <div>
-          <h3 className="kpi-matrix-title">Matriz Comparativa de KPIs — Visão Clara dos Indicadores</h3>
+          <h3 className="kpi-matrix-title">KPI Comparison Matrix — Clear View of Indicators</h3>
           <p className="kpi-matrix-subtitle">
-            {periodNoun} passado (<strong>{prevPeriodLabel}</strong>) contra {periodNoun.toLowerCase()} atual (
-            <strong>{currentPeriodLabel}</strong>): realizado, meta e atingimento em cada um dos períodos.
+            Previous {periodNoun.toLowerCase()} (<strong>{prevPeriodLabel}</strong>) versus current {periodNoun.toLowerCase()} (
+            <strong>{currentPeriodLabel}</strong>): actual, target, and achievement across periods.
           </p>
         </div>
       </div>
@@ -47,21 +47,21 @@ export default function KPIComparisonMatrix({
         <table className="kpi-matrix-table">
           <thead>
             <tr className="kpi-matrix-table__group-row">
-              <th rowSpan={2}>Indicador / Métrica</th>
+              <th rowSpan={2}>Indicator / Metric</th>
               <th colSpan={3} className="matrix-group matrix-group--past">
-                {periodNoun} Passado ({prevPeriodLabel})
+                Past {periodNoun} ({prevPeriodLabel})
               </th>
               <th colSpan={3} className="matrix-group matrix-group--current">
-                {periodNoun} Atual ({currentPeriodLabel})
+                Current {periodNoun} ({currentPeriodLabel})
               </th>
             </tr>
             <tr>
-              <th className="matrix-group--past">Realizado</th>
-              <th className="matrix-group--past">Meta</th>
-              <th className="matrix-group--past">Atingimento</th>
-              <th className="matrix-group--current">Realizado</th>
+              <th className="matrix-group--past">Actual</th>
+              <th className="matrix-group--past">Target</th>
+              <th className="matrix-group--past">Achievement</th>
+              <th className="matrix-group--current">Actual</th>
               <th className="matrix-group--current">Target</th>
-              <th className="matrix-group--current">Atingimento</th>
+              <th className="matrix-group--current">Achievement</th>
             </tr>
           </thead>
           <tbody>

@@ -2,6 +2,7 @@ node_modules/
 dist/
 .env
 .env.local
+.env.homologacao
 *.log
 .DS_Store
 Thumbs.db
@@ -24,7 +25,12 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+.pytest-tmp-*/
+.venv/
+rpa_email/resources/api_email_history.db*
+rpa_email/resources/history-validation/
 
 # Planilhas geradas e cache local do dashboard
+outputs/
 kpi_reports/
 dados_dashboard.xlsx

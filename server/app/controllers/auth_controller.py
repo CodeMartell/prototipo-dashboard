@@ -6,7 +6,7 @@ TODO(): adicionar rota de logout real quando a estratégia de
 sessão for definida (blacklist de token, cookie httpOnly, etc.) e as
 rotas de login corporativo (Microsoft/Google), se for o caminho escolhido.
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, get_db
@@ -18,9 +18,10 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
     service = AuthService(UserRepository(db))
-    return service.login(payload.email, payload.password)
+    client_ip = request.client.host if request.client else "unknown"
+    return service.login(payload.email, payload.password, client_ip)
 
 
 @router.get("/me", response_model=UserOut)

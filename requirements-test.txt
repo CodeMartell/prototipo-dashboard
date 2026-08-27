@@ -1,0 +1,2 @@
+# A API FastAPI e o RPA compartilham estas versões no ambiente de testes.
+-r server/requirements.txt

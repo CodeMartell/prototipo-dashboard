@@ -35,6 +35,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi import Request
+import time
+
+@app.middleware("http")
+async def access_log_middleware(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    if request.url.path.startswith("/api/"):
+        duration = time.time() - start_time
+        logger.info(
+            "[ACCESS] %s %s %s %s %s %.3fs",
+            request.client.host if request.client else "unknown",
+            request.method,
+            request.url.path,
+            request.url.scheme,
+            response.status_code,
+            duration
+        )
+    return response
+
 register_exception_handlers(app)
 
 app.include_router(auth_controller.router)

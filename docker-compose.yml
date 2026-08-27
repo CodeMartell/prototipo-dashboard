@@ -11,6 +11,9 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
+    networks:
+      default:
+        ipv4_address: 172.28.0.10
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dashboard} -d ${POSTGRES_DB:-dashboard}"]
       interval: 5s
@@ -24,16 +27,27 @@ services:
     container_name: datalens-api
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-dashboard}:${POSTGRES_PASSWORD:-dashboard}@postgres:5432/${POSTGRES_DB:-dashboard}
+      # IP fixo em vez do hostname "postgres" — evita depender do DNS
+      # interno do Docker, que fica instável no Docker Desktop/WSL2 no Windows
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-dashboard}:${POSTGRES_PASSWORD:-dashboard}@172.28.0.10:5432/${POSTGRES_DB:-dashboard}
       API_PORT: 5001
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env — nao usar valor padrao em producao}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-480}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
       PYTHONUNBUFFERED: "1"
     ports:
       - "${API_PORT:-5001}:5001"
+    networks:
+      default:
+        ipv4_address: 172.28.0.11
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./dados_dashboard.xlsx:/app/dados_dashboard.xlsx:ro
 
   frontend:
     build:
@@ -44,6 +58,9 @@ services:
     ports:
       - "${FRONTEND_PORT:-80}:80"
       - "5173:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - api
 
@@ -53,6 +70,9 @@ services:
       dockerfile: Dockerfile.email-rpa
     container_name: datalens-rpa
     environment:
+      # NOTA: o bot ainda escreve direto no Postgres nesta versão.
+      # Quando o Épico 2/3 migrar para chamar POST /api/ingestion/kpi-report,
+      # trocar DATABASE_URL por API_URL + credenciais de login do bot.
       DATABASE_URL: postgresql://${POSTGRES_USER:-dashboard}:${POSTGRES_PASSWORD:-dashboard}@postgres:5432/${POSTGRES_DB:-dashboard}
       EMAIL_USER: ${EMAIL_USER:-}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
@@ -77,3 +97,9 @@ volumes:
     name: datalens_pg_data
   email_attachments:
     name: datalens_email_attachments
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

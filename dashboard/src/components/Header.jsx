@@ -19,6 +19,7 @@ export default function Header({
   onLogout,
   theme = 'dark',
   onToggleTheme,
+  canAccessAnalytics = false,
 }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -57,7 +58,7 @@ export default function Header({
 
       <div className="header__right">
         {/* Notifications Bell with Dropdown */}
-        <div className="header__notifications" ref={dropdownRef}>
+        {canAccessAnalytics && <div className="header__notifications" ref={dropdownRef}>
           <button 
             className={`btn btn--icon header__bell-btn ${alerts.length > 0 ? 'has-notifications' : ''}`}
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
@@ -142,7 +143,7 @@ export default function Header({
               </div>
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Theme Toggle Button */}
         <button

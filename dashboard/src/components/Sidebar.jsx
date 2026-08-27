@@ -28,6 +28,7 @@ export default function Sidebar({
   onOpenHelp,
   alertsCount = 0,
   kpisWithAlerts = [],
+  canAccessAnalytics = false,
 }) {
   return (
     <aside className="sidebar">
@@ -41,7 +42,7 @@ export default function Sidebar({
 
       <nav className="sidebar__nav">
         <div className="sidebar__section-label">AVAILABLE DASHBOARDS</div>
-        {NAV_ITEMS.map(({ id, icon: Icon, label, badge }) => {
+        {NAV_ITEMS.filter(({ id }) => id !== 'analytics' || canAccessAnalytics).map(({ id, icon: Icon, label, badge }) => {
           const hasAlert = kpisWithAlerts.includes(id);
           const isAnalytics = id === 'analytics';
           

@@ -10,6 +10,7 @@ import MetricsModal from './components/MetricsModal';
 import AnalyticsPanel from './components/AnalyticsPanel';
 import { DollarSign, Plane, Package, Calendar, Lightbulb, AlertTriangle, TrendingDown, Anchor, Layers } from 'lucide-react';
 import { fetchDashboardData, getCurrentUser, logout, UnauthorizedError } from './services/api';
+import { canAccessAnalytics } from './services/permissions';
 
 import {
   MONTHS,
@@ -34,6 +35,7 @@ import { runFullAnalysis, getDefaultConfigs } from './utils/analyticsEngine';
 function App() {
   const navigate = useNavigate();
   const [currentUser] = useState(() => getCurrentUser());
+  const isAnalyticsAllowed = useMemo(() => canAccessAnalytics(currentUser), [currentUser]);
 
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
 
@@ -485,6 +487,7 @@ function App() {
         onOpenHelp={() => setIsMetricsModalOpen(true)} 
         alertsCount={activeAlerts.length}
         kpisWithAlerts={kpisWithAlerts}
+        canAccessAnalytics={isAnalyticsAllowed}
       />
 
       <div className="main-wrapper">
@@ -497,10 +500,11 @@ function App() {
           onLogout={handleLogout}
           theme={theme}
           onToggleTheme={toggleTheme}
+          canAccessAnalytics={isAnalyticsAllowed}
         />
 
         <main className="dashboard-main">
-          {activeTab === 'analytics' ? (
+          {activeTab === 'analytics' && isAnalyticsAllowed ? (
             <AnalyticsPanel
               alerts={alerts}
               auditLog={auditLog}
@@ -564,13 +568,13 @@ function App() {
               </div>
 
               {/* Global warning banner */}
-              {activeAlerts.length > 0 && (
+              {isAnalyticsAllowed && activeAlerts.length > 0 && (
                 <div className="global-warning-banner animate-fade-in">
                   <AlertTriangle size={18} className="text-warning" />
                   <div className="global-warning-banner__text">
                     <strong>Data Quality Alert:</strong> Analysis engine detected {activeAlerts.length} inconsistency(ies) or anomalous fluctuation(s) in historical KPI database.
                   </div>
-                  <button className="btn btn--sm btn--primary" onClick={() => setActiveTab('analytics')}>
+                  <button className="btn btn--sm btn--primary" onClick={() => handleSidebarNavigate('analytics')}>
                     Review in Analytics
                   </button>
                 </div>
@@ -613,7 +617,7 @@ function App() {
                       <div className="kpi-inline-warning__text">
                         <strong>Data Validation:</strong> Detected {lcAlerts.length} alert(s) in historical data. Latest critical record in <strong>{lcAlerts[0].period}</strong>: {lcAlerts[0].message}
                       </div>
-                      <button className="btn btn--sm btn--accent" onClick={() => setActiveTab('analytics')}>
+                      <button className="btn btn--sm btn--accent" onClick={() => handleSidebarNavigate('analytics')}>
                         Audit Record
                       </button>
                     </div>
@@ -642,7 +646,7 @@ function App() {
                       <div className="kpi-inline-warning__text">
                         <strong>Data Validation:</strong> Detected {afAlerts.length} alert(s) in historical data. Latest critical record in <strong>{afAlerts[0].period}</strong>: {afAlerts[0].message}
                       </div>
-                      <button className="btn btn--sm btn--accent" onClick={() => setActiveTab('analytics')}>
+                      <button className="btn btn--sm btn--accent" onClick={() => handleSidebarNavigate('analytics')}>
                         Audit Record
                       </button>
                     </div>
@@ -671,7 +675,7 @@ function App() {
                       <div className="kpi-inline-warning__text">
                         <strong>Data Validation:</strong> Detected {lpAlerts.length} alert(s) in historical data. Latest critical record in <strong>{lpAlerts[0].period}</strong>: {lpAlerts[0].message}
                       </div>
-                      <button className="btn btn--sm btn--accent" onClick={() => setActiveTab('analytics')}>
+                      <button className="btn btn--sm btn--accent" onClick={() => handleSidebarNavigate('analytics')}>
                         Audit Record
                       </button>
                     </div>

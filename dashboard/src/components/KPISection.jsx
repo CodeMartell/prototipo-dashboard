@@ -209,7 +209,7 @@ export default function KPISection({
           period={period}
           selectedYear={selectedYear}
           periodLabel={activePeriod}
-          insight={INSIGHTS[kpiKey]}
+          insight={import.meta.env.MODE === 'homologacao' ? undefined : INSIGHTS[kpiKey]}
         />
         <EvidencePanel
           kpiKey={kpiKey}

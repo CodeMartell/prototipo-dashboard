@@ -6,6 +6,7 @@ compativeis com o dashboard DataLens.
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -63,7 +64,10 @@ class ExtractionResult:
 
 def _safe_float(value: Any, label: str) -> float | None:
     try:
-        return float(value)
+        number = float(value)
+        if not math.isfinite(number) or number < 0:
+            raise ValueError
+        return number
     except (TypeError, ValueError):
         LOGGER.warning("[EXTRACTION] Valor invalido em %s: %r", label, value)
         return None
@@ -172,6 +176,7 @@ class KpiExtractor:
                 for s_name in sheet_names:
                     raw_rows = _read_sheet_by_name(path, s_name)
                     if not raw_rows:
+                        result.errors.append(f"{path.name} [{s_name}]: planilha sem registros")
                         continue
 
                     # Determinar o KPI correspondente baseado no nome da aba, do arquivo ou das colunas
@@ -200,21 +205,37 @@ class KpiExtractor:
                             target_kpi = "logistic_cost"
 
                     if not target_kpi:
+                        result.errors.append(f"{path.name} [{s_name}]: tipo de KPI não identificado")
+                        continue
+
+                    required = ({"month", "year", "logisticsCost", "productionAmount"}
+                                if target_kpi == "logistics_vs_prod"
+                                else {"month", "year", "target", "result"})
+                    headers = set(raw_rows[0])
+                    missing = sorted(required - headers)
+                    if missing:
+                        result.errors.append(
+                            f"{path.name} [{s_name}]: colunas obrigatórias ausentes: {', '.join(missing)}"
+                        )
                         continue
 
                     parsed_count = 0
                     if target_kpi == "logistics_vs_prod":
-                        for raw in raw_rows:
+                        for row_number, raw in enumerate(raw_rows, start=2):
                             row = _parse_logistics_vs_prod_row(raw)
                             if row:
                                 result.logistics_vs_prod.append(row)
                                 parsed_count += 1
+                            else:
+                                result.errors.append(f"{path.name} [{s_name}] linha {row_number}: dados inválidos")
                     else:
-                        for raw in raw_rows:
+                        for row_number, raw in enumerate(raw_rows, start=2):
                             row = _parse_kpi_row(raw, target_kpi)
                             if row:
                                 getattr(result, target_kpi).append(row)
                                 parsed_count += 1
+                            else:
+                                result.errors.append(f"{path.name} [{s_name}] linha {row_number}: dados inválidos")
 
                     LOGGER.info(
                         "[EXTRACTION] %s [%s] -> %s: %d registros extraidos",
@@ -224,6 +245,11 @@ class KpiExtractor:
                 msg = f"Erro ao processar {path.name}: {exc}"
                 LOGGER.exception("[EXTRACTION] %s", msg)
                 result.errors.append(msg)
+
+        if result.errors:
+            # O e-mail é uma unidade atômica: nunca enviar só as linhas válidas.
+            for name in (*self._STANDARD_KPIS, "logistics_vs_prod"):
+                getattr(result, name).clear()
 
         LOGGER.info(
             "[EXTRACTION] Extracao concluida. logistic_cost=%d air_freight=%d "

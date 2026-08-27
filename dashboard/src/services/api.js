@@ -43,6 +43,7 @@ export function logout() {
  * em caso de falha — a LoginPage decide o que mostrar.
  */
 export async function login(email, password) {
+  logout();
   const response = await fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -57,20 +58,30 @@ export async function login(email, password) {
   }
 
   const { access_token: token } = await response.json();
-  localStorage.setItem(TOKEN_KEY, token);
+  if (typeof token !== 'string' || !token.trim()) {
+    throw new Error('Resposta de autenticação inválida.');
+  }
 
   // Busca os dados do usuário logado (email/role) pra exibir no Header
   // e pra decisões de UI (ex: esconder Analysis pra VISUALIZADOR).
   const meResponse = await fetch('/api/auth/me', {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (meResponse.ok) {
-    const user = await meResponse.json();
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
-    return user;
+  if (!meResponse.ok) {
+    throw new Error('Não foi possível validar a sessão. Faça login novamente.');
   }
-
-  return null;
+  const user = await meResponse.json();
+  if (!user?.id || !user?.email || !user?.role) {
+    throw new Error('Resposta de usuário inválida.');
+  }
+  try {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    localStorage.setItem(TOKEN_KEY, token);
+  } catch (error) {
+    logout();
+    throw error;
+  }
+  return user;
 }
 
 /* ────────────────────────────────
@@ -138,7 +149,11 @@ export async function fetchDashboardData() {
   return {
     logistic_cost: normalizeRecords(logisticCost),
     air_freight: normalizeRecords(airFreight),
-    logistics_vs_prod: normalizeRecords(logisticsVsProd),
+    logistics_vs_prod: normalizeRecords(logisticsVsProd).map((record) => ({
+      ...record,
+      logisticsCost: record.logistics_cost,
+      productionAmount: record.production_amount,
+    })),
   };
 }
 

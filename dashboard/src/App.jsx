@@ -10,34 +10,50 @@ import MetricsModal from './components/MetricsModal';
 import AnalyticsPanel from './components/AnalyticsPanel';
 import { DollarSign, Plane, Package, Calendar, Lightbulb, AlertTriangle } from 'lucide-react';
 import { fetchDashboardData, getCurrentUser, logout, UnauthorizedError } from './services/api';
+import { canAccessAnalytics } from './services/permissions';
 
 import {
   MONTHS,
-  logisticCostData,
-  airFreightData,
-  logisticsCostVsProdData,
-  incidentialCostData,
-  totalCostData,
-  demurrageData,
-  quarterlyLogisticCost,
-  quarterlyAirFreight,
-  quarterlyLogisticsCostVsProd,
-  quarterlyIncidentialCost,
-  quarterlyTotalCost,
-  quarterlyDemurrage,
+  logisticCostData as demo_logisticCostData,
+  airFreightData as demo_airFreightData,
+  logisticsCostVsProdData as demo_logisticsCostVsProdData,
+  incidentialCostData as demo_incidentialCostData,
+  totalCostData as demo_totalCostData,
+  demurrageData as demo_demurrageData,
+  quarterlyLogisticCost as demo_quarterlyLogisticCost,
+  quarterlyAirFreight as demo_quarterlyAirFreight,
+  quarterlyLogisticsCostVsProd as demo_quarterlyLogisticsCostVsProd,
+  quarterlyIncidentialCost as demo_quarterlyIncidentialCost,
+  quarterlyTotalCost as demo_quarterlyTotalCost,
+  quarterlyDemurrage as demo_quarterlyDemurrage,
   calculateVariation,
   getAvailableYears,
 } from './data/mockData';
 
 import { runFullAnalysis, getDefaultConfigs } from './utils/analyticsEngine';
 
+const HOMOLOGACAO = import.meta.env.MODE === 'homologacao';
+const logisticCostData = HOMOLOGACAO ? [] : demo_logisticCostData;
+const airFreightData = HOMOLOGACAO ? [] : demo_airFreightData;
+const logisticsCostVsProdData = HOMOLOGACAO ? [] : demo_logisticsCostVsProdData;
+const incidentialCostData = HOMOLOGACAO ? [] : demo_incidentialCostData;
+const totalCostData = HOMOLOGACAO ? [] : demo_totalCostData;
+const demurrageData = HOMOLOGACAO ? [] : demo_demurrageData;
+const quarterlyLogisticCost = HOMOLOGACAO ? [] : demo_quarterlyLogisticCost;
+const quarterlyAirFreight = HOMOLOGACAO ? [] : demo_quarterlyAirFreight;
+const quarterlyLogisticsCostVsProd = HOMOLOGACAO ? [] : demo_quarterlyLogisticsCostVsProd;
+const quarterlyIncidentialCost = HOMOLOGACAO ? [] : demo_quarterlyIncidentialCost;
+const quarterlyTotalCost = HOMOLOGACAO ? [] : demo_quarterlyTotalCost;
+const quarterlyDemurrage = HOMOLOGACAO ? [] : demo_quarterlyDemurrage;
+
 function App() {
   const navigate = useNavigate();
   const [currentUser] = useState(() => getCurrentUser());
+  const isAnalyticsAllowed = canAccessAnalytics(currentUser);
 
   const [selectedYear, setSelectedYear] = useState('Y26');
   const [period, setPeriod] = useState('monthly'); // 'monthly' | 'quarterly' | 'semiannual' | 'annual'
-  const [selectedSubPeriod, setSelectedSubPeriod] = useState('May'); // 'Jan'..'Dec', 'Q1'..'Q4', 'H1'..'H2', 'Y26'
+  const [selectedSubPeriod, setSelectedSubPeriod] = useState(HOMOLOGACAO ? 'Jan' : 'May'); // 'Jan'..'Dec', 'Q1'..'Q4', 'H1'..'H2', 'Y26'
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
 
@@ -48,15 +64,17 @@ function App() {
   const [logisticsVsProdState, setLogisticsVsProdState] = useState(logisticsCostVsProdData);
 
   // Indica a origem dos dados atualmente exibidos
-  const [dataSource, setDataSource] = useState('mock'); // 'mock' | 'api'
+  const [apiError, setApiError] = useState(null);
+  const [dataSource, setDataSource] = useState(HOMOLOGACAO ? 'loading' : 'mock'); // 'mock' | 'api'
 
   // --- CARREGAMENTO DE DADOS DA API ---
   const loadFromApi = useCallback(() => {
+    setApiError(null);
     fetchDashboardData()
       .then((data) => {
-        if (data.logistic_cost?.length) setLogisticCostState(data.logistic_cost);
-        if (data.air_freight?.length) setAirFreightState(data.air_freight);
-        if (data.logistics_vs_prod?.length) setLogisticsVsProdState(data.logistics_vs_prod);
+        if (HOMOLOGACAO || data.logistic_cost?.length) setLogisticCostState(data.logistic_cost);
+        if (HOMOLOGACAO || data.air_freight?.length) setAirFreightState(data.air_freight);
+        if (HOMOLOGACAO || data.logistics_vs_prod?.length) setLogisticsVsProdState(data.logistics_vs_prod);
         setDataSource('api');
         console.info('[DataLens] Dados carregados da API com sucesso.');
       })
@@ -68,7 +86,11 @@ function App() {
         // Tabela ainda não populada pelo bot de extração, API fora do ar,
         // etc — mantém a tela funcional com dado mock em vez de quebrar.
         console.warn('[DataLens] API indisponível, usando dados mock:', err.message);
-        setDataSource('mock');
+        setApiError(err.message);
+        setDataSource(HOMOLOGACAO ? 'error' : 'mock');
+        if (HOMOLOGACAO) {
+          setLogisticCostState([]); setAirFreightState([]); setLogisticsVsProdState([]);
+        }
       });
   }, [navigate]);
 
@@ -172,6 +194,7 @@ function App() {
   };
 
   const handleInjectErrors = () => {
+    if (HOMOLOGACAO) return;
     // 1. Custo Logístico: nulo em Nov/Y25 e estouro May/Y26
     const newLogCost = logisticCostState.map(d => {
       if (d.month === 'Nov' && d.year === 'Y25') {
@@ -276,6 +299,7 @@ function App() {
   };
 
   const handleRestoreDefaults = () => {
+    if (HOMOLOGACAO) { loadFromApi(); return; }
     setConfigs(getDefaultConfigs());
     setLogisticCostState(logisticCostData);
     setAirFreightState(airFreightData);
@@ -448,6 +472,10 @@ function App() {
   }, [logisticsVsProdState, selectedYear, period, selectedSubPeriod]);
 
   const handleSidebarNavigate = (itemId) => {
+    if (itemId === 'analytics' && !isAnalyticsAllowed) {
+      setActiveTab('dashboard');
+      return;
+    }
     setActiveTab(itemId);
     if (itemId === 'dashboard') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -458,6 +486,12 @@ function App() {
       }
     }
   };
+
+  useEffect(() => {
+    if (!isAnalyticsAllowed && activeTab === 'analytics') {
+      setActiveTab('dashboard');
+    }
+  }, [activeTab, isAnalyticsAllowed]);
 
   // Filtrar alertas para exibição inline por indicador
   const lcAlerts = useMemo(() => activeAlerts.filter(a => a.kpiKey === 'logisticCost'), [activeAlerts]);
@@ -472,6 +506,7 @@ function App() {
         onOpenHelp={() => setIsMetricsModalOpen(true)} 
         alertsCount={activeAlerts.length}
         kpisWithAlerts={kpisWithAlerts}
+        canAccessAnalytics={isAnalyticsAllowed}
       />
 
       <div className="main-wrapper">
@@ -482,10 +517,13 @@ function App() {
           onDismissAlert={handleDismissAlert}
           user={currentUser}
           onLogout={handleLogout}
+          canAccessAnalytics={isAnalyticsAllowed}
         />
 
         <main className="dashboard-main">
-          {activeTab === 'analytics' ? (
+          {HOMOLOGACAO && <p role="status">Homologação local — somente dados da API. Validação mensal; agrupamentos e indicadores sem dados não usam demonstração.</p>}
+          {apiError && <p role="alert">Falha ao carregar API: {apiError}</p>}
+          {activeTab === 'analytics' && isAnalyticsAllowed ? (
             <AnalyticsPanel
               alerts={alerts}
               auditLog={auditLog}
@@ -549,13 +587,13 @@ function App() {
               </div>
 
               {/* Banner de aviso geral sobre inconsistências da base */}
-              {activeAlerts.length > 0 && (
+              {isAnalyticsAllowed && activeAlerts.length > 0 && (
                 <div className="global-warning-banner animate-fade-in">
                   <AlertTriangle size={18} className="text-warning" />
                   <div className="global-warning-banner__text">
                     <strong>Alerta de Qualidade de Dados:</strong> O motor de análise detectou {activeAlerts.length} inconsistência(s) ou oscilação(ões) anômala(s) na base histórica de KPIs.
                   </div>
-                  <button className="btn btn--sm btn--primary" onClick={() => setActiveTab('analytics')}>
+                  <button className="btn btn--sm btn--primary" onClick={() => handleSidebarNavigate('analytics')}>
                     Revisar no Analytics
                   </button>
                 </div>
@@ -595,7 +633,7 @@ function App() {
                       <div className="kpi-inline-warning__text">
                         <strong>Validação de Dados:</strong> Detectado(s) {lcAlerts.length} alerta(s) no histórico. Último registro crítico em <strong>{lcAlerts[0].period}</strong>: {lcAlerts[0].message}
                       </div>
-                      <button className="btn btn--sm btn--accent" onClick={() => setActiveTab('analytics')}>
+                      <button className="btn btn--sm btn--accent" onClick={() => handleSidebarNavigate('analytics')}>
                         Auditar Registro
                       </button>
                     </div>
@@ -624,7 +662,7 @@ function App() {
                       <div className="kpi-inline-warning__text">
                         <strong>Validação de Dados:</strong> Detectado(s) {afAlerts.length} alerta(s) no histórico. Último registro crítico em <strong>{afAlerts[0].period}</strong>: {afAlerts[0].message}
                       </div>
-                      <button className="btn btn--sm btn--accent" onClick={() => setActiveTab('analytics')}>
+                      <button className="btn btn--sm btn--accent" onClick={() => handleSidebarNavigate('analytics')}>
                         Auditar Registro
                       </button>
                     </div>
@@ -653,7 +691,7 @@ function App() {
                       <div className="kpi-inline-warning__text">
                         <strong>Validação de Dados:</strong> Detectado(s) {lpAlerts.length} alerta(s) no histórico. Último registro crítico em <strong>{lpAlerts[0].period}</strong>: {lpAlerts[0].message}
                       </div>
-                      <button className="btn btn--sm btn--accent" onClick={() => setActiveTab('analytics')}>
+                      <button className="btn btn--sm btn--accent" onClick={() => handleSidebarNavigate('analytics')}>
                         Auditar Registro
                       </button>
                     </div>
@@ -678,14 +716,14 @@ function App() {
         </main>
 
         <footer className="dashboard-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-          <span>Dashboard KPI Logístico — Protótipo v1.1 | Motor de Analytics &amp; Integridade Homologado | LG Electronics DXI</span>
+          <span>Dashboard KPI Logístico — Protótipo v1.1 | Motor de Analytics &amp; Integridade em validação | LG Electronics DXI</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
             <span style={{
               display: 'inline-block', padding: '2px 8px', borderRadius: '9999px',
               background: dataSource === 'api' ? '#16a34a' : '#d97706',
               color: '#fff', fontWeight: 600, letterSpacing: '0.02em',
             }}>
-              {dataSource === 'api' ? '● API' : '● MOCK'}
+              {dataSource === 'api' ? '● API' : dataSource === 'loading' ? 'Carregando API' : dataSource === 'error' ? 'API indisponível' : '● MOCK'}
             </span>
             <button
               onClick={loadFromApi}

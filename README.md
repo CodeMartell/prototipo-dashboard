@@ -63,5 +63,10 @@ O protótipo utiliza dados reais extraídos da planilha `dados.xlsx`, estruturad
 - Exportação de relatórios em PDF
 - Notificações de anomalias
 
+## Testes e homologação
+
+Consulte [o plano do Épico 7](docs/epico-7-homologacao.md) para executar os testes, verificar a cobertura e conduzir o aceite com usuários e a validação de produção.
+
 ## Licença
+
 MIT

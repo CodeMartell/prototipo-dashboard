@@ -34,6 +34,11 @@ class Settings:
     date_to: datetime | None
     database_url: str
     attachments_dir: Path
+    api_url: str = ''
+    api_email: str = ''
+    api_password: str = ''
+    api_timeout: float = 20
+    processing_history_path: Path = ROOT_DIR / 'resources' / 'api_email_history.db'
 
     @classmethod
     def from_env(cls, env_file: Path | None = None) -> "Settings":
@@ -45,7 +50,9 @@ class Settings:
         required = {
             "EMAIL_USER": os.getenv("EMAIL_USER", "").strip(),
             "EMAIL_PASSWORD": os.getenv("EMAIL_PASSWORD", "").strip(),
-            "DATABASE_URL": os.getenv("DATABASE_URL", "").strip(),
+            "RPA_API_URL": os.getenv("RPA_API_URL", "").strip(),
+            "RPA_API_EMAIL": os.getenv("RPA_API_EMAIL", "").strip(),
+            "RPA_API_PASSWORD": os.getenv("RPA_API_PASSWORD", ""),
         }
         missing = [name for name, value in required.items() if not value]
         if missing:
@@ -63,6 +70,11 @@ class Settings:
             sender_filter=os.getenv("EMAIL_SENDER_FILTER", "").strip().lower(),
             date_from=date_from,
             date_to=date_to,
-            database_url=required["DATABASE_URL"],
+            database_url=os.getenv('DATABASE_URL', ''),  # compatibilidade; bot principal não usa SQL
+            api_url=required['RPA_API_URL'],
+            api_email=required['RPA_API_EMAIL'],
+            api_password=required['RPA_API_PASSWORD'],
+            api_timeout=float(os.getenv('RPA_API_TIMEOUT', '20')),
+            processing_history_path=Path(os.getenv('RPA_HISTORY_PATH', str(ROOT_DIR / 'resources' / 'api_email_history.db'))),
             attachments_dir=Path(os.getenv("ATTACHMENTS_DIR", str(ROOT_DIR / "resources" / "attachments"))),
         )

@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import imaplib
 import logging
+import tempfile
+from pathlib import Path
 from datetime import timezone
 from email.message import Message
 from email.utils import parseaddr, parsedate_to_datetime
@@ -12,6 +14,8 @@ from rpa_email.app.models import (
     ExecutionSummary,
 )
 from rpa_email.app.repository import ProcessingRepository
+from rpa_email.app.ingestion_client import ReportSender, build_payload
+from rpa_email.app.extractor import KpiExtractor
 from rpa_email.config.settings import Settings
 from rpa_email.modules.email.EmailHandler import (
     EmailHandler,
@@ -28,10 +32,12 @@ class EmailProcessingService:
         settings: Settings,
         repository: ProcessingRepository,
         handler: EmailHandler,
+        report_sender: ReportSender,
     ):
         self.settings = settings
         self.repository = repository
         self.handler = handler
+        self.report_sender = report_sender
 
     def _criteria(self) -> list[str]:
         """
@@ -340,84 +346,24 @@ class EmailProcessingService:
                         key.encode("utf-8")
                     ).hexdigest()[:16]
 
-                    attachment_folder = (
-                        self.settings.attachments_dir
-                        / folder_hash
+                    self.settings.attachments_dir.mkdir(parents=True, exist_ok=True)
+                    # Cada tentativa usa pasta própria, sem misturar anexos anteriores.
+                    attachment_folder = Path(tempfile.mkdtemp(
+                        prefix=folder_hash + '-', dir=self.settings.attachments_dir.resolve()
+                    ))
+                    attachment_count = self.handler.save_attachments(message, attachment_folder)
+                    if not attachment_count:
+                        raise ValueError('Mensagem sem anexos')
+                    extraction = KpiExtractor(attachment_folder).extract()
+                    payload = build_payload(
+                        extraction,
+                        message.get('Message-ID', '').strip() or key,
+                        decode_text(message.get('Subject')),
+                        parseaddr(message.get('From', ''))[1],
                     )
-
-                    attachment_count = (
-                        self.handler.save_attachments(
-                            message,
-                            attachment_folder,
-                        )
-                    )
-
-                    if attachment_count > 0:
-                        try:
-                            from rpa_email.app.extractor import KpiExtractor
-                            from rpa_email.app.kpi_repository import KpiPostgresRepository
-                            extractor = KpiExtractor(attachment_folder)
-                            ext_res = extractor.extract()
-
-                            # 1. Tenta gravar no PostgreSQL
-                            try:
-                                kpi_repo = KpiPostgresRepository(self.settings.database_url)
-                                kpi_repo.initialize()
-                                kpi_map = {
-                                    "logistic_cost": ext_res.logistic_cost,
-                                    "air_freight": ext_res.air_freight,
-                                    "incidental_cost": ext_res.incidental_cost,
-                                    "total_cost": ext_res.total_cost,
-                                    "demurrage": ext_res.demurrage,
-                                }
-                                for kpi_k, rows in kpi_map.items():
-                                    if rows:
-                                        kpi_repo.upsert_standard_kpi(kpi_k, rows)
-                                if ext_res.logistics_vs_prod:
-                                    kpi_repo.upsert_logistics_vs_prod(ext_res.logistics_vs_prod)
-                                LOGGER.info("[DB] KPIs persistidos no PostgreSQL com sucesso.")
-                            except Exception as db_err:
-                                LOGGER.warning("[DB] PostgreSQL indisponivel (%s). Atualizando cache local...", db_err)
-
-                            # 2. Atualiza cache local dados_dashboard.xlsx
-                            try:
-                                from rpa_email.bot_local import _write_excel_cache
-                                from pathlib import Path
-                                root_project = Path(__file__).resolve().parents[2]
-                                excel_path = root_project / "dados_dashboard.xlsx"
-                                cache_dict = {
-                                    "logistic_cost": [
-                                        {"month": r.month, "year": r.year, "target": r.target, "result": r.result, "achievement": r.achievement}
-                                        for r in ext_res.logistic_cost
-                                    ],
-                                    "air_freight": [
-                                        {"month": r.month, "year": r.year, "target": r.target, "result": r.result, "achievement": r.achievement}
-                                        for r in ext_res.air_freight
-                                    ],
-                                    "incidental_cost": [
-                                        {"month": r.month, "year": r.year, "target": r.target, "result": r.result, "achievement": r.achievement}
-                                        for r in ext_res.incidental_cost
-                                    ],
-                                    "total_cost": [
-                                        {"month": r.month, "year": r.year, "target": r.target, "result": r.result, "achievement": r.achievement}
-                                        for r in ext_res.total_cost
-                                    ],
-                                    "demurrage": [
-                                        {"month": r.month, "year": r.year, "target": r.target, "result": r.result, "achievement": r.achievement}
-                                        for r in ext_res.demurrage
-                                    ],
-                                    "logistics_vs_prod": [
-                                        {"month": r.month, "year": r.year, "logisticsCost": r.logistics_cost, "productionAmount": r.production_amount, "ratio": r.ratio}
-                                        for r in ext_res.logistics_vs_prod
-                                    ],
-                                }
-                                _write_excel_cache(cache_dict, excel_path)
-                                LOGGER.info("[EXCEL] Cache local dados_dashboard.xlsx atualizado com sucesso.")
-                            except Exception as xlsx_err:
-                                LOGGER.warning("[EXCEL] Nao foi possivel atualizar o cache Excel: %s", xlsx_err)
-
-                        except Exception as kpi_exc:
-                            LOGGER.warning("Nao foi possivel extrair/persistir KPIs dos anexos: %s", kpi_exc)
+                    ingestion_status = self.report_sender.send(payload)
+                    if ingestion_status not in ('processed', 'skipped'):
+                        raise ValueError('Ingestao nao confirmada')
 
                     self._record(
                         message=message,

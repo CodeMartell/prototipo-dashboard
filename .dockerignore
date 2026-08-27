@@ -5,6 +5,12 @@ __pycache__
 *.pyc
 **/*.pyc
 .pytest_cache
+.env
+**/.env
+**/.env.local
+.env.homologacao
+rpa_email/resources/*.db
+rpa_email/resources/*.db-*
 
 rpa_email/.env
 rpa_email/resources/attachments

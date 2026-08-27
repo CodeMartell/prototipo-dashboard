@@ -1,0 +1,13 @@
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /app
+COPY server/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+COPY server /app/server
+COPY rpa_email /app/rpa_email
+ENV PYTHONPATH=/app
+COPY tests/system /app/tests/system
+WORKDIR /app/server
+RUN useradd --create-home tester
+USER tester
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5001"]

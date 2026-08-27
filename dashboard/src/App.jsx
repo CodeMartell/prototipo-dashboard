@@ -414,8 +414,9 @@ function App() {
     { key: 'warRoom', name: 'War Room Report', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#3B82F6', monthly: logisticCostState, quarterly: quarterlyLogisticCost, description: 'Logistics cost over revenue' },
     { key: 'incidentialCost', name: 'Logistics Cost Resin Consolidtion', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#2563EB', monthly: incidentialCostData, quarterly: quarterlyIncidentialCost, description: 'Incidential costs over revenue' },
     { key: 'totalCost', name: 'Task Cost Reduction', unit: 'MUSD', aggregate: 'sum', valueKey: 'result', color: '#1D4ED8', monthly: totalCostData, quarterly: quarterlyTotalCost, description: 'Total logistics cost' },
-    { key: 'demurrage', name: 'KPI - Demurrage Cost', unit: 'KUSD', aggregate: 'sum', valueKey: 'result', color: '#0EA5E9', monthly: demurrageData, quarterly: quarterlyDemurrage, description: 'Container demurrage' },
-    { key: 'airFreight', name: 'KPI - Air Freight', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#38BDF8', monthly: airFreightState, quarterly: quarterlyAirFreight, description: 'Air freight over revenue' },
+    { key: 'demurrage', name: 'Demurrage Cost', unit: 'KUSD', aggregate: 'sum', valueKey: 'result', color: '#0EA5E9', monthly: demurrageData, quarterly: quarterlyDemurrage, description: 'Container demurrage' },
+    { key: 'airFreight', name: 'Air Freight', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#38BDF8', monthly: airFreightState, quarterly: quarterlyAirFreight, description: 'Air freight over revenue' },
+    { key: 'logisticsVsProd', name: 'Logistics Cost x Prod Amount', unit: 'Ratio', aggregate: 'avg', valueKey: 'ratio', color: '#7C3AED', monthly: logisticsVsProdState, quarterly: quarterlyLogisticsCostVsProd, description: 'Cost vs production ratio' },
   ], [logisticCostState, airFreightState]);
 
   const kpiMetrics = useMemo(
@@ -581,7 +582,7 @@ function App() {
                   <Lightbulb size={20} style={{ color: 'var(--accent-amber)', flexShrink: 0 }} />
                   <div>
                     <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)', display: 'block' }}>
-                      Executive Insight — {activeTab === 'logisticCost' ? 'War Room Report' : activeTab === 'airFreight' ? 'KPI - Air Freight' : activeTab === 'logisticsVsProd' ? 'KPI - Logistics Cost x Prod Amount' : activeTab === 'totalCost' ? 'Task Cost Reduction' : activeTab === 'demurrage' ? 'KPI - Demurrage Cost' : activeTab === 'incidentialCost' ? 'Logistics Cost Resin Consolidtion' : ''}
+                      Executive Insight — {activeTab === 'logisticCost' ? 'War Room Report' : activeTab === 'airFreight' ? 'Air Freight' : activeTab === 'logisticsVsProd' ? 'Logistics Cost x Prod Amount' : activeTab === 'totalCost' ? 'Task Cost Reduction' : activeTab === 'demurrage' ? 'Demurrage Cost' : activeTab === 'incidentialCost' ? 'Logistics Cost Resin Consolidtion' : ''}
                     </strong>
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                       {activeTab === 'logisticCost' && `In period ${selectedSubPeriod}/${currentYearLabel.substring(2)}, logistics cost was at ${logCostInfo.latest ? (logCostInfo.latest * 100).toFixed(2) + '%' : 'N/A'}.`}
@@ -648,7 +649,7 @@ function App() {
                   )}
                   <KPISection
                     kpiKey="airFreight"
-                    title="KPI - Air Freight"
+                    title="Air Freight"
                     icon={Plane}
                     monthlyData={airFreightState}
                     quarterlyData={quarterlyAirFreight}
@@ -677,7 +678,7 @@ function App() {
                   )}
                   <KPISection
                     kpiKey="logisticsVsProd"
-                    title="KPI - Logistics Cost x Prod Amount"
+                    title="Logistics Cost x Prod Amount"
                     icon={Package}
                     monthlyData={logisticsVsProdState}
                     quarterlyData={quarterlyLogisticsCostVsProd}
@@ -713,7 +714,7 @@ function App() {
                 <div id="demurrage" className="kpi-detail-wrapper">
                   <KPISection
                     kpiKey="demurrage"
-                    title="KPI - Demurrage Cost"
+                    title="Demurrage Cost"
                     icon={Anchor}
                     monthlyData={demurrageData}
                     quarterlyData={quarterlyDemurrage}

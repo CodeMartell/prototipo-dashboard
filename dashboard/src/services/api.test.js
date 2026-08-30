@@ -85,7 +85,14 @@ test('dashboard calls all endpoints with token and normalizes years', async () =
     return Response.json([{ month: 'Jan', year: '2026', result: 0.05 }, { month: 'Feb', year: 'Y25', result: 0.03 }]);
   };
   const data = await fetchDashboardData();
-  assert.deepEqual(paths.sort(), ['/api/kpis/air_freight', '/api/kpis/extra/logistics-vs-prod', '/api/kpis/logistic_cost']);
+  assert.deepEqual(paths.sort(), [
+    '/api/kpis/air_freight',
+    '/api/kpis/demurrage',
+    '/api/kpis/extra/logistics-vs-prod',
+    '/api/kpis/incidental_cost',
+    '/api/kpis/logistic_cost',
+    '/api/kpis/total_cost',
+  ]);
   for (const rows of Object.values(data)) {
     assert.equal(rows[0].year, 'Y26');
     assert.equal(rows[1].year, 'Y25');

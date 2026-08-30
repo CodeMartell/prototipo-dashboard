@@ -9,7 +9,7 @@ kpi_type aceita os 5 nomes padrão ("logistic_cost", "air_freight",
 (que usa os campos logistics_cost/production_amount/ratio em vez de
 target/result).
 """
-import math
+import re
 from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 NonNegativeFinite = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 VALID_MONTHS = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
-VALID_YEARS = {"Y24", "Y25", "Y26", "Y27"}
+YEAR_PATTERN = re.compile(r"^Y\d{2}$")
 
 
 class PeriodValidated(BaseModel):
@@ -34,8 +34,8 @@ class PeriodValidated(BaseModel):
     @field_validator("year")
     @classmethod
     def valid_year(cls, value: str) -> str:
-        if value not in VALID_YEARS:
-            raise ValueError("year inválido")
+        if not YEAR_PATTERN.fullmatch(value):
+            raise ValueError("year deve usar o formato YNN, por exemplo Y26")
         return value
 
 

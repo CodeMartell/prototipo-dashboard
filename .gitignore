@@ -1,36 +1,64 @@
+# Dependências
 node_modules/
+.python_deps/
+Automacao-Planilha/.python_deps/
+.venv/
+env/
+venv/
+
+# Build & Distribuição
 dist/
+build/
+
+# Variáveis de Ambiente & Credenciais
 .env
-.env.local
-.env.homologacao
+.env.*
+!.env.example
+rpa_email/.env
+server/.env
+
+# Logs e Auditoria
 *.log
+audit.log
+server/audit.log
+
+# Bancos de dados locais e caches SQLite
+*.db
+*.db-*
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+rpa_email/resources/*.db
+rpa_email/resources/history-validation/
+server/dashboard.db
+
+# Cache e arquivos compilados
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.pytest-tmp-*/
+.coverage
+htmlcov/
+
+# Anexos e arquivos gerados pelo RPA / Pipelines
+rpa_email/resources/attachments/
+outputs/
+Automacao-Planilha/outputs/
+Automacao-Planilha/saidas_kpi/
+Automacao-Planilha/teste_geracao_kpis/
+Automacao-Planilha/tmp_*
+kpi_reports/
+dados.xlsx
+dados_dashboard.xlsx
+*.pdf
+RELATORIO_*.md
+
+# Sistema operacional & IDEs
 .DS_Store
 Thumbs.db
 ~$*
 .vscode/
 .idea/
-
-# Relatorios e arquivos gerados
-*.pdf
-RELATORIO_*.md
-generate_report_pdf.py
-
-# Credenciais e arquivos gerados pelo RPA
-rpa_email/.env
-rpa_email/resources/attachments/
-
-# Cache e arquivos compilados do Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.pytest_cache/
-.pytest-tmp-*/
-.venv/
-rpa_email/resources/api_email_history.db*
-rpa_email/resources/history-validation/
-
-# Planilhas geradas e cache local do dashboard
-outputs/
-kpi_reports/
-dados_dashboard.xlsx

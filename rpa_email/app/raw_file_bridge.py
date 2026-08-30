@@ -112,13 +112,12 @@ class RawFileBridge:
                         file_map[sig.key] = path
                     break
         
-        missing = REQUIRED_KEYS - set(file_map.keys())
-        if missing:
-            raise ValueError(f"Arquivos obrigatórios não encontrados: {missing}")
+        if not file_map:
+            raise ValueError(f"Nenhum arquivo reconhecido encontrado na pasta de anexos")
         return file_map
 
     def _extract_all(self, file_map: dict[str, Path]) -> dict[str, list[dict]]:
-        """Executa todas as funções de extração e retorna os dados brutos."""
+        """Executa as funções de extração para os arquivos identificados no lote."""
         from extrair_kpis import (
             extract_air_freight_data,
             extract_incidental_cost_data,
@@ -128,14 +127,35 @@ class RawFileBridge:
             extract_resin_data,
         )
         
-        return {
-            "air_freight": extract_air_freight_data(file_map["freight"]),
-            "incidental_cost": extract_incidental_cost_data(file_map["incidental"]),
-            "logistic_cost": extract_war_room_data(file_map["war_room"]),
-            "total_cost": extract_task_cost_data(file_map["indicators"]),
-            "demurrage": extract_demurrage_data(file_map["indicators"]),
-            "incidental_cost_resin": extract_resin_data(file_map["indicators"]),
-        }
+        extracted: dict[str, list[dict]] = {}
+        
+        if "freight" in file_map:
+            try:
+                extracted["air_freight"] = extract_air_freight_data(file_map["freight"])
+            except Exception as e:
+                LOGGER.warning("[RAW_BRIDGE] Falha ao extrair Air Freight: %s", e)
+                
+        if "incidental" in file_map:
+            try:
+                extracted["incidental_cost"] = extract_incidental_cost_data(file_map["incidental"])
+            except Exception as e:
+                LOGGER.warning("[RAW_BRIDGE] Falha ao extrair Incidental Cost: %s", e)
+                
+        if "war_room" in file_map:
+            try:
+                extracted["logistic_cost"] = extract_war_room_data(file_map["war_room"])
+            except Exception as e:
+                LOGGER.warning("[RAW_BRIDGE] Falha ao extrair War Room Logistic Cost: %s", e)
+                
+        if "indicators" in file_map:
+            try:
+                extracted["total_cost"] = extract_task_cost_data(file_map["indicators"])
+                extracted["demurrage"] = extract_demurrage_data(file_map["indicators"])
+                extracted["incidental_cost_resin"] = extract_resin_data(file_map["indicators"])
+            except Exception as e:
+                LOGGER.warning("[RAW_BRIDGE] Falha ao extrair indicadores de 3-indicadores: %s", e)
+        
+        return extracted
 
     def _to_extraction_result(self, raw: dict[str, list[dict]]) -> ExtractionResult:
         result = ExtractionResult()

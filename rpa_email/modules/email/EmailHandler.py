@@ -55,15 +55,68 @@ class EmailHandler:
         return message_from_bytes(payload[0][1], policy=policy.default)
 
     @staticmethod
+    def _download_google_drive_files(message: Message, destination: Path) -> int:
+        import httpx
+        
+        body = ""
+        for part in message.walk():
+            if part.get_content_type() in ("text/plain", "text/html"):
+                payload = part.get_payload(decode=True)
+                if payload:
+                    body += payload.decode(errors="ignore") + "\n"
+        
+        drive_ids = list(dict.fromkeys(re.findall(r"https://drive\.google\.com/(?:file/d/|open\?id=|uc\?id=)([a-zA-Z0-9_-]+)", body)))
+        if not drive_ids:
+            return 0
+            
+        destination.mkdir(parents=True, exist_ok=True)
+        downloaded = 0
+        
+        for index, file_id in enumerate(drive_ids, start=1):
+            download_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm=t"
+            try:
+                with httpx.Client(follow_redirects=True, timeout=120.0) as client:
+                    response = client.get(download_url)
+                    if response.status_code != 200 or len(response.content) < 100:
+                        continue
+                    
+                    # Extrair nome do arquivo do header Content-Disposition
+                    cd = response.headers.get("content-disposition", "")
+                    fn_match = re.search(r'filename=["\']?([^"\';]+)["\']?', cd)
+                    if fn_match:
+                        raw_name = fn_match.group(1).strip()
+                    else:
+                        # Tentar achar no corpo da mensagem
+                        body_fn_match = re.search(r"([a-zA-Z0-9_.'() -]+\.(?:xlsb|xlsx|csv|zip))", body, re.IGNORECASE)
+                        raw_name = body_fn_match.group(1).strip() if body_fn_match else f"drive_file_{index}.xlsx"
+                    
+                    filename = safe_filename(raw_name)
+                    path = destination / filename
+                    if path.exists():
+                        path = destination / f"{path.stem}_{index}{path.suffix}"
+                    path.write_bytes(response.content)
+                    downloaded += 1
+            except Exception:
+                pass
+                
+        return downloaded
+
+    @staticmethod
     def save_attachments(message: Message, destination: Path) -> int:
         parts = [part for part in message.walk() if part.get_content_disposition() == "attachment"]
-        if not parts:
-            return 0
-        destination.mkdir(parents=True, exist_ok=True)
-        for index, part in enumerate(parts, start=1):
-            name = safe_filename(decode_text(part.get_filename()) or f"anexo_{index}")
-            path = destination / name
-            if path.exists():
-                path = destination / f"{path.stem}_{index}{path.suffix}"
-            path.write_bytes(part.get_payload(decode=True) or b"")
-        return len(parts)
+        count = 0
+        if parts:
+            destination.mkdir(parents=True, exist_ok=True)
+            for index, part in enumerate(parts, start=1):
+                name = safe_filename(decode_text(part.get_filename()) or f"anexo_{index}")
+                path = destination / name
+                if path.exists():
+                    path = destination / f"{path.stem}_{index}{path.suffix}"
+                path.write_bytes(part.get_payload(decode=True) or b"")
+                count += 1
+        
+        # Se não encontrou anexos padrão, busca links do Google Drive (anexos > 25MB)
+        if count == 0:
+            count += EmailHandler._download_google_drive_files(message, destination)
+            
+        return count

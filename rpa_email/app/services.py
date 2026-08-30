@@ -51,30 +51,12 @@ class EmailProcessingService:
         criteria = ["ALL"]
 
         if self.settings.subject_filter:
-            subject = self.settings.subject_filter.replace(
-                '"',
-                "",
-            )
-
-            criteria.extend(
-                [
-                    "SUBJECT",
-                    f'"{subject}"',
-                ]
-            )
+            subject = self.settings.subject_filter.replace('"', "").strip()
+            criteria.extend(["SUBJECT", f'"{subject}"'])
 
         if self.settings.sender_filter:
-            sender = self.settings.sender_filter.replace(
-                '"',
-                "",
-            )
-
-            criteria.extend(
-                [
-                    "FROM",
-                    f'"{sender}"',
-                ]
-            )
+            sender = self.settings.sender_filter.replace('"', "").strip()
+            criteria.extend(["FROM", f'"{sender}"'])
 
         if self.settings.date_from:
             criteria.extend(

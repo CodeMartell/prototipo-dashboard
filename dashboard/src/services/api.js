@@ -134,21 +134,35 @@ function normalizeRecords(records) {
 }
 
 /**
- * Busca os 3 KPIs que o dashboard consome hoje (logistic_cost,
- * air_freight, logistics_vs_prod), em paralelo, já normalizados.
+ * Busca todos os KPIs do dashboard em paralelo, já normalizados.
+ * Inclui os 6 indicadores: logistic_cost, air_freight, incidental_cost,
+ * total_cost, demurrage, logistics_vs_prod.
  * Lança UnauthorizedError se a sessão expirou — quem chamar decide
  * se redireciona pro /login.
  */
 export async function fetchDashboardData() {
-  const [logisticCost, airFreight, logisticsVsProd] = await Promise.all([
+  const [
+    logisticCost,
+    airFreight,
+    incidentalCost,
+    totalCost,
+    demurrage,
+    logisticsVsProd,
+  ] = await Promise.all([
     authFetch('/api/kpis/logistic_cost'),
     authFetch('/api/kpis/air_freight'),
+    authFetch('/api/kpis/incidental_cost'),
+    authFetch('/api/kpis/total_cost'),
+    authFetch('/api/kpis/demurrage'),
     authFetch('/api/kpis/extra/logistics-vs-prod'),
   ]);
 
   return {
     logistic_cost: normalizeRecords(logisticCost),
     air_freight: normalizeRecords(airFreight),
+    incidental_cost: normalizeRecords(incidentalCost),
+    total_cost: normalizeRecords(totalCost),
+    demurrage: normalizeRecords(demurrage),
     logistics_vs_prod: normalizeRecords(logisticsVsProd).map((record) => ({
       ...record,
       logisticsCost: record.logistics_cost,

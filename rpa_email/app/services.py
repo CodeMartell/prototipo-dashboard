@@ -21,6 +21,7 @@ from rpa_email.modules.email.EmailHandler import (
     EmailHandler,
     decode_text,
 )
+from rpa_email.app.raw_file_bridge import RawFileBridge, is_raw_report
 
 
 LOGGER = logging.getLogger(__name__)
@@ -354,7 +355,10 @@ class EmailProcessingService:
                     attachment_count = self.handler.save_attachments(message, attachment_folder)
                     if not attachment_count:
                         raise ValueError('Mensagem sem anexos')
-                    extraction = KpiExtractor(attachment_folder).extract()
+                    if is_raw_report(attachment_folder):
+                        extraction = RawFileBridge().process(attachment_folder)
+                    else:
+                        extraction = KpiExtractor(attachment_folder).extract()
                     payload = build_payload(
                         extraction,
                         message.get('Message-ID', '').strip() or key,

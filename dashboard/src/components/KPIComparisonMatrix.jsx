@@ -24,8 +24,9 @@ export default function KPIComparisonMatrix({
 
   const renderAchievement = (value) => {
     if (value === null || value === undefined) return '—';
+    const status = value >= 1 ? 'good' : value >= 0.8 ? 'alert' : 'critical';
     return (
-      <span className={`achievement-pill ${value >= 1 ? 'good' : 'alert'}`}>
+      <span className={`achievement-pill ${status}`}>
         {(value * 100).toFixed(0)}%
       </span>
     );
@@ -68,7 +69,7 @@ export default function KPIComparisonMatrix({
             {metrics.map((m) => (
               <tr key={m.key}>
                 <td className="matrix-cell-name">
-                  <span className="matrix-cell-dot" style={{ background: m.color }} />
+                  <span className="matrix-cell-dot" aria-hidden="true" />
                   <strong>{m.name}</strong>
                 </td>
 

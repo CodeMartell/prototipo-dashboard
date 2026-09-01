@@ -24,7 +24,7 @@ export default function KPIComparisonMatrix({
 
   const renderAchievement = (value) => {
     if (value === null || value === undefined) return '—';
-    const status = value >= 1 ? 'good' : value >= 0.8 ? 'alert' : 'critical';
+    const status = value >= 1 ? 'good' : value >= 0.9 ? 'alert' : 'critical';
     return (
       <span className={`achievement-pill ${status}`}>
         {(value * 100).toFixed(0)}%

@@ -6,15 +6,6 @@ import EvidencePanel from './EvidencePanel';
 import { MONTHS } from '../data/mockData';
 import { Table, BarChart3 } from 'lucide-react';
 
-const INSIGHTS = {
-  logisticCost:
-    'Uptrend in logistics cost in Mar/26. Consider renegotiating transport contracts or reviewing shipping routes.',
-  airFreight:
-    'Air freight usage consistently above target in 2026. Evaluate advancing orders for sea freight shipping.',
-  logisticsVsProd:
-    'Cost/production ratio stable in 2026 (~4.4%). Optimization opportunity in high-production months.',
-};
-
 function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey) {
   const isRatioKPI = kpiKey === 'logisticsVsProd';
   const resultField = isRatioKPI ? 'ratio' : 'result';
@@ -209,7 +200,6 @@ export default function KPISection({
           period={period}
           selectedYear={selectedYear}
           periodLabel={activePeriod}
-          insight={INSIGHTS[kpiKey]}
         />
         <EvidencePanel
           kpiKey={kpiKey}

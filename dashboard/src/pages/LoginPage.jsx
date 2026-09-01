@@ -211,7 +211,6 @@ function AnalyticBackground({ parallax, mouseNorm }) {
                     style={{ transition: 'r 0.25s, fill-opacity 0.25s' }} />
                 );
               })}
-              <text x="0" y="105" fill="white" fillOpacity="0.22" fontSize="9" fontFamily="var(--font)">PERFORMANCE</text>
             </>
           );
         })()}

@@ -35,13 +35,7 @@ export default function KPIComparisonMatrix({
   return (
     <div className="kpi-matrix-panel animate-fade-in">
       <div className="kpi-matrix-header">
-        <div>
-          <h3 className="kpi-matrix-title">KPI Comparison Matrix — Clear View of Indicators</h3>
-          <p className="kpi-matrix-subtitle">
-            Previous {periodNoun.toLowerCase()} (<strong>{prevPeriodLabel}</strong>) versus current {periodNoun.toLowerCase()} (
-            <strong>{currentPeriodLabel}</strong>): actual, target, and achievement across periods.
-          </p>
-        </div>
+        <h3 className="kpi-matrix-title">KPI Comparison Matrix — Clear View of Indicators</h3>
       </div>
 
       <div className="kpi-matrix-table-container">
@@ -77,9 +71,9 @@ export default function KPIComparisonMatrix({
                 <td className="matrix-cell--past">{formatMetricValue(m.prevTarget, m.unit)}</td>
                 <td className="matrix-cell--past">{renderAchievement(m.prevAchievement)}</td>
 
-                <td className="matrix-cell-highlight">{formatMetricValue(m.latest, m.unit)}</td>
-                <td>{formatMetricValue(m.target, m.unit)}</td>
-                <td>{renderAchievement(m.achievement)}</td>
+                <td className="matrix-cell--current matrix-cell-highlight">{formatMetricValue(m.latest, m.unit)}</td>
+                <td className="matrix-cell--current">{formatMetricValue(m.target, m.unit)}</td>
+                <td className="matrix-cell--current">{renderAchievement(m.achievement)}</td>
               </tr>
             ))}
           </tbody>

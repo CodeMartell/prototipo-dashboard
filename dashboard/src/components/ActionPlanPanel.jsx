@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronDown, ChevronUp, Lightbulb, FileText, Save, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, Save, Trash2 } from 'lucide-react';
 
 const UPDATED_PREFIX = 'ap_updated_';
 const PERIOD_ORDER = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -40,7 +40,6 @@ export default function ActionPlanPanel({
   _period,
   selectedYear,
   periodLabel,
-  insight,
 }) {
   const [isExpanded, setIsExpanded] = useState(true); // Default to expanded to show context
   
@@ -112,12 +111,7 @@ export default function ActionPlanPanel({
       </div>
 
       <div className="action-plan-panel__body">
-        <div className="insight-banner">
-          <Lightbulb size={18} style={{ color: 'var(--accent-airfreight)', flexShrink: 0, marginTop: '2px' }} />
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{insight}</p>
-        </div>
-
-        <div style={{ marginTop: 'var(--space-3)' }}>
+        <div>
           <label className="small-label">Notes / Next Steps</label>
           <textarea
             className="action-plan-panel__textarea"

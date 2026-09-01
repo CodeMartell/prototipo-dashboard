@@ -1,4 +1,4 @@
-import { Trophy, AlertTriangle } from 'lucide-react';
+import { Trophy, AlertTriangle, Table as TableIcon } from 'lucide-react';
 import { formatPercent, formatCurrency } from '../utils/formatters';
 
 const formatCell = (value, format) => {
@@ -19,6 +19,22 @@ export default function DetailTable({
   selectedPeriod,
   onPeriodClick,
 }) {
+  const hasData = data.some(
+    (row) =>
+      (row.currentResult !== null && row.currentResult !== undefined) ||
+      (row.previousResult !== null && row.previousResult !== undefined)
+  );
+
+  if (!hasData) {
+    return (
+      <div className="chart-empty-state" role="status">
+        <TableIcon size={28} aria-hidden="true" />
+        <strong>No data at the moment</strong>
+        <span>There is no record for this indicator in the selected period.</span>
+      </div>
+    );
+  }
+
   return (
     <div className="data-table__container">
       <table className="data-table">

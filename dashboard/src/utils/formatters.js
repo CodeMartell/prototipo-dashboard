@@ -9,10 +9,24 @@ export const formatCurrency = (value, decimals = 2) => {
   return `${sign}$${Math.abs(value).toFixed(decimals)}M`;
 };
 
-export const formatThousands = (value, decimals = 0) => {
+export const formatThousands = (value, decimals = 1) => {
   if (value === null || value === undefined) return '-';
   const sign = value < 0 ? '-' : '';
   return `${sign}$${Math.abs(value).toFixed(decimals)}K`;
+};
+
+/** Milhares de reais — unidade do Task Cost Reduction. */
+export const formatThousandsBRL = (value, decimals = 0) => {
+  if (value === null || value === undefined) return '-';
+  const sign = value < 0 ? '-' : '';
+  return `${sign}R$ ${Math.abs(value).toFixed(decimals)}K`;
+};
+
+/** Quantidade de contêineres — unidade do Demurrage. */
+export const formatContainers = (value) => {
+  if (value === null || value === undefined) return '-';
+  const rounded = Math.round(value * 10) / 10;
+  return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(1)} ctnr`;
 };
 
 /**
@@ -24,6 +38,8 @@ export const formatMetricValue = (value, unit) => {
   if (unit === '%' || unit === 'Ratio') return formatPercent(value, 2);
   if (unit === 'MUSD') return formatCurrency(value);
   if (unit === 'KUSD') return formatThousands(value);
+  if (unit === 'KBRL') return formatThousandsBRL(value);
+  if (unit === 'CTNR') return formatContainers(value);
   if (unit === 'achievement') return `${(value * 100).toFixed(0)}%`;
   return value;
 };

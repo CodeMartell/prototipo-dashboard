@@ -1,7 +1,12 @@
+# Dependências do robô de e-mail (rpa_email) — instaladas na imagem
+# Dockerfile.email-rpa. O backend FastAPI usa server/requirements.txt.
 python-dotenv==1.1.1
 psycopg[binary]==3.3.4
-pytest==8.4.1
 openpyxl==3.1.5
-flask==3.1.3
-flask-cors==6.0.5
 httpx==0.27.2
+pytest==8.4.1
+
+# Leitura dos relatórios brutos .xlsb (planilhas originais anexadas no
+# e-mail). Usado por Automacao-Planilha/extrair_kpis.py, que o
+# rpa_email/app/raw_file_bridge.py importa em tempo de execução.
+pyxlsb==1.0.10

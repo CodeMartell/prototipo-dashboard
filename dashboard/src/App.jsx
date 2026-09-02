@@ -9,28 +9,97 @@ import KPIComparisonMatrix from './components/KPIComparisonMatrix';
 import MetricsModal from './components/MetricsModal';
 import AnalyticsPanel from './components/AnalyticsPanel';
 import { DollarSign, Plane, Package, Calendar, AlertTriangle, TrendingDown, Anchor, Layers } from 'lucide-react';
+import KpiEntryModal from './components/KpiEntryModal';
 import { fetchDashboardData, getCurrentUser, logout, UnauthorizedError } from './services/api';
-import { canAccessAnalytics } from './services/permissions';
+import { canAccessAnalytics, canEditKpiData } from './services/permissions';
 
 import {
   MONTHS,
-  logisticCostData,
-  airFreightData,
-  logisticsCostVsProdData,
-  incidentialCostData,
-  totalCostData,
-  demurrageData,
-  quarterlyLogisticCost,
-  quarterlyAirFreight,
-  quarterlyLogisticsCostVsProd,
-  quarterlyIncidentialCost,
-  quarterlyTotalCost,
-  quarterlyDemurrage,
+  aggregateField,
+  buildQuarterlySeries,
   calculateVariation,
   getAvailableYears,
-} from './data/mockData';
+} from './utils/kpiData';
 
 import { runFullAnalysis, getDefaultConfigs } from './utils/analyticsEngine';
+
+/**
+ * Definicao dos indicadores: nome, unidade, direcao e como agregar.
+ * `dataKey` casa com a chave devolvida por GET /api/kpis/dashboard e
+ * `key` e o id usado na sidebar e nas secoes de detalhe.
+ */
+const KPI_CATALOG = [
+  {
+    key: 'logisticCost',
+    dataKey: 'logistic_cost',
+    name: 'War Room Report',
+    unit: '%',
+    aggregate: 'avg',
+    valueKey: 'result',
+    lowerIsBetter: true,
+    color: '#3B82F6',
+    icon: DollarSign,
+  },
+  {
+    key: 'incidentialCost',
+    dataKey: 'incidental_cost',
+    name: 'Logistics Cost Resin Consolidation',
+    unit: 'KUSD',
+    aggregate: 'sum',
+    valueKey: 'result',
+    lowerIsBetter: false, // saving: quanto maior, melhor
+    color: '#2563EB',
+    icon: Layers,
+  },
+  {
+    key: 'totalCost',
+    dataKey: 'total_cost',
+    name: 'Task Cost Reduction',
+    unit: 'KBRL',
+    aggregate: 'sum',
+    valueKey: 'result',
+    lowerIsBetter: false, // reducao alcancada: quanto maior, melhor
+    color: '#1D4ED8',
+    icon: TrendingDown,
+  },
+  {
+    key: 'demurrage',
+    dataKey: 'demurrage',
+    name: 'Demurrage Cost',
+    unit: 'CTNR',
+    aggregate: 'sum',
+    valueKey: 'result',
+    lowerIsBetter: true,
+    color: '#0EA5E9',
+    icon: Anchor,
+  },
+  {
+    key: 'airFreight',
+    dataKey: 'air_freight',
+    name: 'Air Freight',
+    unit: '%',
+    aggregate: 'avg',
+    valueKey: 'result',
+    lowerIsBetter: true,
+    color: '#38BDF8',
+    icon: Plane,
+  },
+  {
+    key: 'logisticsVsProd',
+    dataKey: 'logistics_vs_prod',
+    name: 'Logistics Cost x Prod Amount',
+    unit: 'Ratio',
+    aggregate: 'avg',
+    valueKey: 'ratio',
+    lowerIsBetter: true,
+    color: '#7C3AED',
+    icon: Package,
+  },
+];
+
+const EMPTY_DATASETS = Object.freeze(
+  KPI_CATALOG.reduce((acc, { dataKey }) => ({ ...acc, [dataKey]: [] }), {})
+);
 
 /**
  * Analytics ainda nao foi liberado para uso. Com a flag em false o item da
@@ -54,6 +123,7 @@ function App() {
     () => ANALYTICS_ENABLED && canAccessAnalytics(currentUser),
     [currentUser]
   );
+  const canEditData = useMemo(() => canEditKpiData(currentUser), [currentUser]);
 
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
 
@@ -71,44 +141,42 @@ function App() {
   const [selectedSubPeriod, setSelectedSubPeriod] = useState(CURRENT_MONTH); // 'Jan'..'Dec', 'Q1'..'Q4', 'H1'..'H2', 'Y26'
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
+  const [entryModalKpiKey, setEntryModalKpiKey] = useState(null);
+  const [entryMonth, setEntryMonth] = useState(CURRENT_MONTH);
 
-  // Mocks são permitidos apenas em desenvolvimento ou quando habilitados
-  // explicitamente. Em produção, falha da API nunca pode parecer dado real.
-  const allowMockFallback = import.meta.env.DEV || import.meta.env.VITE_ALLOW_MOCK_FALLBACK === 'true';
-  const [logisticCostState, setLogisticCostState] = useState(() => allowMockFallback ? logisticCostData : []);
-  const [airFreightState, setAirFreightState] = useState(() => allowMockFallback ? airFreightData : []);
-  const [logisticsVsProdState, setLogisticsVsProdState] = useState(() => allowMockFallback ? logisticsCostVsProdData : []);
-
-  // Indicates data source of currently displayed metrics
-  const [dataSource, setDataSource] = useState(allowMockFallback ? 'mock' : 'loading');
+  // Séries mensais de todos os indicadores, sempre vindas da API.
+  // Não existe mais fallback local: sem backend, o dashboard mostra vazio
+  // em vez de números que parecem reais.
+  const [datasets, setDatasets] = useState(EMPTY_DATASETS);
+  const [dataSource, setDataSource] = useState('loading'); // 'loading' | 'api' | 'error'
+  const [loadError, setLoadError] = useState(null);
 
   // --- LOADING API DATA ---
   const loadFromApi = useCallback(() => {
-    fetchDashboardData()
+    setDataSource((prev) => (prev === 'api' ? prev : 'loading'));
+
+    return fetchDashboardData()
       .then((data) => {
-        setLogisticCostState(data.logistic_cost || []);
-        setAirFreightState(data.air_freight || []);
-        setLogisticsVsProdState(data.logistics_vs_prod || []);
+        setDatasets(
+          KPI_CATALOG.reduce(
+            (acc, { dataKey }) => ({ ...acc, [dataKey]: data[dataKey] || [] }),
+            {}
+          )
+        );
         setDataSource('api');
-        console.info('[DataLens] Data loaded from API successfully.');
+        setLoadError(null);
       })
       .catch((err) => {
         if (err instanceof UnauthorizedError) {
           navigate('/login');
           return;
         }
-        if (allowMockFallback) {
-          console.warn('[DataLens] API unavailable, using explicitly allowed mock data:', err.message);
-          setDataSource('mock');
-        } else {
-          setLogisticCostState([]);
-          setAirFreightState([]);
-          setLogisticsVsProdState([]);
-          setDataSource('error');
-          console.error('[DataLens] API unavailable; production data was not replaced by mocks:', err.message);
-        }
+        setDatasets(EMPTY_DATASETS);
+        setDataSource('error');
+        setLoadError(err.message);
+        console.error('[DataLens] API unavailable; dashboard rendered without data:', err.message);
       });
-  }, [allowMockFallback, navigate]);
+  }, [navigate]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -120,9 +188,17 @@ function App() {
     loadFromApi();
   }, [loadFromApi]);
 
-  const availableYears = useMemo(() => {
-    return getAvailableYears([logisticCostState, airFreightState, logisticsVsProdState]);
-  }, [logisticCostState, airFreightState, logisticsVsProdState]);
+  const availableYears = useMemo(() => getAvailableYears(datasets), [datasets]);
+
+  // Datasets no formato que o motor de análise espera.
+  const analysisDatasets = useMemo(
+    () => ({
+      logisticCost: datasets.logistic_cost,
+      airFreight: datasets.air_freight,
+      logisticsVsProd: datasets.logistics_vs_prod,
+    }),
+    [datasets]
+  );
 
   const [configs, setConfigs] = useState(() => {
     const saved = localStorage.getItem('analytics_configs');
@@ -156,15 +232,8 @@ function App() {
 
   // Executar a análise de dados com dependências completas
   const runAnalysis = useCallback(() => {
-    const results = runFullAnalysis(
-      {
-        logisticCost: logisticCostState,
-        airFreight: airFreightState,
-        logisticsVsProd: logisticsVsProdState
-      },
-      configs
-    );
-    
+    const results = runFullAnalysis(analysisDatasets, configs);
+
     const dismissedIds = JSON.parse(localStorage.getItem('analytics_dismissed_alerts') || '[]');
     const verifiedIds = JSON.parse(localStorage.getItem('analytics_verified_alerts') || '[]');
     
@@ -174,7 +243,7 @@ function App() {
     }));
 
     setAlerts(processedAlerts);
-  }, [logisticCostState, airFreightState, logisticsVsProdState, configs]);
+  }, [analysisDatasets, configs]);
 
   // Re-analisa se dados ou regras mudarem
   useEffect(() => {
@@ -189,15 +258,8 @@ function App() {
       runAnalysis();
       setIsAnalyzing(false);
       
-      const results = runFullAnalysis(
-        {
-          logisticCost: logisticCostState,
-          airFreight: airFreightState,
-          logisticsVsProd: logisticsVsProdState
-        },
-        configs
-      );
-      
+      const results = runFullAnalysis(analysisDatasets, configs);
+
       const newLog = {
         id: `log-${Date.now()}`,
         action: 'Analysis Executed',
@@ -207,56 +269,6 @@ function App() {
       };
       setAuditLog(prev => [newLog, ...prev]);
     }, 800);
-  };
-
-  const handleInjectErrors = () => {
-    // 1. Logistics Cost: null in Nov/Y25 and spike in May/Y26
-    const newLogCost = logisticCostState.map(d => {
-      if (d.month === 'Nov' && d.year === 'Y25') {
-        return { ...d, result: null };
-      }
-      if (d.month === 'May' && d.year === 'Y26') {
-        return { ...d, result: 0.165 }; // 16.5% (>8.0% max)
-      }
-      return d;
-    });
-
-    // 2. Air Freight: extreme spike in Jan/Y26 and duplicate in Jun/Y26
-    let newAirFreight = airFreightState.map(d => {
-      if (d.month === 'Jan' && d.year === 'Y26') {
-        return { ...d, result: 0.045 }; // 4.5% (>1.0% max)
-      }
-      return d;
-    });
-    const hasDuplicate = newAirFreight.some(d => d.month === 'Jun' && d.year === 'Y26' && d.achievement === 0.25);
-    if (!hasDuplicate) {
-      newAirFreight.push({ month: 'Jun', year: 'Y26', target: 0.0022, result: 0.0085, achievement: 0.25 });
-    }
-
-    // 3. Ratio: mathematical conflict in Nov/Y26
-    const newLogVsProd = logisticsVsProdState.map(d => {
-      if (d.month === 'Nov' && d.year === 'Y26') {
-        return { ...d, ratio: 0.0850 }; // Cost 1.30 / Prod 27.08 != 0.0850
-      }
-      return d;
-    });
-
-    // Clear local dismissed states so alerts reappear
-    localStorage.setItem('analytics_dismissed_alerts', '[]');
-    localStorage.setItem('analytics_verified_alerts', '[]');
-
-    setLogisticCostState(newLogCost);
-    setAirFreightState(newAirFreight);
-    setLogisticsVsProdState(newLogVsProd);
-
-    const newLog = {
-      id: `log-${Date.now()}`,
-      action: 'Error Injection',
-      details: 'Artificial inconsistencies injected into database for system operational validation.',
-      timestamp: new Date().toISOString(),
-      user: 'Logistics & Admin'
-    };
-    setAuditLog(prev => [newLog, ...prev]);
   };
 
   const handleVerifyAlert = (alertId) => {
@@ -314,18 +326,17 @@ function App() {
   };
 
   const handleRestoreDefaults = () => {
+    // Restaura apenas os limites do motor de análise. Os dados vêm do
+    // banco e não são substituídos por nada local.
     setConfigs(getDefaultConfigs());
-    setLogisticCostState(logisticCostData);
-    setAirFreightState(airFreightData);
-    setLogisticsVsProdState(logisticsCostVsProdData);
-    setDataSource('mock');
     localStorage.setItem('analytics_dismissed_alerts', '[]');
     localStorage.setItem('analytics_verified_alerts', '[]');
+    loadFromApi();
 
     const newLog = {
       id: `log-${Date.now()}`,
       action: 'Defaults Restored',
-      details: 'Factory parameters and original database reloaded successfully.',
+      details: 'Analysis thresholds reset to factory values and data reloaded from the API.',
       timestamp: new Date().toISOString(),
       user: 'Logistics & Admin'
     };
@@ -348,7 +359,10 @@ function App() {
     return Array.from(new Set(activeAlerts.map(a => a.kpiKey)));
   }, [activeAlerts]);
 
-  const totalRecordsChecked = logisticCostState.length + airFreightState.length + logisticsVsProdState.length;
+  const totalRecordsChecked = useMemo(
+    () => Object.values(datasets).reduce((total, rows) => total + (rows?.length || 0), 0),
+    [datasets]
+  );
 
   const prevYear = `Y${parseInt(selectedYear.substring(1)) - 1}`;
   const currentYearLabel = `20${selectedYear.substring(1)}`;
@@ -361,14 +375,6 @@ function App() {
     else if (newPeriod === 'quarterly') setSelectedSubPeriod(CURRENT_QUARTER);
     else if (newPeriod === 'semiannual') setSelectedSubPeriod(CURRENT_HALF);
     else setSelectedSubPeriod(selectedYear);
-  };
-
-  // Aggregate field values (avg for rates, sum for absolute values)
-  const aggregateField = (rows, field, mode) => {
-    const valid = rows.filter((d) => d[field] !== null && d[field] !== undefined);
-    if (!valid.length) return null;
-    const total = valid.reduce((s, d) => s + d[field], 0);
-    return mode === 'sum' ? total : total / valid.length;
   };
 
   // Select period rows for active period
@@ -387,7 +393,7 @@ function App() {
   }, [period, selectedSubPeriod]);
 
   // Calculate period stats
-  const getPeriodStats = useCallback((monthlyArr, quarterlyArr, year, valueKey, aggregate) => {
+  const getPeriodStats = useCallback((monthlyArr, quarterlyArr, year, valueKey, aggregate, lowerIsBetter) => {
     const isRatio = valueKey === 'ratio';
     const rows = selectPeriodRows(monthlyArr, quarterlyArr, year);
 
@@ -397,7 +403,11 @@ function App() {
     let achievement = null;
     if (!isRatio) {
       if (aggregate === 'sum') {
-        achievement = result && target ? target / result : null;
+        // Séries somadas: recalcula do total, respeitando a direção do KPI.
+        if (result !== null && target !== null) {
+          const [numerator, denominator] = lowerIsBetter ? [target, result] : [result, target];
+          achievement = denominator === 0 ? (numerator === 0 ? 1 : null) : numerator / denominator;
+        }
       } else {
         achievement = aggregateField(rows, 'achievement', 'avg');
       }
@@ -407,13 +417,13 @@ function App() {
   }, [selectPeriodRows]);
 
   // Subperiod metrics helper
-  const getSubPeriodMetric = useCallback((monthlyArr, quarterlyArr, valueKey = 'result', aggregate = 'avg') => {
+  const getSubPeriodMetric = useCallback((monthlyArr, quarterlyArr, valueKey = 'result', aggregate = 'avg', lowerIsBetter = true) => {
     const isAnnual = period === 'annual';
     const subLabel = isAnnual ? currentYearLabel : `${selectedSubPeriod}/${currentYearLabel.substring(2)}`;
     const prevSubLabel = isAnnual ? prevYearLabel : `${selectedSubPeriod}/${prevYearLabel.substring(2)}`;
 
-    const current = getPeriodStats(monthlyArr, quarterlyArr, selectedYear, valueKey, aggregate);
-    const previous = getPeriodStats(monthlyArr, quarterlyArr, prevYear, valueKey, aggregate);
+    const current = getPeriodStats(monthlyArr, quarterlyArr, selectedYear, valueKey, aggregate, lowerIsBetter);
+    const previous = getPeriodStats(monthlyArr, quarterlyArr, prevYear, valueKey, aggregate, lowerIsBetter);
 
     let variation = null;
     let variationAbs = null;
@@ -443,24 +453,39 @@ function App() {
     };
   }, [period, currentYearLabel, selectedSubPeriod, prevYearLabel, getPeriodStats, selectedYear, prevYear]);
 
-  // KPI Definitions for cards and comparative matrix
-  const KPI_DEFINITIONS = useMemo(() => [
-    { key: 'logisticCost', name: 'War Room Report', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#3B82F6', monthly: logisticCostState, quarterly: quarterlyLogisticCost, description: 'Logistics cost over revenue' },
-    { key: 'incidentialCost', name: 'Logistics Cost Resin Consolidtion', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#2563EB', monthly: incidentialCostData, quarterly: quarterlyIncidentialCost, description: 'Incidential costs over revenue' },
-    { key: 'totalCost', name: 'Task Cost Reduction', unit: 'MUSD', aggregate: 'sum', valueKey: 'result', color: '#1D4ED8', monthly: totalCostData, quarterly: quarterlyTotalCost, description: 'Total logistics cost' },
-    { key: 'demurrage', name: 'Demurrage Cost', unit: 'KUSD', aggregate: 'sum', valueKey: 'result', color: '#0EA5E9', monthly: demurrageData, quarterly: quarterlyDemurrage, description: 'Container demurrage' },
-    { key: 'airFreight', name: 'Air Freight', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#38BDF8', monthly: airFreightState, quarterly: quarterlyAirFreight, description: 'Air freight over revenue' },
-    { key: 'logisticsVsProd', name: 'Logistics Cost x Prod Amount', unit: 'Ratio', aggregate: 'avg', valueKey: 'ratio', color: '#7C3AED', monthly: logisticsVsProdState, quarterly: quarterlyLogisticsCostVsProd, description: 'Cost vs production ratio' },
-  ], [logisticCostState, airFreightState, logisticsVsProdState]);
+  /**
+   * Indicadores prontos para consumo: série mensal vem da API e a visão
+   * trimestral (base de trimestre / semestre / ano) é derivada dela.
+   */
+  const kpiDefinitions = useMemo(
+    () =>
+      KPI_CATALOG.map((def) => {
+        const monthly = datasets[def.dataKey] || [];
+        return {
+          ...def,
+          monthly,
+          quarterly: buildQuarterlySeries(monthly, {
+            aggregate: def.aggregate,
+            valueKey: def.valueKey,
+            lowerIsBetter: def.lowerIsBetter,
+          }),
+        };
+      }),
+    [datasets]
+  );
 
   const kpiMetrics = useMemo(
     () =>
-      KPI_DEFINITIONS.map((def) => ({
+      kpiDefinitions.map((def) => ({
         ...def,
-        lowerIsBetter: true,
-        ...getSubPeriodMetric(def.monthly, def.quarterly, def.valueKey, def.aggregate),
+        ...getSubPeriodMetric(def.monthly, def.quarterly, def.valueKey, def.aggregate, def.lowerIsBetter),
       })),
-    [KPI_DEFINITIONS, getSubPeriodMetric]
+    [kpiDefinitions, getSubPeriodMetric]
+  );
+
+  const kpiByKey = useMemo(
+    () => Object.fromEntries(kpiDefinitions.map((def) => [def.key, def])),
+    [kpiDefinitions]
   );
 
   const handleSidebarNavigate = (itemId) => {
@@ -481,10 +506,25 @@ function App() {
     }
   };
 
-  // Filter inline alerts per indicator
-  const lcAlerts = useMemo(() => activeAlerts.filter(a => a.kpiKey === 'logisticCost'), [activeAlerts]);
-  const afAlerts = useMemo(() => activeAlerts.filter(a => a.kpiKey === 'airFreight'), [activeAlerts]);
-  const lpAlerts = useMemo(() => activeAlerts.filter(a => a.kpiKey === 'logisticsVsProd'), [activeAlerts]);
+  // Indicador aberto no momento (null quando estamos no overview)
+  const activeKpi = kpiByKey[activeTab] || null;
+
+  // Alertas do indicador aberto, para o aviso inline da seção
+  const activeKpiAlerts = useMemo(
+    () => (activeKpi ? activeAlerts.filter((a) => a.kpiKey === activeKpi.key) : []),
+    [activeAlerts, activeKpi]
+  );
+
+  /**
+   * Abre o formulário de lançamento manual no mês que o usuário está
+   * olhando: a seção manda o período em foco (que pode ter vindo de um
+   * clique no gráfico); fora do agrupamento mensal, cai no mês corrente.
+   */
+  const openEntryModal = (kpiKey, focusedMonth) => {
+    const candidates = [focusedMonth, selectedSubPeriod, CURRENT_MONTH];
+    setEntryMonth(candidates.find((month) => MONTHS.includes(month)) || CURRENT_MONTH);
+    setEntryModalKpiKey(kpiKey);
+  };
 
   return (
     <div className="app-layout">
@@ -527,7 +567,6 @@ function App() {
               onUpdateConfig={handleUpdateConfig}
               onRestoreDefaults={handleRestoreDefaults}
               onRunAnalysis={handleRunAnalysis}
-              onInjectErrors={handleInjectErrors}
               onVerifyAlert={handleVerifyAlert}
               onDismissAlert={handleDismissAlert}
               onClearAuditLog={handleClearAuditLog}
@@ -575,6 +614,20 @@ function App() {
                 ))}
               </div>
 
+              {/* Sem dados: deixa explícito que a origem é a API, não um mock */}
+              {dataSource === 'error' && (
+                <div className="global-warning-banner animate-fade-in">
+                  <AlertTriangle size={18} className="text-warning" />
+                  <div className="global-warning-banner__text">
+                    <strong>No data loaded:</strong> the API did not respond
+                    {loadError ? ` (${loadError})` : ''}. Nothing is displayed until the connection is restored.
+                  </div>
+                  <button className="btn btn--sm btn--primary" onClick={loadFromApi}>
+                    Try again
+                  </button>
+                </div>
+              )}
+
               {/* Global warning banner */}
               {isAnalyticsAllowed && activeAlerts.length > 0 && (
                 <div className="global-warning-banner animate-fade-in">
@@ -596,144 +649,30 @@ function App() {
                 metrics={kpiMetrics}
               />
 
-              {/* KPI Detail Sections */}
-              {activeTab === 'logisticCost' && (
-                <div id="logisticCost" className="kpi-detail-wrapper">
-                  {lcAlerts.length > 0 && (
+              {/* Detalhe do indicador selecionado — o overview nao abre nenhum */}
+              {activeKpi && (
+                <div id={activeKpi.key} className="kpi-detail-wrapper">
+                  {activeKpiAlerts.length > 0 && (
                     <div className="kpi-inline-warning animate-fade-in">
                       <AlertTriangle size={14} className="text-warning" />
                       <div className="kpi-inline-warning__text">
-                        <strong>Data Validation:</strong> Detected {lcAlerts.length} alert(s) in historical data. Latest critical record in <strong>{lcAlerts[0].period}</strong>: {lcAlerts[0].message}
+                        <strong>Data Validation:</strong> Detected {activeKpiAlerts.length} alert(s) in historical data. Latest critical record in <strong>{activeKpiAlerts[0].period}</strong>: {activeKpiAlerts[0].message}
                       </div>
-                      <button className="btn btn--sm btn--accent" onClick={() => handleSidebarNavigate('analytics')}>
-                        Audit Record
-                      </button>
                     </div>
                   )}
                   <KPISection
-                    kpiKey="logisticCost"
-                    title="War Room Report"
-                    icon={DollarSign}
-                    monthlyData={logisticCostState}
-                    quarterlyData={quarterlyLogisticCost}
-                    accentColor="#3B82F6"
-                    lowerIsBetter={true}
-                    unit="%"
+                    kpiKey={activeKpi.key}
+                    title={activeKpi.name}
+                    icon={activeKpi.icon}
+                    monthlyData={activeKpi.monthly}
+                    quarterlyData={activeKpi.quarterly}
+                    accentColor={activeKpi.color}
+                    lowerIsBetter={activeKpi.lowerIsBetter}
+                    unit={activeKpi.unit}
                     selectedYear={selectedYear}
                     period={period}
                     activePeriodLabel={selectedSubPeriod}
-                  />
-                </div>
-              )}
-
-              {activeTab === 'airFreight' && (
-                <div id="airFreight" className="kpi-detail-wrapper">
-                  {afAlerts.length > 0 && (
-                    <div className="kpi-inline-warning animate-fade-in">
-                      <AlertTriangle size={14} className="text-warning" />
-                      <div className="kpi-inline-warning__text">
-                        <strong>Data Validation:</strong> Detected {afAlerts.length} alert(s) in historical data. Latest critical record in <strong>{afAlerts[0].period}</strong>: {afAlerts[0].message}
-                      </div>
-                      <button className="btn btn--sm btn--accent" onClick={() => handleSidebarNavigate('analytics')}>
-                        Audit Record
-                      </button>
-                    </div>
-                  )}
-                  <KPISection
-                    kpiKey="airFreight"
-                    title="Air Freight"
-                    icon={Plane}
-                    monthlyData={airFreightState}
-                    quarterlyData={quarterlyAirFreight}
-                    accentColor="#38BDF8"
-                    lowerIsBetter={true}
-                    unit="%"
-                    selectedYear={selectedYear}
-                    period={period}
-                    activePeriodLabel={selectedSubPeriod}
-                  />
-                </div>
-              )}
-
-              {activeTab === 'logisticsVsProd' && (
-                <div id="logisticsVsProd" className="kpi-detail-wrapper">
-                  {lpAlerts.length > 0 && (
-                    <div className="kpi-inline-warning animate-fade-in">
-                      <AlertTriangle size={14} className="text-warning" />
-                      <div className="kpi-inline-warning__text">
-                        <strong>Data Validation:</strong> Detected {lpAlerts.length} alert(s) in historical data. Latest critical record in <strong>{lpAlerts[0].period}</strong>: {lpAlerts[0].message}
-                      </div>
-                      <button className="btn btn--sm btn--accent" onClick={() => handleSidebarNavigate('analytics')}>
-                        Audit Record
-                      </button>
-                    </div>
-                  )}
-                  <KPISection
-                    kpiKey="logisticsVsProd"
-                    title="Logistics Cost x Prod Amount"
-                    icon={Package}
-                    monthlyData={logisticsVsProdState}
-                    quarterlyData={quarterlyLogisticsCostVsProd}
-                    accentColor="#1D4ED8"
-                    lowerIsBetter={true}
-                    unit="Ratio"
-                    selectedYear={selectedYear}
-                    period={period}
-                    activePeriodLabel={selectedSubPeriod}
-                  />
-                </div>
-              )}
-
-              {activeTab === 'totalCost' && (
-                <div id="totalCost" className="kpi-detail-wrapper">
-                  <KPISection
-                    kpiKey="totalCost"
-                    title="Task Cost Reduction"
-                    icon={TrendingDown}
-                    monthlyData={totalCostData}
-                    quarterlyData={quarterlyTotalCost}
-                    accentColor="#1D4ED8"
-                    lowerIsBetter={true}
-                    unit="MUSD"
-                    selectedYear={selectedYear}
-                    period={period}
-                    activePeriodLabel={selectedSubPeriod}
-                  />
-                </div>
-              )}
-
-              {activeTab === 'demurrage' && (
-                <div id="demurrage" className="kpi-detail-wrapper">
-                  <KPISection
-                    kpiKey="demurrage"
-                    title="Demurrage Cost"
-                    icon={Anchor}
-                    monthlyData={demurrageData}
-                    quarterlyData={quarterlyDemurrage}
-                    accentColor="#0EA5E9"
-                    lowerIsBetter={true}
-                    unit="KUSD"
-                    selectedYear={selectedYear}
-                    period={period}
-                    activePeriodLabel={selectedSubPeriod}
-                  />
-                </div>
-              )}
-
-              {activeTab === 'incidentialCost' && (
-                <div id="incidentialCost" className="kpi-detail-wrapper">
-                  <KPISection
-                    kpiKey="incidentialCost"
-                    title="Logistics Cost Resin Consolidtion"
-                    icon={Layers}
-                    monthlyData={incidentialCostData}
-                    quarterlyData={quarterlyIncidentialCost}
-                    accentColor="#2563EB"
-                    lowerIsBetter={true}
-                    unit="%"
-                    selectedYear={selectedYear}
-                    period={period}
-                    activePeriodLabel={selectedSubPeriod}
+                    onEditData={canEditData ? (focusedMonth) => openEntryModal(activeKpi.key, focusedMonth) : undefined}
                   />
                 </div>
               )}
@@ -749,7 +688,7 @@ function App() {
               background: dataSource === 'api' ? '#16a34a' : dataSource === 'error' ? '#dc2626' : '#d97706',
               color: '#fff', fontWeight: 600, letterSpacing: '0.02em',
             }}>
-              {dataSource === 'api' ? '● API' : dataSource === 'error' ? '● API OFFLINE' : dataSource === 'loading' ? '● LOADING' : '● MOCK'}
+              {dataSource === 'api' ? '● API' : dataSource === 'error' ? '● API OFFLINE' : '● LOADING'}
             </span>
             <button
               onClick={loadFromApi}
@@ -768,6 +707,17 @@ function App() {
 
       {/* Metrics Explanation Modal */}
       <MetricsModal isOpen={isMetricsModalOpen} onClose={() => setIsMetricsModalOpen(false)} />
+
+      {/* Lançamento manual de valores do indicador */}
+      <KpiEntryModal
+        isOpen={Boolean(entryModalKpiKey)}
+        kpi={kpiByKey[entryModalKpiKey] || null}
+        years={availableYears}
+        defaultYear={selectedYear}
+        defaultMonth={entryMonth}
+        onClose={() => setEntryModalKpiKey(null)}
+        onSaved={loadFromApi}
+      />
     </div>
   );
 }

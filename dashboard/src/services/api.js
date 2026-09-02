@@ -133,42 +133,81 @@ function normalizeRecords(records) {
   return (records || []).map((r) => ({ ...r, year: toShortYear(r.year) }));
 }
 
+function normalizeLogisticsVsProd(records) {
+  return normalizeRecords(records).map((record) => ({
+    ...record,
+    logisticsCost: record.logistics_cost,
+    productionAmount: record.production_amount,
+  }));
+}
+
 /**
- * Busca todos os KPIs do dashboard em paralelo, já normalizados.
- * Inclui os 6 indicadores: logistic_cost, air_freight, incidental_cost,
- * total_cost, demurrage, logistics_vs_prod.
+ * Busca todos os KPIs do dashboard numa única chamada
+ * (GET /api/kpis/dashboard), já normalizados. Cobre os 6 indicadores:
+ * logistic_cost, air_freight, incidental_cost, total_cost, demurrage e
+ * logistics_vs_prod.
  * Lança UnauthorizedError se a sessão expirou — quem chamar decide
  * se redireciona pro /login.
  */
 export async function fetchDashboardData() {
-  const [
-    logisticCost,
-    airFreight,
-    incidentalCost,
-    totalCost,
-    demurrage,
-    logisticsVsProd,
-  ] = await Promise.all([
-    authFetch('/api/kpis/logistic_cost'),
-    authFetch('/api/kpis/air_freight'),
-    authFetch('/api/kpis/incidental_cost'),
-    authFetch('/api/kpis/total_cost'),
-    authFetch('/api/kpis/demurrage'),
-    authFetch('/api/kpis/extra/logistics-vs-prod'),
-  ]);
+  const data = await authFetch('/api/kpis/dashboard');
 
   return {
-    logistic_cost: normalizeRecords(logisticCost),
-    air_freight: normalizeRecords(airFreight),
-    incidental_cost: normalizeRecords(incidentalCost),
-    total_cost: normalizeRecords(totalCost),
-    demurrage: normalizeRecords(demurrage),
-    logistics_vs_prod: normalizeRecords(logisticsVsProd).map((record) => ({
-      ...record,
-      logisticsCost: record.logistics_cost,
-      productionAmount: record.production_amount,
-    })),
+    logistic_cost: normalizeRecords(data.logistic_cost),
+    air_freight: normalizeRecords(data.air_freight),
+    incidental_cost: normalizeRecords(data.incidental_cost),
+    total_cost: normalizeRecords(data.total_cost),
+    demurrage: normalizeRecords(data.demurrage),
+    logistics_vs_prod: normalizeLogisticsVsProd(data.logistics_vs_prod),
   };
+}
+
+/* ────────────────────────────────
+   Lançamento manual de indicadores
+   ──────────────────────────────── */
+
+/**
+ * O banco guarda o ano como "Y25"/"Y26" (mesmo formato usado na tela),
+ * mas aceitamos "2026" caso venha de outra origem.
+ */
+function toApiYear(year) {
+  if (!year) throw new Error('Ano obrigatório.');
+  const digits = String(year).replace(/\D/g, '');
+  if (digits.length < 2) throw new Error(`Ano inválido: ${year}`);
+  return `Y${digits.slice(-2)}`;
+}
+
+/**
+ * Grava (cria ou atualiza) o valor de um indicador padrão num mês.
+ * O backend calcula o achievement quando ele não é enviado.
+ */
+export async function saveKpiRecord(kpiType, { year, month, target, result, achievement = null }) {
+  return authFetch(`/api/kpis/${kpiType}/${toApiYear(year)}/${month}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target, result, achievement }),
+  });
+}
+
+/**
+ * Grava (cria ou atualiza) custo logístico x volume produzido num mês.
+ * O backend calcula o ratio quando ele não é enviado.
+ */
+export async function saveLogisticsVsProd({ year, month, logisticsCost, productionAmount, ratio = null }) {
+  return authFetch(`/api/kpis/extra/logistics-vs-prod/${toApiYear(year)}/${month}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      logistics_cost: logisticsCost,
+      production_amount: productionAmount,
+      ratio,
+    }),
+  });
+}
+
+/** Remove o lançamento de um indicador num mês. */
+export async function deleteKpiRecord(kpiType, { year, month }) {
+  return authFetch(`/api/kpis/${kpiType}/${toApiYear(year)}/${month}`, { method: 'DELETE' });
 }
 
 export { UnauthorizedError };

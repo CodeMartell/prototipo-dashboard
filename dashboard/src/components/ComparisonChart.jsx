@@ -10,15 +10,10 @@ import {
   Cell,
 } from 'recharts';
 import { BarChart3 } from 'lucide-react';
-import { formatPercent, formatCurrency } from '../utils/formatters';
-import { calculateVariation } from '../data/mockData';
+import { formatMetricValue } from '../utils/formatters';
+import { calculateVariation } from '../utils/kpiData';
 
-const formatValue = (val, unit) => {
-  if (val === undefined || val === null) return '—';
-  if (unit === '%' || unit === 'Ratio') return formatPercent(val);
-  if (unit === 'MUSD') return formatCurrency(val);
-  return val;
-};
+const formatValue = (val, unit) => formatMetricValue(val, unit);
 
 function CustomTooltip({ active, payload, label, unit, currentYearLabel = '2026', prevYearLabel = '2025' }) {
   if (!active || !payload || !payload.length) return null;
@@ -110,9 +105,13 @@ export default function ComparisonChart({
   currentYearLabel = '2026',
   prevYearLabel = '2025',
 }) {
+  // Rótulos do eixo Y ficam curtos de propósito: o valor completo aparece
+  // no tooltip, aqui só precisa dar a escala.
   const formatYAxis = (val) => {
     if (unit === '%' || unit === 'Ratio') return `${(val * 100).toFixed(1)}%`;
     if (unit === 'MUSD') return `$${val.toFixed(1)}M`;
+    if (unit === 'KUSD') return `$${val.toFixed(0)}K`;
+    if (unit === 'KBRL') return `R$${val.toFixed(0)}K`;
     return val;
   };
 

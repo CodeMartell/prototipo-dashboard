@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, X } from 'lucide-react';
 
-const MOCK_FILES = [
-  'War_Room_Report_Jan2026.pdf',
-  'Air_Freight_Evidence_Email.png',
-  'Logistics_Report_Q1_2026.xlsx',
-];
-
+/**
+ * Evidências anexadas a um indicador/período.
+ *
+ * Não existe endpoint de upload no backend ainda, então aqui só ficam
+ * registrados os metadados do arquivo escolhido (nome, tamanho, horário),
+ * no localStorage. O nome vem do arquivo que o usuário realmente
+ * selecionou — nada é gerado artificialmente.
+ */
 export default function EvidencePanel({
   kpiKey,
   kpiName,
@@ -14,6 +16,7 @@ export default function EvidencePanel({
   periodLabel,
 }) {
   const storageKey = `ev_${kpiKey || 'kpi'}_${selectedYear || 'Y26'}_${periodLabel || 'Jan'}`;
+  const inputRef = useRef(null);
 
   // Read files from localStorage on initialization
   const [files, setFiles] = useState(() => {
@@ -27,36 +30,67 @@ export default function EvidencePanel({
     setFiles(saved ? JSON.parse(saved) : []);
   }, [storageKey]);
 
-  const handleAddFile = () => {
-    const randomFile = MOCK_FILES[Math.floor(Math.random() * MOCK_FILES.length)];
+  const persist = (next) => {
+    setFiles(next);
+    localStorage.setItem(storageKey, JSON.stringify(next));
+  };
+
+  const formatSize = (bytes) => {
+    if (!Number.isFinite(bytes)) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleFilesSelected = (event) => {
+    const selected = Array.from(event.target.files || []);
+    if (!selected.length) return;
+
     const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    const newFiles = [...files, { name: randomFile, addedAt: timestamp, id: Date.now() }];
-    setFiles(newFiles);
-    localStorage.setItem(storageKey, JSON.stringify(newFiles));
+    const added = selected.map((file, index) => ({
+      id: `${Date.now()}-${index}`,
+      name: file.name,
+      size: formatSize(file.size),
+      addedAt: timestamp,
+    }));
+
+    persist([...files, ...added]);
+    event.target.value = ''; // permite escolher o mesmo arquivo de novo
   };
 
   const handleRemoveFile = (id) => {
-    const newFiles = files.filter((f) => f.id !== id);
-    setFiles(newFiles);
-    localStorage.setItem(storageKey, JSON.stringify(newFiles));
+    persist(files.filter((f) => f.id !== id));
   };
+
+  const openPicker = () => inputRef.current?.click();
 
   return (
     <div>
       <div className="evidence-panel__title">Evidences — {kpiName} ({periodLabel})</div>
-      <div className="evidence-panel" onClick={handleAddFile}>
+
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        onChange={handleFilesSelected}
+        style={{ display: 'none' }}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+
+      <button type="button" className="evidence-panel" onClick={openPicker}>
         <div className="evidence-panel__dropzone">
           <div className="evidence-panel__dropzone-icon">
             <Upload size={28} />
           </div>
           <div className="evidence-panel__dropzone-text">
-            Drag files or click to attach
+            Click to attach files
           </div>
           <div className="evidence-panel__dropzone-hint">
-            Attach screenshots or references from original report received via email
+            Only the file reference is saved locally — there is no upload to the server yet.
           </div>
         </div>
-      </div>
+      </button>
 
       {files.length > 0 && (
         <div className="evidence-panel__file-list">
@@ -65,14 +99,15 @@ export default function EvidencePanel({
               <div className="evidence-panel__file-info">
                 <FileText size={14} />
                 <span>{file.name}</span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{file.addedAt}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  {[file.size, file.addedAt].filter(Boolean).join(' · ')}
+                </span>
               </div>
               <button
+                type="button"
                 className="evidence-panel__file-remove"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveFile(file.id);
-                }}
+                onClick={handleRemoveFile.bind(null, file.id)}
+                aria-label={`Remove ${file.name}`}
               >
                 <X size={14} />
               </button>

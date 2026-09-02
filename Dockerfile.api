@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY server/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Código-fonte do backend (server/), não mais api_server/ (Flask, obsoleto)
+# Código-fonte do backend FastAPI
 COPY server ./
 
 # Script de entrada: aplica migrations + seed antes de subir o servidor

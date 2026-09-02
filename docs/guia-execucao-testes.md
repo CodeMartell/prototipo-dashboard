@@ -7,7 +7,7 @@ Este documento contem todos os comandos detalhados, diretorios de execucao e pas
 ## 1. Estrutura dos Arquivos Principais
 
 * Raiz do projeto: `c:\Users\ROMULO_LIRA\Documents\prototipo-dashboard`
-* Servidor API: `api_server\server.py`
+* Servidor API (FastAPI): `server\main.py`
 * Robo de E-mail (IMAP): `rpa_email\bot.py`
 * Robo Local (sem e-mail/offline): `rpa_email\bot_local.py`
 * Frontend (Dashboard React): `dashboard\`
@@ -26,6 +26,9 @@ cd c:\Users\ROMULO_LIRA\Documents\prototipo-dashboard
 
 ### 2.1. Instalar as dependencias do Python
 ```powershell
+# Backend FastAPI
+pip install -r server/requirements.txt
+# Robo de e-mail
 pip install -r requirements.txt
 ```
 
@@ -48,13 +51,18 @@ python scripts/generate_kpi_reports.py
 Para o funcionamento continuo e visualizacao em tempo real, utilize 3 janelas do PowerShell abertas na raiz do projeto:
 
 ### Terminal 1 — Iniciar o Servidor API (Backend Local)
-Objetivo: Fornecer os dados da planilha e do banco para o Dashboard via http://localhost:5001/api/dashboard.
+Objetivo: Fornecer os dados do banco para o Dashboard via http://localhost:5001/api/kpis/dashboard.
 
 ```powershell
-cd c:\Users\ROMULO_LIRA\Documents\prototipo-dashboard
-python api_server/server.py
+cd c:\Users\ROMULO_LIRA\Documents\prototipo-dashboard\server
+python main.py
 ```
-Saida esperada: `[API] Iniciando servidor na porta 5001...`
+Saida esperada: `Uvicorn running on http://0.0.0.0:5001`
+
+Alternativa via Docker (sobe banco + API juntos):
+```powershell
+docker compose up -d postgres api
+```
 
 ---
 

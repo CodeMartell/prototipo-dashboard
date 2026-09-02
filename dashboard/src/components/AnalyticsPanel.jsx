@@ -8,7 +8,6 @@ import {
   Activity,
   History,
   Trash2,
-  FlaskConical,
   X,
   ShieldCheck,
   TrendingUp,
@@ -28,7 +27,6 @@ export default function AnalyticsPanel({
   onUpdateConfig,
   onRestoreDefaults,
   onRunAnalysis,
-  onInjectErrors,
   onVerifyAlert,
   onDismissAlert,
   onClearAuditLog,
@@ -136,15 +134,6 @@ export default function AnalyticsPanel({
           >
             <RefreshCw size={14} className={isAnalyzing ? 'animate-spin' : ''} />
             {isAnalyzing ? 'Analyzing...' : 'Run Analysis Now'}
-          </button>
-          
-          <button 
-            className="btn btn--secondary" 
-            onClick={onInjectErrors}
-            title="Simulate artificial noise (null data, freight spikes, conflicts) to test alerts"
-          >
-            <FlaskConical size={14} />
-            Simulate Inconsistencies
           </button>
         </div>
       </div>

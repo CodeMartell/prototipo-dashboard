@@ -213,12 +213,12 @@ export default function ComparisonChart({
 
             {hasTarget && (
               <Line
-                type="stepAfter"
+                type="monotone"
                 dataKey="target"
                 stroke={targetColor}
                 strokeWidth={1.5}
                 strokeDasharray="4 4"
-                dot={false}
+                dot={{ r: 2, fill: targetColor, strokeWidth: 0 }}
                 connectNulls={true}
               />
             )}

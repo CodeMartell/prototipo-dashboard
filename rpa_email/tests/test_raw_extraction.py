@@ -27,10 +27,15 @@ def _save_raw_workbooks(folder):
     cost_vs_prod = openpyxl.Workbook()
     cost_sheet = cost_vs_prod.active
     cost_sheet.title = "Incidental Cost (MUSD)"
+    cost_sheet.cell(6, 21, "2025-01")
     cost_sheet.cell(82, 21, 2)   # U, Jan/Y25 — custo
     cost_sheet.cell(95, 21, 10)  # U, Jan/Y25 — produção
+    cost_sheet.cell(96, 21, 0.2)  # U, Jan/Y25 — percentual publicado
+    cost_sheet.cell(6, 33, "2026-01")
     cost_sheet.cell(82, 33, 3)   # AG, Jan/Y26 — custo
     cost_sheet.cell(95, 33, 12)  # AG, Jan/Y26 — produção
+    cost_sheet.cell(96, 33, 0.25)  # AG, Jan/Y26 — percentual publicado
+    cost_sheet.cell(6, 34, "2026-02")
     cost_sheet.cell(82, 34, 4)   # fórmula/projeção futura sem produção publicada
     cost_vs_prod.save(folder / "_26.07 Incidental Cost_Total_v0.xlsx")
     cost_vs_prod.close()
@@ -98,6 +103,34 @@ def test_raw_extractor_accepts_currency_strings(tmp_path):
     assert result.errors == []
     assert result.incidental_cost[0].target == 4.0
     assert result.incidental_cost[0].result == 2.25
+
+
+def test_incidental_cost_rejects_reported_ratio_mismatch(tmp_path):
+    _save_raw_workbooks(tmp_path)
+    path = tmp_path / "_26.07 Incidental Cost_Total_v0.xlsx"
+    workbook = openpyxl.load_workbook(path)
+    workbook["Incidental Cost (MUSD)"].cell(96, 33, 0.20)
+    workbook.save(path)
+    workbook.close()
+
+    result = RawReportExtractor().extract(tmp_path)
+
+    assert result.logistics_vs_prod == []
+    assert any("percentual divergente em Jan/Y26" in error for error in result.errors)
+
+
+def test_incidental_cost_rejects_zero_production_amount(tmp_path):
+    _save_raw_workbooks(tmp_path)
+    path = tmp_path / "_26.07 Incidental Cost_Total_v0.xlsx"
+    workbook = openpyxl.load_workbook(path)
+    workbook["Incidental Cost (MUSD)"].cell(95, 33, 0)
+    workbook.save(path)
+    workbook.close()
+
+    result = RawReportExtractor().extract(tmp_path)
+
+    assert result.logistics_vs_prod == []
+    assert any("custo/produção inválido em Jan/Y26" in error for error in result.errors)
 
 
 def test_missing_raw_source_rejects_entire_batch(tmp_path):

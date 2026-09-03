@@ -222,7 +222,7 @@ export const runFullAnalysis = (datasets, configs) => {
 
   const logisticsVsProdAlerts = analyzeIndicator(
     'logisticsVsProd',
-    'Logistic Cost x Product Amount',
+    'Incidental Cost',
     datasets.logisticsVsProd || [],
     'ratio',
     configs.logisticsVsProd

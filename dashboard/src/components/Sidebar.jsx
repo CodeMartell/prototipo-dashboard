@@ -20,7 +20,7 @@ const NAV_ITEMS = [
   { id: 'airFreight', icon: Plane, label: 'Air Freight', badge: '%' },
   { id: 'demurrage', icon: Anchor, label: 'Demurrage Cost', badge: 'CTNR' },
   { id: 'logisticsVsProd', icon: Package, label: 'Incidental Cost', badge: 'Ratio' },
-  { id: 'incidentialCost', icon: Layers, label: 'Logistics Cost Resin Consolidation', badge: 'KUSD' },
+  { id: 'incidentialCost', icon: Layers, label: 'Resin Consolidation', badge: 'KUSD' },
   { id: 'analytics', icon: BarChart2, label: 'Analytics', badge: 'New' },
 ];
 

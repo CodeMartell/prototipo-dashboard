@@ -22,8 +22,14 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRES_MINUTES: int = 60 * 8  # 8 horas
 
-    # CORS — origem do frontend (Vite)
+    # CORS — origem(ns) do frontend. Aceita uma origem ou várias separadas
+    # por vírgula, para cobrir o caso de dev local consumindo uma API remota:
+    #   FRONTEND_ORIGIN=https://meu-dominio,http://localhost:5173
     FRONTEND_ORIGIN: str = "http://localhost:5173"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.FRONTEND_ORIGIN.split(",") if origin.strip()]
 
     # Fallback de dados (compatibilidade com o protótipo atual)
     EXCEL_FALLBACK_PATH: str = "dados_dashboard.xlsx"

@@ -8,7 +8,7 @@ import KPICard from './components/KPICard';
 import KPIComparisonMatrix from './components/KPIComparisonMatrix';
 import MetricsModal from './components/MetricsModal';
 import AnalyticsPanel from './components/AnalyticsPanel';
-import { DollarSign, Plane, Package, Calendar, Lightbulb, AlertTriangle, TrendingDown, Anchor, Layers } from 'lucide-react';
+import { DollarSign, Plane, Package, Calendar, AlertTriangle, TrendingDown, Anchor, Layers } from 'lucide-react';
 import { fetchDashboardData, getCurrentUser, logout, UnauthorizedError } from './services/api';
 import { canAccessAnalytics } from './services/permissions';
 
@@ -32,10 +32,28 @@ import {
 
 import { runFullAnalysis, getDefaultConfigs } from './utils/analyticsEngine';
 
+/**
+ * Analytics ainda nao foi liberado para uso. Com a flag em false o item da
+ * sidebar aparece bloqueado como "Soon", o painel nunca e renderizado e as
+ * superficies que dependem dele (alertas, sino de notificacoes) ficam ocultas.
+ * Para reativar tudo, basta voltar a flag para true.
+ */
+const ANALYTICS_ENABLED = false;
+
+/* Periodo inicial do dashboard = periodo corrente do calendario. */
+const TODAY = new Date();
+const CURRENT_MONTH = MONTHS[TODAY.getMonth()];
+const CURRENT_QUARTER = `Q${Math.floor(TODAY.getMonth() / 3) + 1}`;
+const CURRENT_HALF = TODAY.getMonth() < 6 ? 'H1' : 'H2';
+const CURRENT_YEAR_KEY = `Y${String(TODAY.getFullYear()).slice(-2)}`;
+
 function App() {
   const navigate = useNavigate();
   const [currentUser] = useState(() => getCurrentUser());
-  const isAnalyticsAllowed = useMemo(() => canAccessAnalytics(currentUser), [currentUser]);
+  const isAnalyticsAllowed = useMemo(
+    () => ANALYTICS_ENABLED && canAccessAnalytics(currentUser),
+    [currentUser]
+  );
 
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
 
@@ -48,9 +66,9 @@ function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const [selectedYear, setSelectedYear] = useState('Y26');
+  const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR_KEY);
   const [period, setPeriod] = useState('monthly'); // 'monthly' | 'quarterly' | 'semiannual' | 'annual'
-  const [selectedSubPeriod, setSelectedSubPeriod] = useState('May'); // 'Jan'..'Dec', 'Q1'..'Q4', 'H1'..'H2', 'Y26'
+  const [selectedSubPeriod, setSelectedSubPeriod] = useState(CURRENT_MONTH); // 'Jan'..'Dec', 'Q1'..'Q4', 'H1'..'H2', 'Y26'
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
 
@@ -319,7 +337,12 @@ function App() {
   };
 
   // --- ALERT FILTERS FOR BADGES AND UI ---
-  const activeAlerts = useMemo(() => alerts.filter(a => !a.verified), [alerts]);
+  // Enquanto Analytics estiver bloqueado, nenhum alerta e exposto: todos os
+  // avisos levam ao painel de Analytics, que ainda nao esta disponivel.
+  const activeAlerts = useMemo(
+    () => (isAnalyticsAllowed ? alerts.filter(a => !a.verified) : []),
+    [alerts, isAnalyticsAllowed]
+  );
   
   const kpisWithAlerts = useMemo(() => {
     return Array.from(new Set(activeAlerts.map(a => a.kpiKey)));
@@ -334,9 +357,9 @@ function App() {
   // Reset subperiod when period type changes
   const handlePeriodChange = (newPeriod) => {
     setPeriod(newPeriod);
-    if (newPeriod === 'monthly') setSelectedSubPeriod('May');
-    else if (newPeriod === 'quarterly') setSelectedSubPeriod('Q1');
-    else if (newPeriod === 'semiannual') setSelectedSubPeriod('H1');
+    if (newPeriod === 'monthly') setSelectedSubPeriod(CURRENT_MONTH);
+    else if (newPeriod === 'quarterly') setSelectedSubPeriod(CURRENT_QUARTER);
+    else if (newPeriod === 'semiannual') setSelectedSubPeriod(CURRENT_HALF);
     else setSelectedSubPeriod(selectedYear);
   };
 
@@ -422,7 +445,7 @@ function App() {
 
   // KPI Definitions for cards and comparative matrix
   const KPI_DEFINITIONS = useMemo(() => [
-    { key: 'warRoom', name: 'War Room Report', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#3B82F6', monthly: logisticCostState, quarterly: quarterlyLogisticCost, description: 'Logistics cost over revenue' },
+    { key: 'logisticCost', name: 'War Room Report', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#3B82F6', monthly: logisticCostState, quarterly: quarterlyLogisticCost, description: 'Logistics cost over revenue' },
     { key: 'incidentialCost', name: 'Logistics Cost Resin Consolidtion', unit: '%', aggregate: 'avg', valueKey: 'result', color: '#2563EB', monthly: incidentialCostData, quarterly: quarterlyIncidentialCost, description: 'Incidential costs over revenue' },
     { key: 'totalCost', name: 'Task Cost Reduction', unit: 'MUSD', aggregate: 'sum', valueKey: 'result', color: '#1D4ED8', monthly: totalCostData, quarterly: quarterlyTotalCost, description: 'Total logistics cost' },
     { key: 'demurrage', name: 'Demurrage Cost', unit: 'KUSD', aggregate: 'sum', valueKey: 'result', color: '#0EA5E9', monthly: demurrageData, quarterly: quarterlyDemurrage, description: 'Container demurrage' },
@@ -440,35 +463,10 @@ function App() {
     [KPI_DEFINITIONS, getSubPeriodMetric]
   );
 
-  const logCostInfo = useMemo(
-    () => getSubPeriodMetric(logisticCostState, quarterlyLogisticCost, 'result'),
-    [logisticCostState, getSubPeriodMetric]
-  );
-
-  const airFreightInfo = useMemo(
-    () => getSubPeriodMetric(airFreightState, quarterlyAirFreight, 'result'),
-    [airFreightState, getSubPeriodMetric]
-  );
-
-  // Totals for production and logistics cost up to selected subperiod
-  const kpi3Latest = useMemo(() => {
-    const yearData = logisticsVsProdState.filter((d) => d.year === selectedYear && d.ratio !== null);
-    if (yearData.length === 0) return { totalCost: null, totalProd: null, ratio: null };
-
-    let filtered = yearData;
-    if (period === 'monthly') {
-      const monthIdx = MONTHS.indexOf(selectedSubPeriod);
-      if (monthIdx !== -1) {
-        filtered = yearData.slice(0, monthIdx + 1);
-      }
-    }
-
-    const totalCost = filtered.reduce((s, d) => s + (d.logisticsCost || 0), 0);
-    const totalProd = filtered.reduce((s, d) => s + (d.productionAmount || 0), 0);
-    return { totalCost, totalProd };
-  }, [logisticsVsProdState, selectedYear, period, selectedSubPeriod]);
-
   const handleSidebarNavigate = (itemId) => {
+    // Analytics bloqueado: clique nao muda de aba enquanto a feature nao sair.
+    if (itemId === 'analytics' && !isAnalyticsAllowed) return;
+
     setActiveTab(itemId);
     if (itemId === 'dashboard') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -559,6 +557,7 @@ function App() {
                 {kpiMetrics.map((m) => (
                   <KPICard
                     key={m.key}
+                    onClick={() => handleSidebarNavigate(m.key)}
                     title={m.name}
                     subPeriodLabel={m.subLabel}
                     color={m.color}
@@ -589,26 +588,6 @@ function App() {
                 </div>
               )}
 
-              {/* Dynamic Insight Banner */}
-              {activeTab !== 'dashboard' && activeTab !== 'analytics' && (
-                <div className="insight-banner animate-fade-in" style={{ marginBottom: '1.5rem' }}>
-                  <Lightbulb size={20} style={{ color: 'var(--accent-amber)', flexShrink: 0 }} />
-                  <div>
-                    <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)', display: 'block' }}>
-                      Executive Insight — {activeTab === 'logisticCost' ? 'War Room Report' : activeTab === 'airFreight' ? 'Air Freight' : activeTab === 'logisticsVsProd' ? 'Logistics Cost x Prod Amount' : activeTab === 'totalCost' ? 'Task Cost Reduction' : activeTab === 'demurrage' ? 'Demurrage Cost' : activeTab === 'incidentialCost' ? 'Logistics Cost Resin Consolidtion' : ''}
-                    </strong>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                      {activeTab === 'logisticCost' && `In period ${selectedSubPeriod}/${currentYearLabel.substring(2)}, logistics cost was at ${logCostInfo.latest ? (logCostInfo.latest * 100).toFixed(2) + '%' : 'N/A'}.`}
-                      {activeTab === 'airFreight' && `Air freight usage in ${selectedSubPeriod} recorded ${airFreightInfo.latest ? (airFreightInfo.latest * 100).toFixed(2) + '%' : 'N/A'}.`}
-                      {activeTab === 'logisticsVsProd' && `YTD accumulated production volume up to ${selectedSubPeriod} reached $${kpi3Latest.totalProd ? kpi3Latest.totalProd.toFixed(2) : '0'} MUSD.`}
-                      {activeTab === 'totalCost' && `Task Cost Reduction tracking for period ${selectedSubPeriod}/${currentYearLabel.substring(2)}.`}
-                      {activeTab === 'demurrage' && `Demurrage cost tracking for period ${selectedSubPeriod}/${currentYearLabel.substring(2)}.`}
-                      {activeTab === 'incidentialCost' && `Logistics Cost Resin Consolidtion tracking for period ${selectedSubPeriod}/${currentYearLabel.substring(2)}.`}
-                    </span>
-                  </div>
-                </div>
-              )}
-
               {/* Consolidated KPI Comparison Matrix */}
               <KPIComparisonMatrix
                 periodType={period}
@@ -618,7 +597,7 @@ function App() {
               />
 
               {/* KPI Detail Sections */}
-              {(activeTab === 'dashboard' || activeTab === 'logisticCost') && (
+              {activeTab === 'logisticCost' && (
                 <div id="logisticCost" className="kpi-detail-wrapper">
                   {lcAlerts.length > 0 && (
                     <div className="kpi-inline-warning animate-fade-in">
@@ -647,7 +626,7 @@ function App() {
                 </div>
               )}
 
-              {(activeTab === 'dashboard' || activeTab === 'airFreight') && (
+              {activeTab === 'airFreight' && (
                 <div id="airFreight" className="kpi-detail-wrapper">
                   {afAlerts.length > 0 && (
                     <div className="kpi-inline-warning animate-fade-in">
@@ -676,7 +655,7 @@ function App() {
                 </div>
               )}
 
-              {(activeTab === 'dashboard' || activeTab === 'logisticsVsProd') && (
+              {activeTab === 'logisticsVsProd' && (
                 <div id="logisticsVsProd" className="kpi-detail-wrapper">
                   {lpAlerts.length > 0 && (
                     <div className="kpi-inline-warning animate-fade-in">
@@ -705,7 +684,7 @@ function App() {
                 </div>
               )}
 
-              {(activeTab === 'dashboard' || activeTab === 'totalCost') && (
+              {activeTab === 'totalCost' && (
                 <div id="totalCost" className="kpi-detail-wrapper">
                   <KPISection
                     kpiKey="totalCost"
@@ -723,7 +702,7 @@ function App() {
                 </div>
               )}
 
-              {(activeTab === 'dashboard' || activeTab === 'demurrage') && (
+              {activeTab === 'demurrage' && (
                 <div id="demurrage" className="kpi-detail-wrapper">
                   <KPISection
                     kpiKey="demurrage"
@@ -741,7 +720,7 @@ function App() {
                 </div>
               )}
 
-              {(activeTab === 'dashboard' || activeTab === 'incidentialCost') && (
+              {activeTab === 'incidentialCost' && (
                 <div id="incidentialCost" className="kpi-detail-wrapper">
                   <KPISection
                     kpiKey="incidentialCost"

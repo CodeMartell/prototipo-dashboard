@@ -38,8 +38,27 @@ export default function KPICard({
     return lowerIsBetter ? <TrendingUp size={12} /> : <TrendingDown size={12} />;
   };
 
+  const isClickable = typeof onClick === 'function';
+
+  // Cartao clicavel precisa ser alcancavel por teclado, nao so por mouse.
+  const handleKeyDown = (event) => {
+    if (!isClickable) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onClick();
+    }
+  };
+
   return (
-    <div className="kpi-card animate-fade-in" onClick={onClick} style={{ borderTop: `2px solid ${color}` }}>
+    <div
+      className={`kpi-card animate-fade-in${isClickable ? ' kpi-card--clickable' : ''}`}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      aria-label={isClickable ? `Open ${title} details` : undefined}
+      style={{ borderTop: `2px solid ${color}` }}
+    >
       <div className="kpi-card__top">
         <div className="kpi-card__label">{title}</div>
         {subPeriodLabel && <div className="kpi-card__period-tag">{subPeriodLabel}</div>}

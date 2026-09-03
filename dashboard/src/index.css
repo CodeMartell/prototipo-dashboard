@@ -532,6 +532,12 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+/* Cartao que abre o detalhe do indicador: foco visivel para navegacao por teclado. */
+.kpi-card--clickable:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
 .kpi-card__label {
   font-size: 0.7rem;
   font-weight: 600;
@@ -2023,6 +2029,53 @@ select:focus-visible {
   box-shadow: 0 0 8px rgba(231, 25, 74, 0.5);
 }
 
+/* Estado vazio de graficos e tabelas de indicador */
+.chart-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 280px;
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(148, 163, 184, 0.04);
+}
+
+.chart-empty-state strong {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.chart-empty-state span {
+  font-size: 0.75rem;
+  max-width: 32ch;
+}
+
+/* Item de navegacao ainda nao liberado (ex.: Analytics) */
+.sidebar__item--locked,
+.sidebar__item--locked:hover {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.sidebar__item-badge--soon {
+  margin-left: auto;
+  background: rgba(148, 163, 184, 0.18);
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+}
+
 /* Notificação do Header (Sino) */
 .header__notifications {
   position: relative;
@@ -3103,9 +3156,10 @@ select:focus-visible {
   background: rgba(148, 163, 184, 0.035);
 }
 
+/* Bloco "current" com fundo cinza claro para separar visualmente do "past". */
 .kpi-matrix-table th.matrix-group--current,
-.kpi-matrix-table td.matrix-cell-highlight {
-  background: rgba(255, 255, 255, 0.035);
+.kpi-matrix-table td.matrix-cell--current {
+  background: rgba(148, 163, 184, 0.16);
 }
 
 .kpi-matrix-table th.matrix-group--past {
@@ -3113,12 +3167,17 @@ select:focus-visible {
 }
 
 .kpi-matrix-table th.matrix-group--current {
-  color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+/* O hover da linha nao pode apagar a distincao entre os dois blocos. */
+.kpi-matrix-table tbody tr:hover td.matrix-cell--current {
+  background: rgba(148, 163, 184, 0.22);
 }
 
 .kpi-matrix-table th.matrix-group--current,
 .kpi-matrix-table td.matrix-cell-highlight {
-  border-left: 1px solid rgba(148, 163, 184, 0.12);
+  border-left: 2px solid rgba(148, 163, 184, 0.35);
 }
 
 .kpi-matrix-table th[rowspan] {

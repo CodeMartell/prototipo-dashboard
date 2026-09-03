@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import { BarChart3 } from 'lucide-react';
 import { formatPercent, formatCurrency } from '../utils/formatters';
 import { calculateVariation } from '../data/mockData';
 
@@ -118,6 +119,20 @@ export default function ComparisonChart({
   const hasTarget = data.some(d => d.target !== undefined && d.target !== null);
 
   const chartData = data.filter(d => d.currentResult !== null || d.previousResult !== null);
+
+  // Sem nenhum ponto valido nao ha grafico para desenhar: mostra o estado vazio
+  // em vez de eixos vazios, que passam a impressao de valor zero.
+  if (chartData.length === 0) {
+    return (
+      <div className="comparison-chart-wrapper">
+        <div className="chart-empty-state" role="status">
+          <BarChart3 size={28} aria-hidden="true" />
+          <strong>No data at the moment</strong>
+          <span>There is no record for this indicator in the selected period.</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="comparison-chart-wrapper">

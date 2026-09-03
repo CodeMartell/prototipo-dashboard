@@ -8,7 +8,8 @@ import {
   AlertTriangle,
   TrendingDown,
   Anchor,
-  Layers
+  Layers,
+  Lock
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -42,24 +43,35 @@ export default function Sidebar({
 
       <nav className="sidebar__nav">
         <div className="sidebar__section-label">AVAILABLE DASHBOARDS</div>
-        {NAV_ITEMS.filter(({ id }) => id !== 'analytics' || canAccessAnalytics).map(({ id, icon: Icon, label, badge }) => {
+        {NAV_ITEMS.map(({ id, icon: Icon, label, badge }) => {
           const hasAlert = kpisWithAlerts.includes(id);
           const isAnalytics = id === 'analytics';
-          
+          // Analytics segue visivel mas bloqueado enquanto a feature nao for liberada.
+          const isLocked = isAnalytics && !canAccessAnalytics;
+
           return (
             <button
               key={id}
-              className={`sidebar__item ${activeItem === id ? 'active' : ''} ${hasAlert ? 'sidebar__item--has-alert' : ''}`}
-              onClick={() => onNavigate?.(id)}
+              type="button"
+              disabled={isLocked}
+              aria-disabled={isLocked}
+              title={isLocked ? 'Analytics — coming soon' : undefined}
+              className={`sidebar__item ${activeItem === id ? 'active' : ''} ${hasAlert ? 'sidebar__item--has-alert' : ''} ${isLocked ? 'sidebar__item--locked' : ''}`}
+              onClick={() => {
+                if (isLocked) return;
+                onNavigate?.(id);
+              }}
             >
-              <Icon size={16} />
+              {isLocked ? <Lock size={16} /> : <Icon size={16} />}
               <span className="sidebar__item-label">{label}</span>
               {hasAlert && (
                 <span className="sidebar__item-warning" title="Inconsistency or fluctuation alert detected">
                   <AlertTriangle size={12} className="text-warning" />
                 </span>
               )}
-              {isAnalytics && alertsCount > 0 ? (
+              {isLocked ? (
+                <span className="sidebar__item-badge sidebar__item-badge--soon">Soon</span>
+              ) : isAnalytics && alertsCount > 0 ? (
                 <span className="sidebar__item-badge sidebar__item-badge--alert">{alertsCount}</span>
               ) : (
                 badge && <span className="sidebar__item-badge">{badge}</span>

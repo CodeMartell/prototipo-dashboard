@@ -16,6 +16,7 @@ import { canAccessAnalytics, canEditKpiData } from './services/permissions';
 import {
   MONTHS,
   aggregateField,
+  aggregateRatio,
   buildQuarterlySeries,
   calculateVariation,
   getAvailableYears,
@@ -410,7 +411,7 @@ function App() {
     const isRatio = valueKey === 'ratio';
     const rows = selectPeriodRows(monthlyArr, quarterlyArr, year);
 
-    const result = aggregateField(rows, valueKey, aggregate);
+    const result = isRatio ? aggregateRatio(rows) : aggregateField(rows, valueKey, aggregate);
     const target = isRatio ? null : aggregateField(rows, 'target', aggregate);
 
     let achievement = null;

@@ -115,6 +115,14 @@ const CURRENT_MONTH = MONTHS[TODAY.getMonth()];
 const CURRENT_QUARTER = `Q${Math.floor(TODAY.getMonth() / 3) + 1}`;
 const CURRENT_HALF = TODAY.getMonth() < 6 ? 'H1' : 'H2';
 const CURRENT_YEAR_KEY = `Y${String(TODAY.getFullYear()).slice(-2)}`;
+const FIRST_DATA_YEAR = 2024;
+const YEAR_OPTIONS = Array.from(
+  { length: TODAY.getFullYear() - FIRST_DATA_YEAR + 1 },
+  (_, index) => {
+    const year = FIRST_DATA_YEAR + index;
+    return { key: `Y${String(year).slice(-2)}`, label: String(year) };
+  }
+);
 
 function App() {
   const navigate = useNavigate();
@@ -377,6 +385,11 @@ function App() {
     else setSelectedSubPeriod(selectedYear);
   };
 
+  const handleYearChange = (year) => {
+    setSelectedYear(year);
+    setSelectedSubPeriod(year);
+  };
+
   // Select period rows for active period
   const selectPeriodRows = useCallback((monthlyArr, quarterlyArr, year) => {
     if (period === 'monthly') {
@@ -587,6 +600,9 @@ function App() {
                     onPeriodChange={handlePeriodChange}
                     selectedSubPeriod={selectedSubPeriod}
                     onSubPeriodChange={setSelectedSubPeriod}
+                    yearOptions={YEAR_OPTIONS}
+                    selectedYear={selectedYear}
+                    onYearChange={handleYearChange}
                   />
                 </div>
               </div>

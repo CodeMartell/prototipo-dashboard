@@ -5,6 +5,9 @@ export default function PeriodFilter({
   onPeriodChange,
   selectedSubPeriod,
   onSubPeriodChange,
+  yearOptions,
+  selectedYear,
+  onYearChange,
 }) {
   const periods = [
     { key: 'monthly', label: 'Monthly' },
@@ -101,6 +104,23 @@ export default function PeriodFilter({
                 onClick={() => onSubPeriodChange(s.key)}
               >
                 {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activePeriod === 'annual' && (
+        <div className="sub-period-filter">
+          <span className="sub-period-filter__label">Year under Verification:</span>
+          <div className="sub-period-pills-scroll">
+            {yearOptions.map((year) => (
+              <button
+                key={year.key}
+                className={`sub-filter-pill ${selectedYear === year.key ? 'active' : ''}`}
+                onClick={() => onYearChange(year.key)}
+              >
+                {year.label}
               </button>
             ))}
           </div>

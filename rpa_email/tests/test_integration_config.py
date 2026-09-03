@@ -1,3 +1,5 @@
+"""Proteção para que integrações externas nunca rodem implicitamente."""
+
 import os
 
 def test_external_integration_requires_complete_explicit_configuration():

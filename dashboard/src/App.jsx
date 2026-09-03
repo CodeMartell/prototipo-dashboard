@@ -43,7 +43,7 @@ const KPI_CATALOG = [
   {
     key: 'incidentialCost',
     dataKey: 'incidental_cost',
-    name: 'Logistics Cost Resin Consolidation',
+    name: 'Resin Consolidation',
     unit: 'KUSD',
     aggregate: 'sum',
     valueKey: 'result',
@@ -115,6 +115,14 @@ const CURRENT_MONTH = MONTHS[TODAY.getMonth()];
 const CURRENT_QUARTER = `Q${Math.floor(TODAY.getMonth() / 3) + 1}`;
 const CURRENT_HALF = TODAY.getMonth() < 6 ? 'H1' : 'H2';
 const CURRENT_YEAR_KEY = `Y${String(TODAY.getFullYear()).slice(-2)}`;
+const FIRST_DATA_YEAR = 2024;
+const YEAR_OPTIONS = Array.from(
+  { length: TODAY.getFullYear() - FIRST_DATA_YEAR + 1 },
+  (_, index) => {
+    const year = FIRST_DATA_YEAR + index;
+    return { key: `Y${String(year).slice(-2)}`, label: String(year) };
+  }
+);
 
 function App() {
   const navigate = useNavigate();
@@ -236,7 +244,7 @@ function App() {
 
     const dismissedIds = JSON.parse(localStorage.getItem('analytics_dismissed_alerts') || '[]');
     const verifiedIds = JSON.parse(localStorage.getItem('analytics_verified_alerts') || '[]');
-    
+
     const processedAlerts = results.filter(r => !dismissedIds.includes(r.id)).map(r => ({
       ...r,
       verified: verifiedIds.includes(r.id)
@@ -251,13 +259,13 @@ function App() {
   }, [runAnalysis]);
 
   // --- EVENTOS DO PAINEL DE ANALYTICS ---
-  
+
   const handleRunAnalysis = () => {
     setIsAnalyzing(true);
     setTimeout(() => {
       runAnalysis();
       setIsAnalyzing(false);
-      
+
       const results = runFullAnalysis(analysisDatasets, configs);
 
       const newLog = {
@@ -354,7 +362,7 @@ function App() {
     () => (isAnalyticsAllowed ? alerts.filter(a => !a.verified) : []),
     [alerts, isAnalyticsAllowed]
   );
-  
+
   const kpisWithAlerts = useMemo(() => {
     return Array.from(new Set(activeAlerts.map(a => a.kpiKey)));
   }, [activeAlerts]);
@@ -375,6 +383,11 @@ function App() {
     else if (newPeriod === 'quarterly') setSelectedSubPeriod(CURRENT_QUARTER);
     else if (newPeriod === 'semiannual') setSelectedSubPeriod(CURRENT_HALF);
     else setSelectedSubPeriod(selectedYear);
+  };
+
+  const handleYearChange = (year) => {
+    setSelectedYear(year);
+    setSelectedSubPeriod(year);
   };
 
   // Select period rows for active period
@@ -528,10 +541,10 @@ function App() {
 
   return (
     <div className="app-layout">
-      <Sidebar 
-        activeItem={activeTab} 
-        onNavigate={handleSidebarNavigate} 
-        onOpenHelp={() => setIsMetricsModalOpen(true)} 
+      <Sidebar
+        activeItem={activeTab}
+        onNavigate={handleSidebarNavigate}
+        onOpenHelp={() => setIsMetricsModalOpen(true)}
         alertsCount={activeAlerts.length}
         kpisWithAlerts={kpisWithAlerts}
         canAccessAnalytics={isAnalyticsAllowed}
@@ -587,6 +600,9 @@ function App() {
                     onPeriodChange={handlePeriodChange}
                     selectedSubPeriod={selectedSubPeriod}
                     onSubPeriodChange={setSelectedSubPeriod}
+                    yearOptions={YEAR_OPTIONS}
+                    selectedYear={selectedYear}
+                    onYearChange={handleYearChange}
                   />
                 </div>
               </div>

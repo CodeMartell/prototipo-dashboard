@@ -1,6 +1,6 @@
 # Robô → FastAPI: implementação e limites
 
-O entrypoint `python -m rpa_email.bot` agora envia KPIs à FastAPI. `bot_local.py` é legado e não foi migrado; não usar esse caminho como evidência da nova integração. Os Composes principais ainda precisam ser alinhados ao backend FastAPI antes de uso conjunto.
+O entrypoint `python -m rpa_email` envia KPIs à FastAPI. O antigo `bot_local.py`, que escrevia diretamente no banco, foi removido; a API é a única porta de entrada para os dados de KPI.
 
 ## Fluxo
 

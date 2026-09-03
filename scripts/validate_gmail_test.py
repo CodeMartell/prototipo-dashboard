@@ -15,7 +15,7 @@ from dotenv import dotenv_values
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from rpa_email.app.extractor import KpiExtractor
+from rpa_email.extractors import KpiExtractor
 
 SUBJECT = 'Relatorio Logistico - TESTE EPICO 7'
 MAX_BYTES = 5 * 1024 * 1024

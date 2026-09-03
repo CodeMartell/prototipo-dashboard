@@ -8,12 +8,11 @@ Este documento contem todos os comandos detalhados, diretorios de execucao e pas
 
 * Raiz do projeto: `c:\Users\ROMULO_LIRA\Documents\prototipo-dashboard`
 * Servidor API (FastAPI): `server\main.py`
-* Robo de E-mail (IMAP): `rpa_email\bot.py`
-* Robo Local (sem e-mail/offline): `rpa_email\bot_local.py`
+* Robô de E-mail (IMAP): `python -m rpa_email`
 * Frontend (Dashboard React): `dashboard\`
 * Planilhas de Teste KPI: `kpi_reports\`
 * Arquivo de Configuracao: `.env`
-* Cache Local de Dados: `dados_dashboard.xlsx`
+* Histórico local de deduplicação: `rpa_email\resources\api_email_history.db`
 
 ---
 
@@ -83,7 +82,7 @@ Objetivo: Ler o e-mail recebido, baixar os anexos, extrair e atualizar a base.
 
 ```powershell
 cd c:\Users\ROMULO_LIRA\Documents\prototipo-dashboard
-python -m rpa_email.bot
+python -m rpa_email
 ```
 
 ---
@@ -100,31 +99,27 @@ python -m rpa_email.bot
 2. No Terminal 3, execute o bot:
    ```powershell
    cd c:\Users\ROMULO_LIRA\Documents\prototipo-dashboard
-   python -m rpa_email.bot
+   python -m rpa_email
    ```
 3. Resultado esperado nos logs:
    ```text
-   [EMAIL] E-mail UID ... localizado com X anexo(s)
    [EXTRACTION] Analisando relatorio_logistic_cost.xlsx -> 48 registros extraidos
-   [EXCEL] Cache local salvo com sucesso: dados_dashboard.xlsx
+   E-mail UID ... processado com 1 anexo(s)
    Execucao concluida | encontrados=1 processados=1 erros=0
    ```
 
 ---
 
-### Teste B — Validacao Planilha Local -> Dashboard (Sem precisar enviar e-mail)
+### Teste B — Validação local dos extratores
 
-1. Abra o arquivo Excel `kpi_reports\relatorio_logistic_cost.xlsx` (ou `dados_dashboard.xlsx`).
-2. Altere o valor da linha Jan / Y26 na coluna result de 0.0538 para 0.095 (9.5%).
-3. Salve e feche o arquivo.
-4. Execute o bot local para importar a alteracao:
-   ```powershell
-   cd c:\Users\ROMULO_LIRA\Documents\prototipo-dashboard
-   python -m rpa_email.bot_local
-   ```
-5. No navegador (http://localhost:5173), clique no botao Recarregar no rodape (ou pressione F5).
-6. Selecione o filtro de periodo Ano: Y26, Mes: Jan.
-7. Resultado esperado na interface: O indicador War Room mudara para 9.50%.
+Execute os testes com planilhas sintéticas. Esse caminho não escreve no banco:
+
+```powershell
+python -m pytest rpa_email/tests -q
+```
+
+Para alterar dados do dashboard sem e-mail, use a API; não existe mais um fluxo
+paralelo que escreve diretamente no PostgreSQL.
 
 ---
 
@@ -136,7 +131,7 @@ python -m rpa_email.bot
 4. No Terminal 3, rode o robo:
    ```powershell
    cd c:\Users\ROMULO_LIRA\Documents\prototipo-dashboard
-   python -m rpa_email.bot
+   python -m rpa_email
    ```
 5. No Dashboard, clique em Recarregar.
 6. Resultado: Os novos dados enviados por e-mail aparecem instantaneamente nos graficos e cartoes de KPI, com o selo API verde no rodape.

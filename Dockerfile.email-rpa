@@ -8,9 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY rpa_email ./rpa_email
 
-# rpa_email/app/raw_file_bridge.py insere esta pasta no sys.path e importa
-# extrair_kpis para ler os relatórios brutos (.xlsb). Sem ela, o robô só
-# consegue processar planilhas já no formato de KPI.
-COPY Automacao-Planilha ./Automacao-Planilha
-
-CMD ["python", "-m", "rpa_email.bot"]
+CMD ["python", "-m", "rpa_email"]

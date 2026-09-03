@@ -29,7 +29,7 @@ O script consulta apenas candidatos ao assunto, seleciona o mais recente com ass
 
 O comando sem `--ingest-local` continua sem enviar nada à API/banco.
 
-Essa execução controlada reutiliza o extrator e cliente de ingestão, mas não executa o loop completo nem o histórico de `rpa_email.bot`. O serviço completo foi testado separadamente no Docker com mensagem/IMAP sintéticos. A conferência no React abaixo completa o cenário controlado Gmail → API → interface, mas não comprova o ciclo automático completo do robô.
+Essa execução controlada reutiliza o extrator e cliente de ingestão, mas não executa o loop completo nem o histórico de `python -m rpa_email`. O serviço completo foi testado separadamente no Docker com mensagem/IMAP sintéticos. A conferência no React abaixo completa o cenário controlado Gmail → API → interface, mas não comprova o ciclo automático completo do robô.
 
 ## React no ambiente de homologação
 

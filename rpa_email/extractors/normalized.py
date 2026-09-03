@@ -1,17 +1,15 @@
-"""
-rpa_email/app/extractor.py
-Extrai dados de planilhas KPI (.xlsx) e retorna estruturas
-compativeis com o dashboard DataLens.
-"""
+"""Extrai planilhas já normalizadas para o contrato do dashboard."""
 from __future__ import annotations
 
 import logging
 import math
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import openpyxl
+
+from rpa_email.extractors.logistics_cost_vs_prod_amount import parse_normalized
+from rpa_email.extractors.models import ExtractionResult, KpiMonthlyRow
 
 LOGGER = logging.getLogger(__name__)
 
@@ -20,42 +18,13 @@ EXPECTED_MONTHS = {
     "Jul","Aug","Sep","Oct","Nov","Dec",
 }
 EXPECTED_YEARS = {"Y24","Y25","Y26","Y27"}
-
-
-# ---------------------------------------------------------------------------
-# Modelos de saida
-# ---------------------------------------------------------------------------
-
-@dataclass
-class KpiMonthlyRow:
-    """Linha mensal para KPIs com target/result/achievement."""
-    month: str
-    year: str
-    target: float
-    result: float
-    achievement: float
-    kpi_key: str
-
-
-@dataclass
-class LogisticsVsProdRow:
-    """Linha mensal para o KPI Logistics vs Production."""
-    month: str
-    year: str
-    logistics_cost: float
-    production_amount: float
-    ratio: float
-
-
-@dataclass
-class ExtractionResult:
-    logistic_cost: list[KpiMonthlyRow] = field(default_factory=list)
-    air_freight: list[KpiMonthlyRow] = field(default_factory=list)
-    logistics_vs_prod: list[LogisticsVsProdRow] = field(default_factory=list)
-    incidental_cost: list[KpiMonthlyRow] = field(default_factory=list)
-    total_cost: list[KpiMonthlyRow] = field(default_factory=list)
-    demurrage: list[KpiMonthlyRow] = field(default_factory=list)
-    errors: list[str] = field(default_factory=list)
+LOWER_IS_BETTER = {
+    "logistic_cost": True,
+    "air_freight": True,
+    "incidental_cost": False,
+    "total_cost": False,
+    "demurrage": True,
+}
 
 
 # ---------------------------------------------------------------------------
@@ -73,19 +42,6 @@ def _safe_float(value: Any, label: str) -> float | None:
         return None
 
 
-def _read_sheet(path: Path) -> list[dict]:
-    """Le a primeira aba de um .xlsx e retorna lista de dicts keyed pelo cabecalho."""
-    LOGGER.info("[EXTRACTION] Lendo planilha: %s", path.name)
-    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-    ws = wb.active
-    rows = list(ws.iter_rows(values_only=True))
-    wb.close()
-    if not rows:
-        return []
-    headers = [str(h).strip() if h is not None else "" for h in rows[0]]
-    return [dict(zip(headers, row)) for row in rows[1:]]
-
-
 # ---------------------------------------------------------------------------
 # Parsers por KPI
 # ---------------------------------------------------------------------------
@@ -98,36 +54,23 @@ def _parse_kpi_row(raw: dict, kpi_key: str) -> KpiMonthlyRow | None:
         return None
     target      = _safe_float(raw.get("target"),      f"{kpi_key}.target")
     result      = _safe_float(raw.get("result"),      f"{kpi_key}.result")
-    achievement = _safe_float(raw.get("achievement"), f"{kpi_key}.achievement")
+    raw_achievement = raw.get("achievement")
+    achievement = (
+        _safe_float(raw_achievement, f"{kpi_key}.achievement")
+        if raw_achievement not in (None, "")
+        else None
+    )
     if result is None or target is None:
         return None
-    if achievement is None and result > 0:
-        achievement = round(target / result, 4)
+    if achievement is None:
+        lower_is_better = LOWER_IS_BETTER[kpi_key]
+        numerator, denominator = (target, result) if lower_is_better else (result, target)
+        achievement = 1.0 if numerator == denominator == 0 else round(numerator / denominator, 4) if denominator > 0 else None
     return KpiMonthlyRow(
         month=month, year=year,
         target=round(target, 6), result=round(result, 6),
-        achievement=round(achievement or 0, 4),
+        achievement=round(achievement, 4) if achievement is not None else None,
         kpi_key=kpi_key,
-    )
-
-
-def _parse_logistics_vs_prod_row(raw: dict) -> LogisticsVsProdRow | None:
-    month = str(raw.get("month", "")).strip()
-    year  = str(raw.get("year",  "")).strip()
-    if month not in EXPECTED_MONTHS or year not in EXPECTED_YEARS:
-        return None
-    logistics_cost     = _safe_float(raw.get("logisticsCost"),     "logisticsCost")
-    production_amount  = _safe_float(raw.get("productionAmount"),  "productionAmount")
-    ratio              = _safe_float(raw.get("ratio"),             "ratio")
-    if logistics_cost is None or production_amount is None:
-        return None
-    if ratio is None and production_amount > 0:
-        ratio = round(logistics_cost / production_amount, 6)
-    return LogisticsVsProdRow(
-        month=month, year=year,
-        logistics_cost=round(logistics_cost, 4),
-        production_amount=round(production_amount, 4),
-        ratio=round(ratio or 0, 6),
     )
 
 
@@ -222,7 +165,7 @@ class KpiExtractor:
                     parsed_count = 0
                     if target_kpi == "logistics_vs_prod":
                         for row_number, raw in enumerate(raw_rows, start=2):
-                            row = _parse_logistics_vs_prod_row(raw)
+                            row = parse_normalized(raw, EXPECTED_MONTHS, EXPECTED_YEARS)
                             if row:
                                 result.logistics_vs_prod.append(row)
                                 parsed_count += 1

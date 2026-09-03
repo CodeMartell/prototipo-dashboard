@@ -5,11 +5,11 @@ from unittest.mock import Mock
 import httpx
 import pytest
 
-from rpa_email.app.ingestion_client import ApiReportSender, IngestionError
-from rpa_email.app.services import EmailProcessingService
-from rpa_email.app.extractor import ExtractionResult, KpiMonthlyRow
+from rpa_email.services.api_client import ApiReportSender, IngestionError
+from rpa_email.email_service import EmailProcessingService
+from rpa_email.extractors import ExtractionResult, KpiMonthlyRow
 from rpa_email.config.settings import Settings
-from rpa_email.tests.unit_tests import MemoryRepository
+from rpa_email.tests.test_email_client import MemoryRepository
 
 
 @pytest.mark.parametrize('status', ['processed', 'skipped'])
@@ -51,7 +51,7 @@ def test_sender_rejects_failures_without_exposing_secrets(failure):
 
 
 def service_setup(tmp_path, monkeypatch):
-    settings = Settings('test', 993, 'INBOX', 'test', 'test', 'KPI', '', None, None, '', tmp_path)
+    settings = Settings('test', 993, 'INBOX', 'test', 'test', 'KPI', '', None, None, tmp_path)
     handler = Mock()
     message = EmailMessage()
     message['Subject'] = 'KPI'
@@ -61,7 +61,7 @@ def service_setup(tmp_path, monkeypatch):
     handler.fetch.return_value = message
     handler.save_attachments.return_value = 1
     extraction = ExtractionResult(logistic_cost=[KpiMonthlyRow('Jan', 'Y26', 0.04, 0.05, 0.8, 'logistic_cost')])
-    monkeypatch.setattr('rpa_email.app.services.KpiExtractor.extract', lambda self: extraction)
+    monkeypatch.setattr('rpa_email.email_service.KpiExtractor.extract', lambda self: extraction)
     repository, sender = MemoryRepository(), Mock()
     sender.send.return_value = 'processed'
     return EmailProcessingService(settings, repository, handler, sender), repository, sender, extraction
@@ -81,12 +81,10 @@ def test_failed_send_can_retry_then_skips_locally(tmp_path, monkeypatch):
     assert folders[0] != folders[1]
 
 
-@pytest.mark.parametrize('failure', ['no-attachment', 'corrupt', 'empty', 'unconfirmed'])
+@pytest.mark.parametrize('failure', ['corrupt', 'empty', 'unconfirmed'])
 def test_invalid_input_never_marks_success(tmp_path, monkeypatch, failure):
     service, repository, sender, extraction = service_setup(tmp_path, monkeypatch)
-    if failure == 'no-attachment':
-        service.handler.save_attachments.return_value = 0
-    elif failure == 'corrupt':
+    if failure == 'corrupt':
         extraction.errors.append('corrupt')
     elif failure == 'empty':
         extraction.logistic_cost.clear()
@@ -97,6 +95,19 @@ def test_invalid_input_never_marks_success(tmp_path, monkeypatch, failure):
     assert not repository.is_terminal('message-id:<synthetic@example.com>')
     if failure != 'unconfirmed':
         sender.send.assert_not_called()
+
+
+def test_message_without_attachments_is_terminal_out_of_pattern(tmp_path, monkeypatch):
+    service, repository, sender, _ = service_setup(tmp_path, monkeypatch)
+    service.handler.save_attachments.return_value = 0
+
+    first = service.execute()
+    second = service.execute()
+
+    assert (first.out_of_pattern, first.errors, first.processed) == (1, 0, 0)
+    assert second.duplicated == 1
+    assert repository.is_terminal('message-id:<synthetic@example.com>')
+    sender.send.assert_not_called()
 
 
 @pytest.mark.parametrize('url,message_id', [('https://other.example.com', '<test@example.com>'), ('http://127.0.0.1:15001', '')])

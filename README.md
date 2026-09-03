@@ -4,13 +4,16 @@
 [React] [Vite] [Recharts]
 
 ## Visão Geral
-Este projeto tem como objetivo consolidar 3 KPIs atualmente acompanhados de forma manual, possibilitando a comparação de períodos (Year-over-Year) e apoiando a tomada de decisões através do registro de planos de ação e acompanhamento de evidências.
+Este projeto consolida seis KPIs atualmente acompanhados de forma manual, possibilitando a comparação de períodos (Year-over-Year) e apoiando a tomada de decisões por meio de planos de ação e evidências.
 
 ## Indicadores (KPIs)
 | Indicador | Descrição | Target | Objetivo |
 |---|---|---|---|
 | **Logistic Cost KPI TV (War Room Report)** | Custo logístico como percentual | Variável por mês | Menor é melhor |
 | **Air Freight KPI TV** | Custo de frete aéreo como percentual | 0.40% (2025), 0.22% (2026) | Menor é melhor |
+| **Resin Consolidation** | Saving da consolidação de resina | Variável por mês | Maior é melhor |
+| **Task Cost Reduction** | Redução de custo da operação interna | Variável por mês | Maior é melhor |
+| **Demurrage Cost** | Contêineres com sobrestadia | 0 | Menor é melhor |
 | **Logistics Cost x Product Amount** | Relação custo logístico / volume de produção em MUSD | Sem target definido | Menor é melhor |
 
 ## Funcionalidades
@@ -47,14 +50,13 @@ Acesse http://localhost:5173
 
 ## Estrutura do Projeto
 ```
-src/
-├── components/
-├── data/
-└── utils/
+dashboard/     # interface React
+server/        # API FastAPI e banco
+rpa_email/     # IMAP, extração dos seis indicadores e envio à API
 ```
 
 ## Dados
-O protótipo utiliza dados reais extraídos da planilha `dados.xlsx`, estruturados como módulos JavaScript. Versões futuras se conectarão ao Power BI ou outra ferramenta de BI.
+O dashboard lê os dados da API. O pacote `rpa_email` processa os relatórios recebidos, extrai os KPIs e envia um payload validado ao backend.
 
 ## Próximos Passos
 - Integração com dados reais (API / Power BI)

@@ -2,14 +2,40 @@
  * src/services/api.js
  * Cliente único de comunicação com o backend (FastAPI, /api/*).
  *
- * O vite.config.js já faz proxy de /api -> http://localhost:5001,
- * então as chamadas aqui usam caminhos relativos (funciona em dev
- * sem problema de CORS; em produção, ajustar o proxy/base URL conforme
- * onde a API for hospedada).
+ * Onde a API está é decidido por configuração, não no código:
+ *
+ * - `VITE_API_PROXY_TARGET` (dev): o browser chama caminhos relativos
+ *   (`/api/...`) e o vite.config.js encaminha. A origem continua sendo a do
+ *   próprio frontend, então não existe CORS.
+ *
+ * - `VITE_API_URL` (produção na Vercel): as chamadas passam a ser absolutas
+ *   para essa URL. Aí o CORS vale — a origem do frontend precisa constar em
+ *   FRONTEND_ORIGIN no .env do backend.
  */
 
 const TOKEN_KEY = 'datalens_token';
 const USER_KEY = 'datalens_user';
+
+/**
+ * Base das chamadas. Vazio = relativo (usa o proxy do dev server).
+ *
+ * O Vite substitui `import.meta.env.VITE_API_URL` por um literal no build,
+ * mas só reconhece essa expressão exata: escrever `import.meta.env?.VITE_...`
+ * quebra a substituição e o valor nunca chega ao bundle. O `typeof` antes
+ * protege a execução fora do Vite (os testes rodam direto no Node, onde
+ * `import.meta.env` não existe).
+ */
+const RAW_API_BASE =
+  typeof import.meta.env === 'object' && import.meta.env
+    ? import.meta.env.VITE_API_URL
+    : undefined;
+
+const API_BASE = String(RAW_API_BASE || '').replace(/\/+$/, '');
+
+/** Monta a URL final de um caminho `/api/...`. */
+function apiUrl(path) {
+  return `${API_BASE}${path}`;
+}
 
 /* ────────────────────────────────
    Sessão (token + dados do usuário)
@@ -44,7 +70,7 @@ export function logout() {
  */
 export async function login(email, password) {
   logout();
-  const response = await fetch('/api/auth/login', {
+  const response = await fetch(apiUrl('/api/auth/login'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -64,7 +90,7 @@ export async function login(email, password) {
 
   // Busca os dados do usuário logado (email/role) pra exibir no Header
   // e pra decisões de UI (ex: esconder Analysis pra VISUALIZADOR).
-  const meResponse = await fetch('/api/auth/me', {
+  const meResponse = await fetch(apiUrl('/api/auth/me'), {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!meResponse.ok) {
@@ -92,7 +118,7 @@ class UnauthorizedError extends Error {}
 
 async function authFetch(path, options = {}) {
   const token = getToken();
-  const response = await fetch(path, {
+  const response = await fetch(apiUrl(path), {
     ...options,
     headers: {
       ...(options.headers || {}),

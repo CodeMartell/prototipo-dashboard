@@ -4,12 +4,22 @@ from email.message import EmailMessage
 import openpyxl
 import pytest
 
-from rpa_email.app.extractor import KpiExtractor, _parse_kpi_row
-from rpa_email.modules.email.EmailHandler import EmailHandler
+from rpa_email.extractors import KpiExtractor
+from rpa_email.extractors.normalized import _parse_kpi_row
+from rpa_email.email_client import EmailClient
 
 
-@pytest.mark.parametrize("kpi", ["logistic_cost", "air_freight", "incidental_cost", "total_cost", "demurrage"])
-def test_email_attachment_to_extracted_kpi(tmp_path, kpi):
+@pytest.mark.parametrize(
+    "kpi, expected_achievement",
+    [
+        ("logistic_cost", 0.8),
+        ("air_freight", 0.8),
+        ("incidental_cost", 1.25),
+        ("total_cost", 1.25),
+        ("demurrage", 0.8),
+    ],
+)
+def test_email_attachment_to_extracted_kpi(tmp_path, kpi, expected_achievement):
     source = tmp_path / f"{kpi}.xlsx"
     workbook = openpyxl.Workbook()
     workbook.active.append(["month", "year", "target", "result", "achievement"])
@@ -20,14 +30,14 @@ def test_email_attachment_to_extracted_kpi(tmp_path, kpi):
     message.set_content("Relatório de teste")
     message.add_attachment(source.read_bytes(), maintype="application", subtype="octet-stream", filename=source.name)
     destination = tmp_path / "attachments"
-    assert EmailHandler.save_attachments(message, destination) == 1
+    assert EmailClient.save_attachments(message, destination) == 1
     extracted = KpiExtractor(destination).extract()
     assert extracted.errors == []
     rows = getattr(extracted, kpi)
     assert len(rows) == 1
     assert (rows[0].month, rows[0].year) == ("Jan", "Y26")
     assert rows[0].result == pytest.approx(0.05)
-    assert rows[0].achievement == pytest.approx(0.8)
+    assert rows[0].achievement == pytest.approx(expected_achievement)
 
 
 @pytest.mark.parametrize("changes", [{"month": "invalid"}, {"year": "invalid"}, {"target": None}, {"result": "abc"}])
@@ -95,3 +105,14 @@ def test_header_only_workbook_is_rejected(tmp_path):
     result = KpiExtractor(tmp_path).extract()
     assert result.logistic_cost == []
     assert result.errors == ["logistic_cost.xlsx [Sheet]: planilha sem registros"]
+
+
+def test_higher_is_better_achievement_uses_result_over_target(tmp_path):
+    _write_logistic_workbook(
+        tmp_path / "total_cost.xlsx",
+        ["month", "year", "target", "result", "achievement"],
+        [["Jan", "Y26", 100, 120, None]],
+    )
+    result = KpiExtractor(tmp_path).extract()
+    assert result.errors == []
+    assert result.total_cost[0].achievement == pytest.approx(1.2)

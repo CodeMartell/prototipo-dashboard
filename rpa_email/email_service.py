@@ -9,19 +9,18 @@ from datetime import timezone
 from email.message import Message
 from email.utils import parseaddr, parsedate_to_datetime
 
-from rpa_email.app.models import (
+from rpa_email.models import (
     EmailRecord,
     ExecutionSummary,
 )
-from rpa_email.app.repository import ProcessingRepository
-from rpa_email.app.ingestion_client import ReportSender, build_payload
-from rpa_email.app.extractor import KpiExtractor
+from rpa_email.services.processing_history import ProcessingRepository
+from rpa_email.services.api_client import ReportSender, build_payload
+from rpa_email.extractors import KpiExtractor, RawReportExtractor, is_raw_report
 from rpa_email.config.settings import Settings
-from rpa_email.modules.email.EmailHandler import (
-    EmailHandler,
+from rpa_email.email_client import (
+    EmailClient,
     decode_text,
 )
-from rpa_email.app.raw_file_bridge import RawFileBridge, is_raw_report
 
 
 LOGGER = logging.getLogger(__name__)
@@ -32,7 +31,7 @@ class EmailProcessingService:
         self,
         settings: Settings,
         repository: ProcessingRepository,
-        handler: EmailHandler,
+        handler: EmailClient,
         report_sender: ReportSender,
     ):
         self.settings = settings
@@ -336,9 +335,20 @@ class EmailProcessingService:
                     ))
                     attachment_count = self.handler.save_attachments(message, attachment_folder)
                     if not attachment_count:
-                        raise ValueError('Mensagem sem anexos')
+                        if EmailClient.has_attachment_reference(message):
+                            raise ValueError('Falha ao baixar ou salvar os anexos')
+                        self._record(
+                            message=message,
+                            uid=uid,
+                            key=key,
+                            status="FORA_DO_PADRAO",
+                            details="Mensagem sem anexos ou links de arquivo",
+                        )
+                        LOGGER.warning("E-mail UID %s fora do padrão: mensagem sem anexos", uid)
+                        summary.out_of_pattern += 1
+                        continue
                     if is_raw_report(attachment_folder):
-                        extraction = RawFileBridge().process(attachment_folder)
+                        extraction = RawReportExtractor().extract(attachment_folder)
                     else:
                         extraction = KpiExtractor(attachment_folder).extract()
                     payload = build_payload(

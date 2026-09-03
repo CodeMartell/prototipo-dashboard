@@ -46,9 +46,9 @@ O extrator passou a rejeitar explicitamente planilhas sem registros, colunas obr
 
 ### Etapa 3 — envio do robô pela API
 
-Implementado `ApiReportSender` e conectado ao entrypoint `rpa_email.bot`. O serviço deixou de escrever KPIs diretamente no PostgreSQL/cache Excel; registra sucesso somente após confirmação da API. Falhas e anexos sem registros válidos permitem nova tentativa, com pastas separadas. Configuração e limites em [robo-ingestao-api.md](robo-ingestao-api.md). Verificação: 62 testes locais aprovados, 1 externo ignorado; 5 testes Docker aprovados, incluindo mensagem sintética → serviço do robô → HTTP real → PostgreSQL. Gmail e React não participaram dessa execução.
+Implementado `ApiReportSender` e conectado ao entrypoint atual `python -m rpa_email`. O serviço deixou de escrever KPIs diretamente no PostgreSQL/cache Excel; registra sucesso somente após confirmação da API. Falhas e anexos sem registros válidos permitem nova tentativa, com pastas separadas. Configuração e limites em [robo-ingestao-api.md](robo-ingestao-api.md). Verificação histórica: 62 testes locais aprovados, 1 externo ignorado; 5 testes Docker aprovados, incluindo mensagem sintética → serviço do robô → HTTP real → PostgreSQL. Gmail e React não participaram dessa execução.
 
-Os achados sobre escrita direta e sucesso após falha abaixo descrevem o diagnóstico inicial: foram tratados no bot principal. O legado `bot_local.py`, os Composes normais e a validação completa de linhas inválidas ainda exigem trabalho.
+Os achados sobre escrita direta e sucesso após falha abaixo descrevem o diagnóstico inicial. O fluxo legado de escrita direta foi removido; os demais itens permanecem como registro histórico desta homologação.
 
 ### Validação Gmail → anexo → extração (26/08/2026)
 
@@ -99,7 +99,7 @@ O parâmetro `-p no:cacheprovider` desativa apenas o cache opcional do pytest; o
 
 ## Pontos encontrados por inspeção, a confirmar com o time
 
-1. `rpa_email/app/services.py` grava diretamente no PostgreSQL/cache, embora `server/` documente ingestão via HTTP. Alinhar a integração com o backend FastAPI e testar o caminho efetivamente implantado.
+1. Resolvido: o fluxo de escrita direta no PostgreSQL/cache e seus entrypoints foram removidos; `rpa_email/email_service.py` envia exclusivamente pela FastAPI.
 2. O robô captura falhas de extração/persistência e pode registrar o e-mail como PROCESSADO mesmo assim. Testar falha de banco e arquivo inválido antes de liberar: pode impedir nova tentativa.
 3. Os schemas da ingestão não restringem mês/ano nem exigem lista não vazia. A política de validação precisa ser acordada; os testes atuais não comprovam rejeição de todos os dados incorretos.
 4. `rpa_email/tests/integration_tests.py` apenas verifica presença de variáveis quando habilitado. Isso não comprova uma integração IMAP/PostgreSQL real.

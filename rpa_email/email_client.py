@@ -6,6 +6,7 @@ from email import message_from_bytes, policy
 from email.header import decode_header, make_header
 from email.message import Message
 from pathlib import Path
+from urllib.parse import unquote
 
 
 def decode_text(value: str | None) -> str:
@@ -23,7 +24,54 @@ def safe_filename(filename: str) -> str:
     return name[:180] or "anexo_sem_nome"
 
 
-class EmailHandler:
+def content_disposition_filename(value: str) -> str:
+    """Obtém o nome RFC 5987/RFC 6266, priorizando ``filename*``.
+
+    O Google Drive pode enviar simultaneamente ``filename=260817`` e um
+    ``filename*=UTF-8''...`` com o nome completo e a extensão real.
+    """
+
+    extended = re.search(r"filename\*\s*=\s*([^;]+)", value, re.IGNORECASE)
+    if extended:
+        encoded = extended.group(1).strip().strip('"\'')
+        if "''" in encoded:
+            _, encoded = encoded.split("''", 1)
+        decoded = unquote(encoded).strip()
+        if decoded:
+            return decoded
+
+    double_quoted = re.search(r'filename\s*=\s*"([^"]+)"', value, re.IGNORECASE)
+    if double_quoted:
+        return double_quoted.group(1).strip()
+    single_quoted = re.search(r"filename\s*=\s*'([^']+)'", value, re.IGNORECASE)
+    if single_quoted:
+        return single_quoted.group(1).strip()
+    regular = re.search(r"filename\s*=\s*([^;]+)", value, re.IGNORECASE)
+    return regular.group(1).strip() if regular else ""
+
+
+def _message_body(message: Message) -> str:
+    body = ""
+    for part in message.walk():
+        if part.get_content_type() in ("text/plain", "text/html"):
+            payload = part.get_payload(decode=True)
+            if payload:
+                body += payload.decode(errors="ignore") + "\n"
+    return body
+
+
+def _google_drive_ids(message: Message) -> list[str]:
+    return list(
+        dict.fromkeys(
+            re.findall(
+                r"https://drive\.google\.com/(?:file/d/|open\?id=|uc\?id=)([a-zA-Z0-9_-]+)",
+                _message_body(message),
+            )
+        )
+    )
+
+
+class EmailClient:
     """Responsavel somente pela infraestrutura IMAP e pelos anexos."""
 
     def __init__(self, host: str, port: int, user: str, password: str, mailbox: str):
@@ -57,15 +105,9 @@ class EmailHandler:
     @staticmethod
     def _download_google_drive_files(message: Message, destination: Path) -> int:
         import httpx
-        
-        body = ""
-        for part in message.walk():
-            if part.get_content_type() in ("text/plain", "text/html"):
-                payload = part.get_payload(decode=True)
-                if payload:
-                    body += payload.decode(errors="ignore") + "\n"
-        
-        drive_ids = list(dict.fromkeys(re.findall(r"https://drive\.google\.com/(?:file/d/|open\?id=|uc\?id=)([a-zA-Z0-9_-]+)", body)))
+
+        body = _message_body(message)
+        drive_ids = _google_drive_ids(message)
         if not drive_ids:
             return 0
             
@@ -82,9 +124,9 @@ class EmailHandler:
                     
                     # Extrair nome do arquivo do header Content-Disposition
                     cd = response.headers.get("content-disposition", "")
-                    fn_match = re.search(r'filename=["\']?([^"\';]+)["\']?', cd)
-                    if fn_match:
-                        raw_name = fn_match.group(1).strip()
+                    header_name = content_disposition_filename(cd)
+                    if header_name:
+                        raw_name = header_name
                     else:
                         # Tentar achar no corpo da mensagem
                         body_fn_match = re.search(r"([a-zA-Z0-9_.'() -]+\.(?:xlsb|xlsx|csv|zip))", body, re.IGNORECASE)
@@ -102,6 +144,16 @@ class EmailHandler:
         return downloaded
 
     @staticmethod
+    def has_attachment_reference(message: Message) -> bool:
+        """Distingue mensagem vazia de falha transitória ao baixar anexos."""
+
+        has_mime_attachment = any(
+            part.get_content_disposition() == "attachment"
+            for part in message.walk()
+        )
+        return has_mime_attachment or bool(_google_drive_ids(message))
+
+    @staticmethod
     def save_attachments(message: Message, destination: Path) -> int:
         parts = [part for part in message.walk() if part.get_content_disposition() == "attachment"]
         count = 0
@@ -117,6 +169,6 @@ class EmailHandler:
         
         # Se não encontrou anexos padrão, busca links do Google Drive (anexos > 25MB)
         if count == 0:
-            count += EmailHandler._download_google_drive_files(message, destination)
+            count += EmailClient._download_google_drive_files(message, destination)
             
         return count

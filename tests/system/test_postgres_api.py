@@ -128,11 +128,11 @@ def test_synthetic_email_through_bot_to_real_api(environment, tmp_path):
     from io import BytesIO
     from unittest.mock import Mock
     from openpyxl import Workbook
-    from rpa_email.app.ingestion_client import ApiReportSender
-    from rpa_email.app.repository import SqliteProcessingRepository
-    from rpa_email.app.services import EmailProcessingService
+    from rpa_email.services.api_client import ApiReportSender
+    from rpa_email.services.processing_history import SqliteProcessingRepository
+    from rpa_email.email_service import EmailProcessingService
     from rpa_email.config.settings import Settings
-    from rpa_email.modules.email.EmailHandler import EmailHandler
+    from rpa_email.email_client import EmailClient
 
     client, engine = environment
     bot_email = f'bot-{uuid.uuid4().hex}@example.com'
@@ -154,8 +154,8 @@ def test_synthetic_email_through_bot_to_real_api(environment, tmp_path):
     handler = Mock()
     handler.search.return_value = [b'1']
     handler.fetch.return_value = message
-    handler.save_attachments.side_effect = EmailHandler.save_attachments
-    settings = Settings('not-used', 993, 'INBOX', '', '', 'KPI TEST', '', None, None, '', tmp_path / 'attachments')
+    handler.save_attachments.side_effect = EmailClient.save_attachments
+    settings = Settings('not-used', 993, 'INBOX', '', '', 'KPI TEST', '', None, None, tmp_path / 'attachments')
     repository = SqliteProcessingRepository(str(tmp_path / 'history.db'))
     repository.initialize()
     sender = ApiReportSender(str(client.base_url), bot_email, password)

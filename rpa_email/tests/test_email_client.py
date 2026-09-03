@@ -1,12 +1,19 @@
+"""Testes unitários do cliente de e-mail e do histórico de processamento."""
+
 from email.message import EmailMessage
 from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
 
-from rpa_email.app.models import EmailRecord
-from rpa_email.app.repository import ProcessingRepository
-from rpa_email.modules.email.EmailHandler import EmailHandler, decode_text, safe_filename
+from rpa_email.models import EmailRecord
+from rpa_email.services.processing_history import ProcessingRepository
+from rpa_email.email_client import (
+    EmailClient,
+    content_disposition_filename,
+    decode_text,
+    safe_filename,
+)
 
 
 class MemoryRepository(ProcessingRepository):
@@ -35,11 +42,28 @@ def test_safe_filename_blocks_directory_traversal():
     assert safe_filename("../../segredo?.pdf") == "segredo_.pdf"
 
 
+def test_content_disposition_prefers_extended_filename():
+    header = (
+        "attachment; filename=260817; "
+        "filename*=UTF-8''260817%20_26.07%20LGESP%20War%20Room_v.1.1.xlsb"
+    )
+
+    assert content_disposition_filename(header) == (
+        "260817 _26.07 LGESP War Room_v.1.1.xlsb"
+    )
+
+
+def test_content_disposition_accepts_regular_quoted_filename():
+    assert content_disposition_filename(
+        'attachment; filename="260817 \'26.07 LGESP War Room_v.1.1.xlsb"'
+    ) == "260817 '26.07 LGESP War Room_v.1.1.xlsb"
+
+
 def test_attachment_is_saved(tmp_path: Path):
     message = EmailMessage()
     message.set_content("Corpo")
     message.add_attachment(b"conteudo", maintype="application", subtype="pdf", filename="arquivo.pdf")
-    assert EmailHandler.save_attachments(message, tmp_path) == 1
+    assert EmailClient.save_attachments(message, tmp_path) == 1
     assert (tmp_path / "arquivo.pdf").read_bytes() == b"conteudo"
 
 
@@ -77,7 +101,7 @@ def test_imap_connect_selects_read_only_mailbox(monkeypatch):
     client.select.return_value = ("OK", [b"1"])
     factory = Mock(return_value=client)
     monkeypatch.setattr("imaplib.IMAP4_SSL", factory)
-    handler = EmailHandler("imap.example.com", 993, "test@example.com", "test-password", "INBOX")
+    handler = EmailClient("imap.example.com", 993, "test@example.com", "test-password", "INBOX")
     assert handler.connect() is client
     factory.assert_called_once_with("imap.example.com", 993)
     client.login.assert_called_once_with("test@example.com", "test-password")
@@ -90,8 +114,8 @@ def test_imap_search_and_fetch():
     message.set_content("Teste")
     client = Mock()
     client.uid.side_effect = [("OK", [b"1 2"]), ("OK", [(b"1", message.as_bytes())])]
-    assert EmailHandler.search(client, ["ALL"]) == [b"1", b"2"]
-    assert EmailHandler.fetch(client, b"1")["Subject"] == "Relatório KPI"
+    assert EmailClient.search(client, ["ALL"]) == [b"1", b"2"]
+    assert EmailClient.fetch(client, b"1")["Subject"] == "Relatório KPI"
     assert client.uid.call_args.args == ("fetch", b"1", "(RFC822)")
 
 
@@ -99,4 +123,4 @@ def test_imap_search_failure():
     client = Mock()
     client.uid.return_value = ("NO", [])
     with pytest.raises(ConnectionError):
-        EmailHandler.search(client, ["ALL"])
+        EmailClient.search(client, ["ALL"])

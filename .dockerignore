@@ -13,9 +13,6 @@ rpa_email/resources/*.db
 rpa_email/resources/*.db-*
 rpa_email/.env
 rpa_email/resources/attachments
-Automacao-Planilha/.python_deps
-Automacao-Planilha/outputs
-Automacao-Planilha/saidas_kpi
 outputs
 dashboard/node_modules
 dashboard/dist

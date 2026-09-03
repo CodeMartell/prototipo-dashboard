@@ -1,3 +1,5 @@
+"""Modelos internos do processamento de e-mails."""
+
 from dataclasses import dataclass
 from datetime import datetime
 

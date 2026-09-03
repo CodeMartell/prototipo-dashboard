@@ -32,7 +32,6 @@ class Settings:
     sender_filter: str
     date_from: datetime | None
     date_to: datetime | None
-    database_url: str
     attachments_dir: Path
     api_url: str = ''
     api_email: str = ''
@@ -70,7 +69,6 @@ class Settings:
             sender_filter=os.getenv("EMAIL_SENDER_FILTER", "").strip().lower(),
             date_from=date_from,
             date_to=date_to,
-            database_url=os.getenv('DATABASE_URL', ''),  # compatibilidade; bot principal não usa SQL
             api_url=required['RPA_API_URL'],
             api_email=required['RPA_API_EMAIL'],
             api_password=required['RPA_API_PASSWORD'],

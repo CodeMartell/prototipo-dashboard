@@ -15,17 +15,17 @@ from dotenv import dotenv_values
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from rpa_email.app.ingestion_client import ApiReportSender
-from rpa_email.app.repository import SqliteProcessingRepository
-from rpa_email.app.services import EmailProcessingService
+from rpa_email.services.api_client import ApiReportSender
+from rpa_email.services.processing_history import SqliteProcessingRepository
+from rpa_email.email_service import EmailProcessingService
 from rpa_email.config.settings import Settings
-from rpa_email.modules.email.EmailHandler import EmailHandler
+from rpa_email.email_client import EmailClient
 
 SUBJECT = "Relatorio Logistico - TESTE EPICO 7"
 API_URL = "http://127.0.0.1:15001"
 
 
-class ExactTestMessageHandler(EmailHandler):
+class ExactTestMessageHandler(EmailClient):
     """Restringe o serviço real a uma única mensagem sintética conhecida."""
 
     @staticmethod
@@ -45,7 +45,7 @@ class ExactTestMessageHandler(EmailHandler):
 
     @staticmethod
     def fetch(client: imaplib.IMAP4_SSL, uid: bytes):
-        message = EmailHandler.fetch(client, uid)
+        message = EmailClient.fetch(client, uid)
         filenames = [part.get_filename() for part in message.walk()
                      if part.get_content_disposition() == "attachment"]
         if str(message.get("Subject", "")).strip() != SUBJECT:
@@ -72,7 +72,7 @@ def _settings() -> Settings:
         imap_host="imap.gmail.com", imap_port=993, mailbox="INBOX",
         email_user=str(values["email_user"]), email_password=str(values["email_password"]),
         subject_filter=SUBJECT, sender_filter="", date_from=None, date_to=None,
-        database_url="", api_url=API_URL, api_email=str(values["api_email"]),
+        api_url=API_URL, api_email=str(values["api_email"]),
         api_password=str(values["api_password"]), api_timeout=20,
         attachments_dir=ROOT / "rpa_email/resources/attachments/full-bot-validation",
     )

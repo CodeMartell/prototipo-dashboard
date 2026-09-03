@@ -3,7 +3,7 @@ from pathlib import Path
 from email.utils import parseaddr
 import httpx
 from dotenv import dotenv_values
-from rpa_email.app.ingestion_client import ApiReportSender, build_payload
+from rpa_email.services.api_client import ApiReportSender, build_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 API_URL = 'http://127.0.0.1:15001'

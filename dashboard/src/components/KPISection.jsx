@@ -3,7 +3,7 @@ import ComparisonChart from './ComparisonChart';
 import DetailTable from './DetailTable';
 import ActionPlanPanel from './ActionPlanPanel';
 import EvidencePanel from './EvidencePanel';
-import { MONTHS } from '../utils/kpiData';
+import { MONTHS, aggregateRatio } from '../utils/kpiData';
 import { Table, BarChart3, PencilLine } from 'lucide-react';
 
 function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey) {
@@ -58,10 +58,11 @@ function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey
         if (!valid.length) return null;
         return valid.reduce((s, d) => s + d[field], 0) / valid.length;
       };
+      const result = (rows) => isRatioKPI ? aggregateRatio(rows) : avg(rows, resultField);
       return {
         period: h,
-        currentResult: avg(curQs, resultField),
-        previousResult: avg(prevQs, resultField),
+        currentResult: result(curQs),
+        previousResult: result(prevQs),
         target: !isRatioKPI ? avg(curQs, 'target') : null,
         currentAchievement: !isRatioKPI ? avg(curQs, 'achievement') : null,
       };
@@ -76,9 +77,10 @@ function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey
     if (!valid.length) return null;
     return valid.reduce((s, d) => s + d[field], 0) / valid.length;
   };
+  const result = (rows) => isRatioKPI ? aggregateRatio(rows) : avg(rows, resultField);
   return [
-    { period: selectedYear, currentResult: avg(currentData, resultField), previousResult: avg(prevData, resultField), target: !isRatioKPI ? avg(currentData, 'target') : null, currentAchievement: !isRatioKPI ? avg(currentData, 'achievement') : null },
-    { period: prevYearStr, currentResult: avg(prevData, resultField), previousResult: null, target: !isRatioKPI ? avg(prevData, 'target') : null, currentAchievement: !isRatioKPI ? avg(prevData, 'achievement') : null },
+    { period: selectedYear, currentResult: result(currentData), previousResult: result(prevData), target: !isRatioKPI ? avg(currentData, 'target') : null, currentAchievement: !isRatioKPI ? avg(currentData, 'achievement') : null },
+    { period: prevYearStr, currentResult: result(prevData), previousResult: null, target: !isRatioKPI ? avg(prevData, 'target') : null, currentAchievement: !isRatioKPI ? avg(prevData, 'achievement') : null },
   ];
 }
 

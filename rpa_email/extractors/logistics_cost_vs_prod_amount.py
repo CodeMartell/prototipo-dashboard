@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 from pathlib import Path
 from typing import Any
 
@@ -9,7 +10,26 @@ from rpa_email.extractors.models import LogisticsVsProdRow
 
 
 KPI_KEY = "logistics_vs_prod"
-DISPLAY_NAME = "Logistics Cost x Prod Amount"
+DISPLAY_NAME = "Incidental Cost"
+
+RATIO_ABSOLUTE_TOLERANCE = 0.0005
+FIRST_DATA_YEAR = 2024
+YEAR_MONTH_PATTERN = re.compile(r"^(\d{4})-(\d{2})$")
+
+
+def _period_columns(header_row: dict[int, Any]) -> list[tuple[int, str, str]]:
+    periods = []
+    for column, raw_period in header_row.items():
+        match = YEAR_MONTH_PATTERN.fullmatch(str(raw_period).strip())
+        if not match:
+            continue
+        year, month_number = map(int, match.groups())
+        if year < FIRST_DATA_YEAR or not 1 <= month_number <= 12:
+            continue
+        periods.append((column, f"Y{str(year)[-2:]}", MONTHS[month_number - 1]))
+    if not periods:
+        raise ValueError("nenhum período mensal válido encontrado na linha 6")
+    return sorted(periods)
 
 
 def _row(month: str, year: str, cost: object, production: object, ratio: object | None = None) -> LogisticsVsProdRow:
@@ -17,9 +37,26 @@ def _row(month: str, year: str, cost: object, production: object, ratio: object 
     production_amount = parse_number(production)
     if logistics_cost < 0 or production_amount <= 0:
         raise ValueError(f"custo/produção inválido em {month}/{year}")
-    ratio_value = parse_number(ratio) if ratio is not None else logistics_cost / production_amount
+
+    ratio_value = logistics_cost / production_amount
     if ratio_value < 0 or not math.isfinite(ratio_value):
         raise ValueError(f"razão inválida em {month}/{year}")
+
+    if ratio is not None:
+        reported_ratio = parse_number(ratio)
+        if reported_ratio < 0 or not math.isfinite(reported_ratio):
+            raise ValueError(f"percentual informado inválido em {month}/{year}")
+        if not math.isclose(
+            ratio_value,
+            reported_ratio,
+            rel_tol=0.0,
+            abs_tol=RATIO_ABSOLUTE_TOLERANCE,
+        ):
+            raise ValueError(
+                f"percentual divergente em {month}/{year}: "
+                f"calculado={ratio_value:.6f}, informado={reported_ratio:.6f}"
+            )
+
     return LogisticsVsProdRow(
         month=month,
         year=year,
@@ -37,30 +74,27 @@ def extract(source: Path) -> list[LogisticsVsProdRow]:
     """
 
     rows = read_sheet(source, "Incidental Cost (MUSD)")
-    if len(rows) < 95:
-        raise ValueError("A aba Incidental Cost (MUSD) não contém as linhas 82 e 95")
+    if len(rows) < 96:
+        raise ValueError("A aba Incidental Cost (MUSD) não contém as linhas 82, 95 e 96")
+    header_row = rows[5]
     cost_row = rows[81]
     production_row = rows[94]
+    reported_ratio_row = rows[95]
     records = []
-    periods = (
-        ("Y25", MONTHS, 20),
-        # O layout 26.07 publica Jan-Jul em AG:AM. As colunas seguintes
-        # contêm controles/acumulados (incluindo marcadores como ``0x17``),
-        # portanto não representam Ago-Dez.
-        ("Y26", MONTHS[:7], 32),
-    )
-    for year, months, first_column in periods:
-        for index, month in enumerate(months):
-            cost = cost_row.get(first_column + index)
-            production = production_row.get(first_column + index)
-            # A fonte costuma trazer fórmulas/valores projetados na linha de
-            # custo antes de publicar o Prod. Amt. do mês. Sem denominador o
-            # período ainda não está fechado e deve ser ignorado.
-            if production is None:
-                continue
-            if cost is None:
-                raise ValueError(f"custo ausente em {month}/{year}")
-            records.append(_row(month, year, cost, production))
+    for column, year, month in _period_columns(header_row):
+        cost = cost_row.get(column)
+        production = production_row.get(column)
+        reported_ratio = reported_ratio_row.get(column)
+        # A fonte costuma trazer fórmulas/valores projetados na linha de
+        # custo antes de publicar o Prod. Amt. do mês. Sem denominador o
+        # período ainda não está fechado e deve ser ignorado.
+        if production is None:
+            continue
+        if cost is None:
+            raise ValueError(f"custo ausente em {month}/{year}")
+        if reported_ratio is None:
+            raise ValueError(f"percentual ausente em {month}/{year}")
+        records.append(_row(month, year, cost, production, reported_ratio))
     return records
 
 

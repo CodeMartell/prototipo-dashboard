@@ -59,6 +59,15 @@ export const aggregateField = (rows, field, mode = 'avg') => {
   return mode === 'sum' ? total : total / valid.length;
 };
 
+/** Razão ponderada do Incidental Cost: soma dos custos / soma da produção. */
+export const aggregateRatio = (rows = []) => {
+  const logisticsCost = aggregateField(rows, 'logisticsCost', 'sum');
+  const productionAmount = aggregateField(rows, 'productionAmount', 'sum');
+  return isNumber(logisticsCost) && isNumber(productionAmount) && productionAmount > 0
+    ? logisticsCost / productionAmount
+    : null;
+};
+
 /**
  * Converte a serie mensal vinda da API na visao trimestral que os
  * agrupamentos (trimestral / semestral / anual) consomem.
@@ -92,7 +101,7 @@ export const buildQuarterlySeries = (monthlyRows = [], { aggregate = 'avg', valu
         productionAmount,
         target: null,
         achievement: null,
-        ratio: isNumber(logisticsCost) && productionAmount ? logisticsCost / productionAmount : null,
+        ratio: aggregateRatio(rows),
       };
     }
 

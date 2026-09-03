@@ -87,7 +87,7 @@ const KPI_CATALOG = [
   {
     key: 'logisticsVsProd',
     dataKey: 'logistics_vs_prod',
-    name: 'Logistics Cost x Prod Amount',
+    name: 'Incidental Cost',
     unit: 'Ratio',
     aggregate: 'avg',
     valueKey: 'ratio',

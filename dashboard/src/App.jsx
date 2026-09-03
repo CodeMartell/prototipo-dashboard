@@ -43,7 +43,7 @@ const KPI_CATALOG = [
   {
     key: 'incidentialCost',
     dataKey: 'incidental_cost',
-    name: 'Logistics Cost Resin Consolidation',
+    name: 'Resin Consolidation',
     unit: 'KUSD',
     aggregate: 'sum',
     valueKey: 'result',
@@ -236,7 +236,7 @@ function App() {
 
     const dismissedIds = JSON.parse(localStorage.getItem('analytics_dismissed_alerts') || '[]');
     const verifiedIds = JSON.parse(localStorage.getItem('analytics_verified_alerts') || '[]');
-    
+
     const processedAlerts = results.filter(r => !dismissedIds.includes(r.id)).map(r => ({
       ...r,
       verified: verifiedIds.includes(r.id)
@@ -251,13 +251,13 @@ function App() {
   }, [runAnalysis]);
 
   // --- EVENTOS DO PAINEL DE ANALYTICS ---
-  
+
   const handleRunAnalysis = () => {
     setIsAnalyzing(true);
     setTimeout(() => {
       runAnalysis();
       setIsAnalyzing(false);
-      
+
       const results = runFullAnalysis(analysisDatasets, configs);
 
       const newLog = {
@@ -354,7 +354,7 @@ function App() {
     () => (isAnalyticsAllowed ? alerts.filter(a => !a.verified) : []),
     [alerts, isAnalyticsAllowed]
   );
-  
+
   const kpisWithAlerts = useMemo(() => {
     return Array.from(new Set(activeAlerts.map(a => a.kpiKey)));
   }, [activeAlerts]);
@@ -528,10 +528,10 @@ function App() {
 
   return (
     <div className="app-layout">
-      <Sidebar 
-        activeItem={activeTab} 
-        onNavigate={handleSidebarNavigate} 
-        onOpenHelp={() => setIsMetricsModalOpen(true)} 
+      <Sidebar
+        activeItem={activeTab}
+        onNavigate={handleSidebarNavigate}
+        onOpenHelp={() => setIsMetricsModalOpen(true)}
         alertsCount={activeAlerts.length}
         kpisWithAlerts={kpisWithAlerts}
         canAccessAnalytics={isAnalyticsAllowed}

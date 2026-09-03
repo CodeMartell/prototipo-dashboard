@@ -19,8 +19,8 @@ const NAV_ITEMS = [
   { id: 'totalCost', icon: TrendingDown, label: 'Task Cost Reduction', badge: 'KBRL' },
   { id: 'airFreight', icon: Plane, label: 'Air Freight', badge: '%' },
   { id: 'demurrage', icon: Anchor, label: 'Demurrage Cost', badge: 'CTNR' },
-  { id: 'logisticsVsProd', icon: Package, label: 'Logistics Cost x Prod Amount', badge: 'Ratio' },
-  { id: 'incidentialCost', icon: Layers, label: 'Resin Consolidation', badge: 'KUSD' },
+  { id: 'logisticsVsProd', icon: Package, label: 'Incidental Cost', badge: 'Ratio' },
+  { id: 'incidentialCost', icon: Layers, label: 'Logistics Cost Resin Consolidation', badge: 'KUSD' },
   { id: 'analytics', icon: BarChart2, label: 'Analytics', badge: 'New' },
 ];
 

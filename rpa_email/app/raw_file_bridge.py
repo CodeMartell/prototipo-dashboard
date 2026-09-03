@@ -160,6 +160,10 @@ class RawFileBridge:
     def _to_extraction_result(self, raw: dict[str, list[dict]]) -> ExtractionResult:
         result = ExtractionResult()
         
+        # Mapeia os dados da resina para o incidental_cost (configuração temporária do PO)
+        if "incidental_cost_resin" in raw and raw["incidental_cost_resin"]:
+            raw["incidental_cost"] = raw["incidental_cost_resin"]
+            
         for kpi_key in ("logistic_cost", "air_freight", "incidental_cost", "total_cost", "demurrage"):
             records = raw.get(kpi_key, [])
             for record in records:

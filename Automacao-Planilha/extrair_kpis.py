@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -512,45 +513,62 @@ def build_demurrage(source: Path, output: Path) -> None:
 def extract_resin_data(source: Path) -> list[dict]:
     src_wb = load_workbook(source, data_only=True, read_only=True)
     src = src_wb.active
-    data25 = [[source_value(src.cell(row, col).value) for col in range(6, 18)] for row in range(21, 27)]
-    data26 = [[src.cell(row, col).value for col in range(20, 32)] for row in range(21, 27)]
-    src_wb.close()
-
-    known_months = sum(1 for value in data26[0] if value is not None)
-    ratio40 = sum(data26[0][:known_months]) / sum(data25[0][:known_months]) if known_months > 0 and sum(data25[0][:known_months]) > 0 else 1.0
-    ratio20 = sum(data26[1][:known_months]) / sum(data25[1][:known_months]) if known_months > 0 and sum(data25[1][:known_months]) > 0 else 1.0
-    unit_cost = sum(data26[3][:known_months]) / sum(data26[0][:known_months]) if known_months > 0 and sum(data26[0][:known_months]) > 0 else 1.0
-
-    records = []
-    for idx, month in enumerate(MONTHS):
-        res = data25[5][idx]
-        if res is not None:
-            try:
-                res_val = float(res)
-                records.append({"month": month, "year": "Y25", "target": 0.0, "result": res_val, "achievement": None})
-            except ValueError:
-                pass
     
-    for idx, month in enumerate(MONTHS):
-        informed = data26[0][idx] is not None
-        qty40 = data26[0][idx] if informed else round(data25[0][idx] * ratio40)
+    records = []
+    
+    # 2025: Coluna F (6) até Q (17) -> jan a dez
+    for i, month in enumerate(MONTHS):
+        col = 6 + i
+        target_val = src.cell(row=23, column=col).value
+        cost1_val = src.cell(row=24, column=col).value
+        cost2_val = src.cell(row=25, column=col).value
         
-        if informed:
-            res_val = data26[5][idx]
-        else:
-            qty20 = round(data25[1][idx] * ratio20)
-            cost = round(qty40 * unit_cost, 2)
-            saving_val = round(qty20 * 3.958, 2)
-            br_tax = round(cost * 0.3439, 2)
-            res_val = round(saving_val - cost - br_tax, 2)
+        try:
+            t = float(target_val) if target_val is not None else 0.0
+            c1 = float(cost1_val) if cost1_val is not None else 0.0
+            c2 = float(cost2_val) if cost2_val is not None else 0.0
             
-        if res_val is not None:
-            try:
-                res_val = float(res_val)
-                records.append({"month": month, "year": "Y26", "target": 0.0, "result": res_val, "achievement": None})
-            except ValueError:
-                pass
-                
+            # Aplica a fórmula segura: Linha 23 - Linha 24 - Linha 25
+            r = round(t - c1 - c2, 2)
+            
+            if t != 0.0 or r != 0.0:
+                records.append({
+                    "month": month,
+                    "year": "Y25",
+                    "target": t,
+                    "result": r,
+                    "achievement": None
+                })
+        except (ValueError, TypeError):
+            pass
+            
+    # 2026: Coluna T (20) até AE (31) -> jan a dez
+    for i, month in enumerate(MONTHS):
+        col = 20 + i
+        target_val = src.cell(row=23, column=col).value
+        cost1_val = src.cell(row=24, column=col).value
+        cost2_val = src.cell(row=25, column=col).value
+        
+        try:
+            t = float(target_val) if target_val is not None else 0.0
+            c1 = float(cost1_val) if cost1_val is not None else 0.0
+            c2 = float(cost2_val) if cost2_val is not None else 0.0
+            
+            # Aplica a fórmula segura: Linha 23 - Linha 24 - Linha 25
+            r = round(t - c1 - c2, 2)
+            
+            if t != 0.0 or r != 0.0:
+                records.append({
+                    "month": month,
+                    "year": "Y26",
+                    "target": t,
+                    "result": r,
+                    "achievement": None
+                })
+        except (ValueError, TypeError):
+            pass
+
+    src_wb.close()
     return records
 
 

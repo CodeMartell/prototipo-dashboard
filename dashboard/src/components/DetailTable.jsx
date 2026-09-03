@@ -1,11 +1,12 @@
 import { Trophy, AlertTriangle, Table as TableIcon } from 'lucide-react';
-import { formatPercent, formatCurrency } from '../utils/formatters';
+import { formatPercent, formatCurrency, formatMetricValue } from '../utils/formatters';
 
-const formatCell = (value, format) => {
+const formatCell = (value, format, unit) => {
   if (value === null || value === undefined) return '—';
+  if (format === 'metric') return formatMetricValue(value, unit);
   if (format === 'percent') return formatPercent(value);
   if (format === 'currency') return formatCurrency(value);
-  if (format === 'achievement') return value !== null ? `${(value * 100).toFixed(0)}%` : '—';
+  if (format === 'achievement') return `${(value * 100).toFixed(0)}%`;
   return value;
 };
 
@@ -69,7 +70,7 @@ export default function DetailTable({
               >
                 {columns.map((col, colIndex) => {
                   const value = row[col.key];
-                  const formatted = formatCell(value, col.format);
+                  const formatted = formatCell(value, col.format, col.unit);
 
                   // First column: period name with icons
                   if (colIndex === 0) {

@@ -1,7 +1,17 @@
 import { beforeEach, afterEach, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchDashboardData, login, logout, getToken, getCurrentUser, UnauthorizedError } from './api.js';
-import { canAccessAnalytics } from './permissions.js';
+import {
+  deleteKpiRecord,
+  fetchDashboardData,
+  getCurrentUser,
+  getToken,
+  login,
+  logout,
+  saveKpiRecord,
+  saveLogisticsVsProd,
+  UnauthorizedError,
+} from './api.js';
+import { canAccessAnalytics, canEditKpiData } from './permissions.js';
 
 const originalFetch = globalThis.fetch;
 const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
@@ -62,10 +72,25 @@ for (const failure of ['unauthorized', 'server', 'network', 'invalid-user', 'inv
   });
 }
 
+const KPI_KEYS = [
+  'logistic_cost',
+  'air_freight',
+  'incidental_cost',
+  'total_cost',
+  'demurrage',
+];
+
+/** Resposta de GET /api/kpis/dashboard com as mesmas linhas em cada indicador. */
+function dashboardPayload(rows, logisticsVsProdRows = []) {
+  const payload = Object.fromEntries(KPI_KEYS.map((key) => [key, rows]));
+  payload.logistics_vs_prod = logisticsVsProdRows;
+  return payload;
+}
+
 test('logistics vs production maps FastAPI fields to the React contract, preserving zero', async () => {
-  globalThis.fetch = async (path) => Response.json(path.endsWith('logistics-vs-prod')
-    ? [{ month: 'Jan', year: '2026', logistics_cost: 0, production_amount: 25, ratio: 0 }]
-    : []);
+  globalThis.fetch = async () => Response.json(
+    dashboardPayload([], [{ month: 'Jan', year: '2026', logistics_cost: 0, production_amount: 25, ratio: 0 }])
+  );
   const data = await fetchDashboardData();
   assert.deepEqual(data.logistic_cost, []);
   assert.deepEqual(data.air_freight, []);
@@ -76,28 +101,53 @@ test('logistics vs production maps FastAPI fields to the React contract, preserv
   assert.equal(record.year, 'Y26');
 });
 
-test('dashboard calls all endpoints with token and normalizes years', async () => {
+test('dashboard loads every indicator in a single call and normalizes years', async () => {
   localStorage.setItem('datalens_token', 'test-token');
   const paths = [];
+  const rows = [
+    { month: 'Jan', year: '2026', result: 0.05 },
+    { month: 'Feb', year: 'Y25', result: 0.03 },
+  ];
   globalThis.fetch = async (path, options) => {
     paths.push(path);
     assert.equal(options.headers.Authorization, 'Bearer test-token');
-    return Response.json([{ month: 'Jan', year: '2026', result: 0.05 }, { month: 'Feb', year: 'Y25', result: 0.03 }]);
+    return Response.json(dashboardPayload(rows, rows));
   };
   const data = await fetchDashboardData();
-  assert.deepEqual(paths.sort(), [
-    '/api/kpis/air_freight',
-    '/api/kpis/demurrage',
-    '/api/kpis/extra/logistics-vs-prod',
-    '/api/kpis/incidental_cost',
-    '/api/kpis/logistic_cost',
-    '/api/kpis/total_cost',
-  ]);
-  for (const rows of Object.values(data)) {
-    assert.equal(rows[0].year, 'Y26');
-    assert.equal(rows[1].year, 'Y25');
-    assert.equal(rows[0].result, 0.05);
+  assert.deepEqual(paths, ['/api/kpis/dashboard']);
+  assert.deepEqual(Object.keys(data).sort(), [...KPI_KEYS, 'logistics_vs_prod'].sort());
+  for (const kpiRows of Object.values(data)) {
+    assert.equal(kpiRows[0].year, 'Y26');
+    assert.equal(kpiRows[1].year, 'Y25');
+    assert.equal(kpiRows[0].result, 0.05);
   }
+});
+
+test('manual entry writes to the period route and keeps percent values as fractions', async () => {
+  localStorage.setItem('datalens_token', 'test-token');
+  const calls = [];
+  globalThis.fetch = async (path, options) => {
+    calls.push({
+      path,
+      method: options.method,
+      body: options.body ? JSON.parse(options.body) : null,
+    });
+    return Response.json({});
+  };
+
+  await saveKpiRecord('logistic_cost', { year: 'Y26', month: 'Sep', target: 0.042, result: 0.039 });
+  assert.equal(calls[0].path, '/api/kpis/logistic_cost/Y26/Sep');
+  assert.equal(calls[0].method, 'PUT');
+  assert.deepEqual(calls[0].body, { target: 0.042, result: 0.039, achievement: null });
+
+  // Ano em formato longo é convertido para o formato que o banco usa.
+  await saveLogisticsVsProd({ year: '2026', month: 'Sep', logisticsCost: 2.5, productionAmount: 50 });
+  assert.equal(calls[1].path, '/api/kpis/extra/logistics-vs-prod/Y26/Sep');
+  assert.deepEqual(calls[1].body, { logistics_cost: 2.5, production_amount: 50, ratio: null });
+
+  await deleteKpiRecord('demurrage', { year: 'Y25', month: 'Jan' });
+  assert.equal(calls[2].path, '/api/kpis/demurrage/Y25/Jan');
+  assert.equal(calls[2].method, 'DELETE');
 });
 
 test('expired session clears storage', async () => {
@@ -120,4 +170,10 @@ test('analytics is available only to ADMIN', () => {
   assert.equal(canAccessAnalytics({ role: 'ADMIN' }), true);
   assert.equal(canAccessAnalytics({ role: 'VISUALIZADOR' }), false);
   assert.equal(canAccessAnalytics(null), false);
+});
+
+test('manual entry is available only to ADMIN', () => {
+  assert.equal(canEditKpiData({ role: 'ADMIN' }), true);
+  assert.equal(canEditKpiData({ role: 'VISUALIZADOR' }), false);
+  assert.equal(canEditKpiData(null), false);
 });

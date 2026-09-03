@@ -3,8 +3,8 @@ import ComparisonChart from './ComparisonChart';
 import DetailTable from './DetailTable';
 import ActionPlanPanel from './ActionPlanPanel';
 import EvidencePanel from './EvidencePanel';
-import { MONTHS } from '../data/mockData';
-import { Table, BarChart3 } from 'lucide-react';
+import { MONTHS } from '../utils/kpiData';
+import { Table, BarChart3, PencilLine } from 'lucide-react';
 
 function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey) {
   const isRatioKPI = kpiKey === 'logisticsVsProd';
@@ -85,6 +85,7 @@ function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey
 export default function KPISection({
   kpiKey, title, icon: Icon, monthlyData, quarterlyData,
   accentColor, lowerIsBetter, unit, selectedYear, period, activePeriodLabel,
+  onEditData,
 }) {
   const [showTable, setShowTable] = useState(false);
   const [localSelectedPeriod, setLocalSelectedPeriod] = useState(null);
@@ -116,14 +117,14 @@ export default function KPISection({
   const currentYearLabel = `20${selectedYear.replace(/\D/g, '') || '26'}`;
 
   const columns = useMemo(() => {
-    const fmt = unit === '%' || unit === 'Ratio' ? 'percent' : unit === 'MUSD' ? 'currency' : 'number';
+    // 'metric' delega a formatação para a unidade do indicador.
     const cols = [
       { key: 'period', label: 'Period' },
-      { key: 'previousResult', label: prevYearLabel, format: fmt },
-      { key: 'currentResult', label: `${currentYearLabel} (Actual)`, format: fmt, highlight: true },
+      { key: 'previousResult', label: prevYearLabel, format: 'metric', unit },
+      { key: 'currentResult', label: `${currentYearLabel} (Actual)`, format: 'metric', unit, highlight: true },
     ];
     if (kpiKey !== 'logisticsVsProd') {
-      cols.splice(2, 0, { key: 'target', label: 'Target', format: fmt });
+      cols.splice(2, 0, { key: 'target', label: 'Target', format: 'metric', unit });
       cols.push({ key: 'currentAchievement', label: 'Achievement', format: 'achievement', highlight: true });
     }
     return cols;
@@ -146,6 +147,16 @@ export default function KPISection({
             {showTable ? <BarChart3 size={14} /> : <Table size={14} />}
             {showTable ? 'Chart' : 'Table'}
           </button>
+          {onEditData && (
+            <button
+              className="btn btn--primary"
+              onClick={() => onEditData(activePeriod)}
+              title="Enter or correct this indicator's values for a month"
+            >
+              <PencilLine size={14} />
+              Enter values
+            </button>
+          )}
         </div>
       </div>
 

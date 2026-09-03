@@ -12,14 +12,15 @@ import {
   Lock
 } from 'lucide-react';
 
+// Os badges acompanham a unidade real de cada indicador no banco.
 const NAV_ITEMS = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Overview', badge: 'Global' },
-  { id: 'logisticCost', icon: DollarSign, label: 'War Room Report', badge: 'KPI %' },
-  { id: 'totalCost', icon: TrendingDown, label: 'Task Cost Reduction', badge: 'MUSD' },
-  { id: 'airFreight', icon: Plane, label: 'Air Freight', badge: 'Air' },
-  { id: 'demurrage', icon: Anchor, label: 'Demurrage Cost', badge: 'KUSD' },
+  { id: 'logisticCost', icon: DollarSign, label: 'War Room Report', badge: '%' },
+  { id: 'totalCost', icon: TrendingDown, label: 'Task Cost Reduction', badge: 'KBRL' },
+  { id: 'airFreight', icon: Plane, label: 'Air Freight', badge: '%' },
+  { id: 'demurrage', icon: Anchor, label: 'Demurrage Cost', badge: 'CTNR' },
   { id: 'logisticsVsProd', icon: Package, label: 'Logistics Cost x Prod Amount', badge: 'Ratio' },
-  { id: 'incidentialCost', icon: Layers, label: 'Logistics Cost Resin Consolidtion', badge: '%' },
+  { id: 'incidentialCost', icon: Layers, label: 'Logistics Cost Resin Consolidation', badge: 'KUSD' },
   { id: 'analytics', icon: BarChart2, label: 'Analytics', badge: 'New' },
 ];
 

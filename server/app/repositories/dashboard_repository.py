@@ -3,11 +3,21 @@ app/repositories/dashboard_repository.py
 Única camada que sabe fazer SQL sobre os dados de KPI. Leitura (usada
 pelo dashboard/analysis) e escrita via upsert (usada pela ingestão).
 """
-from sqlalchemy import select
+from sqlalchemy import case, delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
+from app.core.kpi_meta import VALID_MONTHS
 from app.models.kpi import KPI_MODEL_MAP, LogisticsVsProd
+
+
+def _month_order(column):
+    """
+    Ordena por mês do calendário. Sem isso o Postgres ordena a string
+    ("Apr" antes de "Jan") e o frontend recebe a série fora de ordem —
+    o que quebra sparkline e cálculo de variação mês a mês.
+    """
+    return case({month: index for index, month in enumerate(VALID_MONTHS)}, value=column)
 
 
 class DashboardRepository:
@@ -21,11 +31,13 @@ class DashboardRepository:
             stmt = stmt.where(model.year == year)
         if month:
             stmt = stmt.where(model.month == month)
-        stmt = stmt.order_by(model.year, model.month)
+        stmt = stmt.order_by(model.year, _month_order(model.month))
         return list(self.db.scalars(stmt))
 
     def list_logistics_vs_prod(self) -> list[LogisticsVsProd]:
-        stmt = select(LogisticsVsProd).order_by(LogisticsVsProd.year, LogisticsVsProd.month)
+        stmt = select(LogisticsVsProd).order_by(
+            LogisticsVsProd.year, _month_order(LogisticsVsProd.month)
+        )
         return list(self.db.scalars(stmt))
 
     def upsert_kpi_record(
@@ -45,6 +57,14 @@ class DashboardRepository:
             set_={"target": target, "result": result, "achievement": achievement},
         )
         self.db.execute(stmt)
+
+    def delete_kpi_record(self, kpi_type: str, month: str, year: str) -> int:
+        """Remove o registro do período. Devolve quantas linhas foram apagadas."""
+        model = KPI_MODEL_MAP[kpi_type]
+        result = self.db.execute(
+            delete(model).where(model.month == month, model.year == year)
+        )
+        return result.rowcount or 0
 
     def upsert_logistics_vs_prod(
         self, month: str, year: str, logistics_cost: float, production_amount: float, ratio: float | None

@@ -25,8 +25,12 @@ def build_payload(extraction, message_id: str, subject: str, sender: str) -> dic
     extra = [asdict(row) for row in extraction.logistics_vs_prod]
     if not records and not extra:
         raise IngestionError('Nenhum registro valido extraido')
-    return {'email': {'message_id': message_id, 'subject': subject, 'sender': sender},
-            'records': records, 'logistics_vs_prod': extra}
+    return {
+        'email': {'message_id': message_id, 'subject': subject, 'sender': sender},
+        'records': records,
+        'logistics_vs_prod': extra,
+        'replace_kpis': sorted(extraction.replace_kpis),
+    }
 
 
 class ApiReportSender:

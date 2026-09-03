@@ -58,6 +58,13 @@ class DashboardRepository:
         )
         self.db.execute(stmt)
 
+    def delete_all_kpi_records(self, kpi_type: str) -> int:
+        """Limpa uma fotografia anterior antes de gravar a nova fonte oficial."""
+
+        model = KPI_MODEL_MAP[kpi_type]
+        result = self.db.execute(delete(model))
+        return result.rowcount or 0
+
     def delete_kpi_record(self, kpi_type: str, month: str, year: str) -> int:
         """Remove o registro do período. Devolve quantas linhas foram apagadas."""
         model = KPI_MODEL_MAP[kpi_type]

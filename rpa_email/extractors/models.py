@@ -32,4 +32,7 @@ class ExtractionResult:
     incidental_cost: list[KpiMonthlyRow] = field(default_factory=list)
     total_cost: list[KpiMonthlyRow] = field(default_factory=list)
     demurrage: list[KpiMonthlyRow] = field(default_factory=list)
+    # Indicadores cuja planilha representa a fotografia completa da fonte.
+    # A API substitui os períodos antigos em vez de preservar placeholders.
+    replace_kpis: set[str] = field(default_factory=set)
     errors: list[str] = field(default_factory=list)

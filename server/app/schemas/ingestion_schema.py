@@ -10,7 +10,7 @@ kpi_type aceita os 5 nomes padrão ("logistic_cost", "air_freight",
 target/result).
 """
 import re
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -78,9 +78,16 @@ class IngestionPayload(BaseModel):
     email: ProcessedEmailIn
     records: list[KpiReportIn] = Field(default_factory=list)
     logistics_vs_prod: list[LogisticsVsProdIn] = Field(default_factory=list)
+    replace_kpis: list[
+        Literal["logistic_cost", "air_freight", "incidental_cost", "total_cost", "demurrage"]
+    ] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def at_least_one_record(self):
         if not self.records and not self.logistics_vs_prod:
             raise ValueError("payload deve conter pelo menos um registro")
+        record_types = {record.kpi_type for record in self.records}
+        missing_snapshots = set(self.replace_kpis) - record_types
+        if missing_snapshots:
+            raise ValueError("replace_kpis exige registros do mesmo indicador")
         return self

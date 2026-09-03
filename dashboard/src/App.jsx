@@ -15,19 +15,24 @@ import { canAccessAnalytics, canEditKpiData } from './services/permissions';
 
 import {
   MONTHS,
+  QUARTER_MONTHS,
+  SEMESTER_MONTHS,
   aggregateField,
   aggregateRatio,
   buildQuarterlySeries,
   calculateVariation,
+  calculateDeviation,
+  calculateTargetAchievement,
+  toDisplayValue,
   getAvailableYears,
+  normalizeWarRoomRows,
 } from './utils/kpiData';
 
 import { runFullAnalysis, getDefaultConfigs } from './utils/analyticsEngine';
 
 /**
  * Definicao dos indicadores: nome, unidade, direcao e como agregar.
- * `dataKey` casa com a chave devolvida por GET /api/kpis/dashboard e
- * `key` e o id usado na sidebar e nas secoes de detalhe.
+ * Regra: Trimestral, Semestral e Anual sao calculados pela MEDIA dos meses.
  */
 const KPI_CATALOG = [
   {
@@ -46,7 +51,7 @@ const KPI_CATALOG = [
     dataKey: 'incidental_cost',
     name: 'Resin Consolidation',
     unit: 'KUSD',
-    aggregate: 'sum',
+    aggregate: 'avg',
     valueKey: 'result',
     lowerIsBetter: false, // saving: quanto maior, melhor
     color: '#2563EB',
@@ -57,7 +62,7 @@ const KPI_CATALOG = [
     dataKey: 'total_cost',
     name: 'Task Cost Reduction',
     unit: 'KBRL',
-    aggregate: 'sum',
+    aggregate: 'avg',
     valueKey: 'result',
     lowerIsBetter: false, // reducao alcancada: quanto maior, melhor
     color: '#1D4ED8',
@@ -68,7 +73,7 @@ const KPI_CATALOG = [
     dataKey: 'demurrage',
     name: 'Demurrage Cost',
     unit: 'CTNR',
-    aggregate: 'sum',
+    aggregate: 'avg',
     valueKey: 'result',
     lowerIsBetter: true,
     color: '#0EA5E9',
@@ -391,47 +396,37 @@ function App() {
     setSelectedSubPeriod(year);
   };
 
-  // Select period rows for active period
-  const selectPeriodRows = useCallback((monthlyArr, quarterlyArr, year) => {
+  // Seleciona as linhas mensais que compõem o período ativo (mês, trimestre, semestre ou ano)
+  const selectPeriodRows = useCallback((monthlyArr, _quarterlyArr, year) => {
     if (period === 'monthly') {
       return monthlyArr.filter((d) => d.year === year && d.month === selectedSubPeriod);
     }
     if (period === 'quarterly') {
-      return quarterlyArr.filter((d) => d.year === year && d.quarter === selectedSubPeriod);
+      const monthsOfQuarter = QUARTER_MONTHS[selectedSubPeriod] || [];
+      return monthlyArr.filter((d) => d.year === year && monthsOfQuarter.includes(d.month));
     }
     if (period === 'semiannual') {
-      const qList = selectedSubPeriod === 'H1' ? ['Q1', 'Q2'] : ['Q3', 'Q4'];
-      return quarterlyArr.filter((d) => d.year === year && qList.includes(d.quarter));
+      const monthsOfHalf = SEMESTER_MONTHS[selectedSubPeriod] || [];
+      return monthlyArr.filter((d) => d.year === year && monthsOfHalf.includes(d.month));
     }
-    return quarterlyArr.filter((d) => d.year === year);
+    // Anual: todos os meses do ano
+    return monthlyArr.filter((d) => d.year === year);
   }, [period, selectedSubPeriod]);
 
-  // Calculate period stats
-  const getPeriodStats = useCallback((monthlyArr, quarterlyArr, year, valueKey, aggregate, lowerIsBetter) => {
+  // Estatísticas do período: calculado SEMPRE pela MÉDIA dos meses componentes
+  const getPeriodStats = useCallback((monthlyArr, quarterlyArr, year, valueKey, _aggregate, _lowerIsBetter) => {
     const isRatio = valueKey === 'ratio';
     const rows = selectPeriodRows(monthlyArr, quarterlyArr, year);
 
-    const result = isRatio ? aggregateRatio(rows) : aggregateField(rows, valueKey, aggregate);
-    const target = isRatio ? null : aggregateField(rows, 'target', aggregate);
-
-    let achievement = null;
-    if (!isRatio) {
-      if (aggregate === 'sum') {
-        // Séries somadas: recalcula do total, respeitando a direção do KPI.
-        if (result !== null && target !== null) {
-          const [numerator, denominator] = lowerIsBetter ? [target, result] : [result, target];
-          achievement = denominator === 0 ? (numerator === 0 ? 1 : null) : numerator / denominator;
-        }
-      } else {
-        achievement = aggregateField(rows, 'achievement', 'avg');
-      }
-    }
+    const result = isRatio ? aggregateRatio(rows) : aggregateField(rows, valueKey, 'avg');
+    const target = isRatio ? null : aggregateField(rows, 'target', 'avg');
+    const achievement = isRatio ? null : aggregateField(rows, 'achievement', 'avg');
 
     return { result, target, achievement };
   }, [selectPeriodRows]);
 
-  // Subperiod metrics helper
-  const getSubPeriodMetric = useCallback((monthlyArr, quarterlyArr, valueKey = 'result', aggregate = 'avg', lowerIsBetter = true) => {
+  // Helper para métricas do subperíodo ativo
+  const getSubPeriodMetric = useCallback((monthlyArr, quarterlyArr, valueKey = 'result', aggregate = 'avg', lowerIsBetter = true, unit = '%') => {
     const isAnnual = period === 'annual';
     const subLabel = isAnnual ? currentYearLabel : `${selectedSubPeriod}/${currentYearLabel.substring(2)}`;
     const prevSubLabel = isAnnual ? prevYearLabel : `${selectedSubPeriod}/${prevYearLabel.substring(2)}`;
@@ -439,14 +434,17 @@ function App() {
     const current = getPeriodStats(monthlyArr, quarterlyArr, selectedYear, valueKey, aggregate, lowerIsBetter);
     const previous = getPeriodStats(monthlyArr, quarterlyArr, prevYear, valueKey, aggregate, lowerIsBetter);
 
-    let variation = null;
-    let variationAbs = null;
-    if (current.result !== null && previous.result !== null) {
-      variation = calculateVariation(current.result, previous.result);
-      variationAbs = current.result - previous.result;
-    }
+    const currDisp = toDisplayValue(current.result, unit);
+    const prevDisp = toDisplayValue(previous.result, unit);
+    const targetDisp = toDisplayValue(current.target, unit);
+    const prevTargetDisp = toDisplayValue(previous.target, unit);
 
-    // Sparkline with monthly series of selected year
+    const variation = calculateVariation(currDisp, prevDisp);
+    const variationAbs = calculateDeviation(currDisp, prevDisp);
+    const achievement = calculateTargetAchievement(currDisp, targetDisp);
+    const prevAchievement = calculateTargetAchievement(prevDisp, prevTargetDisp);
+
+    // Sparkline com série mensal do ano selecionado
     const sparkline = monthlyArr
       .filter((d) => d.year === selectedYear && d[valueKey] !== null && d[valueKey] !== undefined)
       .map((d) => ({ value: d[valueKey] }));
@@ -454,10 +452,10 @@ function App() {
     return {
       latest: current.result,
       target: current.target,
-      achievement: current.achievement,
+      achievement,
       prevValue: previous.result,
       prevTarget: previous.target,
-      prevAchievement: previous.achievement,
+      prevAchievement,
       variation,
       variationAbs,
       sparkline,
@@ -469,17 +467,19 @@ function App() {
 
   /**
    * Indicadores prontos para consumo: série mensal vem da API e a visão
-   * trimestral (base de trimestre / semestre / ano) é derivada dela.
+   * trimestral (base de trimestre / semestre / ano) é derivada dela por MÉDIA.
    */
   const kpiDefinitions = useMemo(
     () =>
       KPI_CATALOG.map((def) => {
-        const monthly = datasets[def.dataKey] || [];
+        const sourceRows = datasets[def.dataKey] || [];
+        const monthly = def.key === 'logisticCost'
+          ? normalizeWarRoomRows(sourceRows)
+          : sourceRows;
         return {
           ...def,
           monthly,
           quarterly: buildQuarterlySeries(monthly, {
-            aggregate: def.aggregate,
             valueKey: def.valueKey,
             lowerIsBetter: def.lowerIsBetter,
           }),
@@ -492,7 +492,7 @@ function App() {
     () =>
       kpiDefinitions.map((def) => ({
         ...def,
-        ...getSubPeriodMetric(def.monthly, def.quarterly, def.valueKey, def.aggregate, def.lowerIsBetter),
+        ...getSubPeriodMetric(def.monthly, def.quarterly, def.valueKey, def.aggregate, def.lowerIsBetter, def.unit),
       })),
     [kpiDefinitions, getSubPeriodMetric]
   );
@@ -571,9 +571,9 @@ function App() {
               auditLog={auditLog}
               configs={configs}
               datasets={{
-                logisticCost: logisticCostState,
-                airFreight: airFreightState,
-                logisticsVsProd: logisticsVsProdState,
+                logisticCost: datasets.logistic_cost,
+                airFreight: datasets.air_freight,
+                logisticsVsProd: datasets.logistics_vs_prod,
               }}
               availableYears={availableYears}
               selectedYear={selectedYear}

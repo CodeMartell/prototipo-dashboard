@@ -1,5 +1,9 @@
 import React from 'react';
-import { formatMetricValue } from '../utils/formatters';
+import {
+  formatMetricValue,
+  formatTargetAchievement,
+  getAchievementStatusClass,
+} from '../utils/formatters';
 
 const PERIOD_NOUN = {
   monthly: 'Month',
@@ -24,10 +28,13 @@ export default function KPIComparisonMatrix({
 
   const renderAchievement = (value) => {
     if (value === null || value === undefined) return '—';
-    const status = value >= 1 ? 'good' : value >= 0.8 ? 'alert' : 'critical';
+    const num = Number(value);
+    const pct = num <= 1 && num > 0 ? num * 100 : num;
+    const formatted = formatTargetAchievement(pct);
+    const status = getAchievementStatusClass(pct);
     return (
       <span className={`achievement-pill ${status}`}>
-        {(value * 100).toFixed(0)}%
+        {formatted}
       </span>
     );
   };

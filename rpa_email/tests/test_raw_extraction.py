@@ -10,9 +10,11 @@ def _save_raw_workbooks(folder):
     war_sheet = war_room.active
     war_sheet.title = "Logistic"
     war_sheet.cell(68, 1, "TV")
+    war_sheet.cell(68, 21, 0.06)  # U, Jan/Y24
     war_sheet.cell(68, 34, 0.05)  # AH, Jan/Y25
     war_sheet.cell(68, 60, 0.04)  # BH, target Jan/Y26
     war_sheet.cell(68, 73, 0.03)  # BU, result Jan/Y26
+    war_sheet.cell(68, 83, 0)     # CE, Nov/Y26 ainda sem dado
     war_room.save(folder / "War Room.xlsx")
     war_room.close()
 
@@ -66,7 +68,7 @@ def test_raw_xlsx_files_are_routed_to_domain_extractors(tmp_path):
     result = RawReportExtractor().extract(tmp_path)
 
     assert result.errors == []
-    assert len(result.logistic_cost) == 2
+    assert len(result.logistic_cost) == 3
     assert len(result.air_freight) == 1
     assert len(result.total_cost) == 2
     assert len(result.demurrage) == 2
@@ -76,6 +78,12 @@ def test_raw_xlsx_files_are_routed_to_domain_extractors(tmp_path):
     assert result.demurrage[0].achievement == 1.0
     assert result.logistics_vs_prod[0].ratio == 0.2
     assert result.logistics_vs_prod[1].ratio == 0.25
+    assert result.replace_kpis == {"logistic_cost"}
+    assert [(row.year, row.month) for row in result.logistic_cost] == [
+        ("Y24", "Jan"),
+        ("Y25", "Jan"),
+        ("Y26", "Jan"),
+    ]
 
 
 def test_raw_extractor_does_not_estimate_missing_months(tmp_path):

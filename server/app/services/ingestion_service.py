@@ -27,6 +27,12 @@ class IngestionService:
         if self.processed_email_repository.exists(payload.email.message_id):
             return {"status": "skipped", "reason": "e-mail já processado"}
 
+        # Alguns relatórios, como o War Room U:CG, são fotografias completas.
+        # Limpar antes do upsert impede que meses/anos ausentes permaneçam como
+        # dados antigos ou placeholders no dashboard.
+        for kpi_type in payload.replace_kpis:
+            self.dashboard_repository.delete_all_kpi_records(kpi_type)
+
         for record in payload.records:
             if record.kpi_type not in KPI_MODEL_MAP:
                 valid = ", ".join(KPI_MODEL_MAP)

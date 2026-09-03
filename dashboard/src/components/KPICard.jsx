@@ -1,6 +1,18 @@
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Area, AreaChart, ResponsiveContainer } from 'recharts';
-import { formatMetricValue } from '../utils/formatters';
+import {
+  formatMetricValue,
+  formatVariation,
+  formatDeviation,
+  formatTargetAchievement,
+  getAchievementStatusClass,
+} from '../utils/formatters';
+import {
+  toDisplayValue,
+  calculateVariation,
+  calculateDeviation,
+  calculateTargetAchievement,
+} from '../utils/kpiData';
 
 export default function KPICard({
   title,
@@ -22,16 +34,44 @@ export default function KPICard({
 
   const formatValue = (val) => formatMetricValue(val, unit);
 
+  // Valores normalizados para a unidade de exibição (ex: 0.0538 -> 5.38 para %)
+  const currDisp = toDisplayValue(currentValue, unit);
+  const prevDisp = toDisplayValue(previousValue, unit);
+  const targetDisp = toDisplayValue(targetValue, unit);
+
+  // Cálculos dinâmicos
+  const calcVariation = variation !== undefined && variation !== null
+    ? variation
+    : calculateVariation(currDisp, prevDisp);
+
+  const calcDeviation = variationAbsolute !== undefined && variationAbsolute !== null
+    ? variationAbsolute
+    : calculateDeviation(currDisp, prevDisp);
+
+  const calcAchievement = achievement !== undefined && achievement !== null
+    ? (achievement <= 1 && achievement > 0 && !String(achievement).includes('%') && targetDisp !== null
+        ? calculateTargetAchievement(currDisp, targetDisp)
+        : achievement)
+    : calculateTargetAchievement(currDisp, targetDisp);
+
+  const formattedVariation = formatVariation(calcVariation);
+  const formattedDeviation = formatDeviation(calcDeviation, unit);
+  const formattedAchievement = formatTargetAchievement(calcAchievement);
+  const achievementStatusClass = getAchievementStatusClass(calcAchievement);
+
   const getVariationClass = () => {
-    if (variation === null || variation === undefined) return 'neutral';
-    if (lowerIsBetter) return variation <= 0 ? 'positive' : 'negative';
-    return variation >= 0 ? 'positive' : 'negative';
+    if (calcVariation === null || calcVariation === undefined) return 'neutral';
+    if (Math.abs(calcVariation) < 0.000001 || calcVariation.toFixed(2) === '0.00') return 'neutral';
+    if (lowerIsBetter) return calcVariation < 0 ? 'positive' : 'negative';
+    return calcVariation > 0 ? 'positive' : 'negative';
   };
 
   const variationClass = getVariationClass();
 
   const VariationIcon = () => {
-    if (variation === null || variation === undefined) return <Minus size={12} />;
+    if (calcVariation === null || calcVariation === undefined || variationClass === 'neutral') {
+      return <Minus size={12} />;
+    }
     if (variationClass === 'positive') {
       return lowerIsBetter ? <TrendingDown size={12} /> : <TrendingUp size={12} />;
     }
@@ -39,8 +79,9 @@ export default function KPICard({
   };
 
   const isClickable = typeof onClick === 'function';
+  const hasCurrentData = currentValue !== null && currentValue !== undefined;
 
-  // Cartao clicavel precisa ser alcancavel por teclado, nao so por mouse.
+  // Cartão clicável precisa ser alcançável por teclado, não só por mouse.
   const handleKeyDown = (event) => {
     if (!isClickable) return;
     if (event.key === 'Enter' || event.key === ' ') {
@@ -65,8 +106,10 @@ export default function KPICard({
       </div>
 
       <div className="kpi-card__value-row">
-        <div className="kpi-card__value">{formatValue(currentValue)}</div>
-        {targetValue !== null && targetValue !== undefined && (
+        <div className="kpi-card__value">
+          {hasCurrentData ? formatValue(currentValue) : 'No data'}
+        </div>
+        {hasCurrentData && targetValue !== null && targetValue !== undefined && (
           <div className="kpi-card__target-badge" title="Target for selected period">
             Target: {formatValue(targetValue)}
           </div>
@@ -74,19 +117,23 @@ export default function KPICard({
       </div>
 
       <div className="kpi-card__badges">
-        {variation !== null && variation !== undefined ? (
+        {!hasCurrentData ? (
+          <span className="kpi-card__variation neutral">
+            <Minus size={12} /> No data for selected period
+          </span>
+        ) : formattedVariation !== null ? (
           <span className={`kpi-card__variation ${variationClass}`}>
             <VariationIcon />
-            {variation > 0 ? '+' : ''}{variation.toFixed(1)}%
+            {formattedVariation}
           </span>
         ) : (
           <span className="kpi-card__variation neutral">
             <Minus size={12} /> No variation
           </span>
         )}
-        {achievement !== null && achievement !== undefined && (
-          <span className={`achievement-pill ${achievement >= 1 ? 'good' : 'alert'}`} title="Target achievement for period">
-            {(achievement * 100).toFixed(0)}%
+        {formattedAchievement !== null && (
+          <span className={`achievement-pill ${achievementStatusClass}`} title="Target achievement for period">
+            {formattedAchievement}
           </span>
         )}
       </div>
@@ -116,10 +163,15 @@ export default function KPICard({
 
       {previousLabel && (
         <div className="kpi-card__prev">
-          <span>Previous period ({previousLabel}):</span> <strong>{formatValue(previousValue)}</strong>
-          {variationAbsolute !== null && variationAbsolute !== undefined && (
+          <span>Previous period ({previousLabel}):</span>{' '}
+          <strong>
+            {previousValue !== null && previousValue !== undefined
+              ? formatValue(previousValue)
+              : 'No data'}
+          </strong>
+          {formattedDeviation !== null && (
             <span className="kpi-card__diff">
-              {' '}· Deviation {variationAbsolute > 0 ? '+' : ''}{formatValue(variationAbsolute)}
+              {' '}· Deviation {formattedDeviation}
             </span>
           )}
         </div>

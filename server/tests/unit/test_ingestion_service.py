@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import pytest
 from pydantic import ValidationError
@@ -24,6 +24,26 @@ def test_ingestion_persists_and_commits():
                                                       target=0.04, result=0.05, achievement=None)
     assert emails.create.call_args.args[0].message_id == "<test@example.com>"
     dashboard.commit.assert_called_once()
+
+
+def test_snapshot_replaces_existing_indicator_before_upsert():
+    dashboard, emails = Mock(), Mock()
+    emails.exists.return_value = False
+    data = payload()
+    data["replace_kpis"] = ["logistic_cost"]
+
+    IngestionService(dashboard, emails).ingest(IngestionPayload(**data))
+
+    dashboard.delete_all_kpi_records.assert_called_once_with("logistic_cost")
+    assert dashboard.method_calls[0] == call.delete_all_kpi_records("logistic_cost")
+
+
+def test_partial_snapshot_is_rejected():
+    data = payload()
+    data["replace_kpis"] = ["air_freight"]
+
+    with pytest.raises(ValidationError, match="replace_kpis"):
+        IngestionPayload(**data)
 
 
 def test_duplicate_email_does_not_write():

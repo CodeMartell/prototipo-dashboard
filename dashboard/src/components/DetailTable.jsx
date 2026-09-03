@@ -1,12 +1,22 @@
 import { Trophy, AlertTriangle, Table as TableIcon } from 'lucide-react';
-import { formatPercent, formatCurrency, formatMetricValue } from '../utils/formatters';
+import {
+  formatPercent,
+  formatCurrency,
+  formatMetricValue,
+  formatTargetAchievement,
+  getAchievementStatusClass,
+} from '../utils/formatters';
 
 const formatCell = (value, format, unit) => {
-  if (value === null || value === undefined) return '—';
+  if (value === null || value === undefined) return 'No data';
   if (format === 'metric') return formatMetricValue(value, unit);
   if (format === 'percent') return formatPercent(value);
   if (format === 'currency') return formatCurrency(value);
-  if (format === 'achievement') return `${(value * 100).toFixed(0)}%`;
+  if (format === 'achievement') {
+    const num = Number(value);
+    const pct = num <= 1 && num > 0 ? num * 100 : num;
+    return formatTargetAchievement(pct);
+  }
   return value;
 };
 
@@ -92,8 +102,11 @@ export default function DetailTable({
                   let cellStyle = {};
                   if (col.highlight && value !== null && value !== undefined) {
                     if (col.format === 'achievement') {
-                      if (value >= 1.0) cellStyle = { color: 'var(--success)', fontWeight: 600 };
-                      else if (value >= 0.9) cellStyle = { color: 'var(--warning)', fontWeight: 600 };
+                      const num = Number(value);
+                      const pct = num <= 1 && num > 0 ? num * 100 : num;
+                      const status = getAchievementStatusClass(pct);
+                      if (status === 'good') cellStyle = { color: 'var(--success)', fontWeight: 600 };
+                      else if (status === 'alert') cellStyle = { color: 'var(--warning)', fontWeight: 600 };
                       else cellStyle = { color: 'var(--danger)', fontWeight: 600 };
                     }
                   }

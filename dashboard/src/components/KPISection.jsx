@@ -11,10 +11,17 @@ function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey
   const resultField = isRatioKPI ? 'ratio' : 'result';
   const prevYearStr = `Y${parseInt(selectedYear.substring(1)) - 1}`;
 
-  if (period === 'monthly') {
-    const currentData = monthlyData.filter((d) => d.year === selectedYear);
-    const prevData = monthlyData.filter((d) => d.year === prevYearStr);
+  const avg = (arr, field) => {
+    const valid = arr.filter((d) => d[field] !== null && d[field] !== undefined);
+    if (!valid.length) return null;
+    return valid.reduce((s, d) => s + d[field], 0) / valid.length;
+  };
 
+  const currentData = monthlyData.filter((d) => d.year === selectedYear);
+  const prevData = monthlyData.filter((d) => d.year === prevYearStr);
+  const resultValue = (rows) => isRatioKPI ? aggregateRatio(rows) : avg(rows, resultField);
+
+  if (period === 'monthly') {
     return MONTHS.map((month) => {
       const cur = currentData.find((d) => d.month === month);
       const prev = prevData.find((d) => d.month === month);
@@ -29,58 +36,61 @@ function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey
   }
 
   if (period === 'quarterly') {
-    const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
-    const currentData = quarterlyData.filter((d) => d.year === selectedYear);
-    const prevData = quarterlyData.filter((d) => d.year === prevYearStr);
-    return quarters.map((q) => {
-      const cur = currentData.find((d) => d.quarter === q);
-      const prev = prevData.find((d) => d.quarter === q);
+    const quarters = [
+      { q: 'Q1', months: ['Jan', 'Feb', 'Mar'] },
+      { q: 'Q2', months: ['Apr', 'May', 'Jun'] },
+      { q: 'Q3', months: ['Jul', 'Aug', 'Sep'] },
+      { q: 'Q4', months: ['Oct', 'Nov', 'Dec'] },
+    ];
+
+    return quarters.map(({ q, months }) => {
+      const curMonths = currentData.filter((d) => months.includes(d.month));
+      const prevMonths = prevData.filter((d) => months.includes(d.month));
       return {
         period: q,
-        currentResult: cur ? cur[resultField] : null,
-        previousResult: prev ? prev[resultField] : null,
-        target: cur && !isRatioKPI ? cur.target : null,
-        currentAchievement: cur && !isRatioKPI ? cur.achievement : null,
+        currentResult: resultValue(curMonths),
+        previousResult: resultValue(prevMonths),
+        target: !isRatioKPI ? avg(curMonths, 'target') : null,
+        currentAchievement: !isRatioKPI ? avg(curMonths, 'achievement') : null,
       };
     });
   }
 
   if (period === 'semiannual') {
-    const halves = ['H1', 'H2'];
-    const currentData = quarterlyData.filter((d) => d.year === selectedYear);
-    const prevData = quarterlyData.filter((d) => d.year === prevYearStr);
-    return halves.map((h) => {
-      const qList = h === 'H1' ? ['Q1', 'Q2'] : ['Q3', 'Q4'];
-      const curQs = currentData.filter((d) => qList.includes(d.quarter));
-      const prevQs = prevData.filter((d) => qList.includes(d.quarter));
-      const avg = (arr, field) => {
-        const valid = arr.filter((d) => d[field] !== null && d[field] !== undefined);
-        if (!valid.length) return null;
-        return valid.reduce((s, d) => s + d[field], 0) / valid.length;
-      };
-      const result = (rows) => isRatioKPI ? aggregateRatio(rows) : avg(rows, resultField);
+    const halves = [
+      { h: 'H1', months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'] },
+      { h: 'H2', months: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] },
+    ];
+
+    return halves.map(({ h, months }) => {
+      const curMonths = currentData.filter((d) => months.includes(d.month));
+      const prevMonths = prevData.filter((d) => months.includes(d.month));
       return {
         period: h,
-        currentResult: result(curQs),
-        previousResult: result(prevQs),
-        target: !isRatioKPI ? avg(curQs, 'target') : null,
-        currentAchievement: !isRatioKPI ? avg(curQs, 'achievement') : null,
+        currentResult: resultValue(curMonths),
+        previousResult: resultValue(prevMonths),
+        target: !isRatioKPI ? avg(curMonths, 'target') : null,
+        currentAchievement: !isRatioKPI ? avg(curMonths, 'achievement') : null,
       };
     });
   }
 
   // annual
-  const currentData = quarterlyData.filter((d) => d.year === selectedYear);
-  const prevData = quarterlyData.filter((d) => d.year === prevYearStr);
-  const avg = (arr, field) => {
-    const valid = arr.filter((d) => d[field] !== null && d[field] !== undefined);
-    if (!valid.length) return null;
-    return valid.reduce((s, d) => s + d[field], 0) / valid.length;
-  };
-  const result = (rows) => isRatioKPI ? aggregateRatio(rows) : avg(rows, resultField);
   return [
-    { period: selectedYear, currentResult: result(currentData), previousResult: result(prevData), target: !isRatioKPI ? avg(currentData, 'target') : null, currentAchievement: !isRatioKPI ? avg(currentData, 'achievement') : null },
-    { period: prevYearStr, currentResult: result(prevData), previousResult: null, target: !isRatioKPI ? avg(prevData, 'target') : null, currentAchievement: !isRatioKPI ? avg(prevData, 'achievement') : null },
+    {
+      period: selectedYear,
+      currentResult: resultValue(currentData),
+      previousResult: resultValue(prevData),
+      target: !isRatioKPI ? avg(currentData, 'target') : null,
+      currentAchievement: !isRatioKPI ? avg(currentData, 'achievement') : null,
+    },
+    {
+      period: prevYearStr,
+      currentResult: resultValue(prevData),
+      previousResult: null,
+      target: !isRatioKPI ? avg(prevData, 'target') : null,
+      currentAchievement: !isRatioKPI ? avg(prevData, 'achievement') : null,
+    },
   ];
 }
 

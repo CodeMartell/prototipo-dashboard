@@ -123,6 +123,7 @@ class RawReportExtractor:
 
         if source := files.get("war_room"):
             self._append(result, "logistic_cost", source, extract_war_room_report)
+            result.replace_kpis.add("logistic_cost")
         if source := files.get("freight"):
             self._append(result, "air_freight", source, extract_air_freight)
         if source := files.get("indicators"):

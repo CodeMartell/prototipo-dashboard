@@ -62,9 +62,11 @@ const KPI_CATALOG = [
     dataKey: 'total_cost',
     name: 'Task Cost Reduction',
     unit: 'KBRL',
-    aggregate: 'avg',
+    // Regra 3.3.1: Trimestral/Semestral/Anual = SOMA acumulada, não média.
+    aggregate: 'sum',
     valueKey: 'result',
     lowerIsBetter: false, // reducao alcancada: quanto maior, melhor
+    alwaysGoodStatus: true, // 3.3.1: semáforo sempre verde, é saving
     color: '#1D4ED8',
     icon: TrendingDown,
   },
@@ -414,12 +416,15 @@ function App() {
   }, [period, selectedSubPeriod]);
 
   // Estatísticas do período: calculado SEMPRE pela MÉDIA dos meses componentes
-  const getPeriodStats = useCallback((monthlyArr, quarterlyArr, year, valueKey, _aggregate, _lowerIsBetter) => {
+  const getPeriodStats = useCallback((monthlyArr, quarterlyArr, year, valueKey, aggregate = 'avg', _lowerIsBetter) => {
     const isRatio = valueKey === 'ratio';
     const rows = selectPeriodRows(monthlyArr, quarterlyArr, year);
 
-    const result = isRatio ? aggregateRatio(rows) : aggregateField(rows, valueKey, 'avg');
-    const target = isRatio ? null : aggregateField(rows, 'target', 'avg');
+    // Regra de negócio 3.3.1: Task Cost Reduction usa SOMA acumulada em
+    // Trimestral/Semestral/Anual (não média) — os demais KPIs continuam
+    // em média, conforme o `aggregate` de cada um no KPI_CATALOG.
+    const result = isRatio ? aggregateRatio(rows) : aggregateField(rows, valueKey, aggregate);
+    const target = isRatio ? null : aggregateField(rows, 'target', aggregate);
     const achievement = isRatio ? null : aggregateField(rows, 'achievement', 'avg');
 
     return { result, target, achievement };
@@ -619,6 +624,7 @@ function App() {
                     color={m.color}
                     unit={m.unit}
                     lowerIsBetter={m.lowerIsBetter}
+                    alwaysGoodStatus={m.alwaysGoodStatus}
                     currentValue={m.latest}
                     targetValue={m.target}
                     achievement={m.achievement}

@@ -71,3 +71,20 @@ class LogisticsVsProdIn(BaseModel):
     logistics_cost: FiniteFloat
     production_amount: FiniteFloat
     ratio: FiniteFloat | None = None
+
+
+class TaskCostSummaryOut(BaseModel):
+    """
+    Resumo agregado do Task Cost Reduction (regra 3.3.1):
+    - Trimestral/Semestral/Anual usam SOMA acumulada (não média).
+    - Status é sempre "good" — qualquer saving é positivo por natureza.
+    """
+
+    period: str  # monthly | quarterly | semiannual | annual
+    year: str
+    sub_period: str | None = None  # ex: "Jan", "Q1", "H1" — None para annual
+    target: float | None = None
+    result: float | None = None
+    achievement: float | None = None
+    status: str = "good"
+    months_included: list[str] = []

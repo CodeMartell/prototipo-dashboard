@@ -26,6 +26,7 @@ export default function KPICard({
   sparklineData,
   unit,
   lowerIsBetter,
+  alwaysGoodStatus = false,
   previousLabel,
   previousValue,
   onClick,
@@ -57,7 +58,7 @@ export default function KPICard({
   const formattedVariation = formatVariation(calcVariation);
   const formattedDeviation = formatDeviation(calcDeviation, unit);
   const formattedAchievement = formatTargetAchievement(calcAchievement);
-  const achievementStatusClass = getAchievementStatusClass(calcAchievement);
+  const achievementStatusClass = getAchievementStatusClass(calcAchievement, lowerIsBetter, alwaysGoodStatus);
 
   const getVariationClass = () => {
     if (calcVariation === null || calcVariation === undefined) return 'neutral';

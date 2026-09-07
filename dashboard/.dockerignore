@@ -1,0 +1,13 @@
+node_modules
+dist
+
+# Arquivos de ambiente locais nao entram na imagem. Em especial o
+# .env.production aponta para a API da VPS; dentro do compose o frontend
+# usa /api relativo (proxy do nginx), entao a URL absoluta atrapalharia.
+.env
+.env.*
+
+# Nao versionados / ruido
+*.log
+.vscode
+.git

@@ -1,4 +1,4 @@
-﻿# Guia Completo de Execucao e Testes — Prototipo DataLens
+# Guia Completo de Execucao e Testes — Prototipo DataLens
 
 Este documento contem todos os comandos detalhados, diretorios de execucao e passos necessarios para executar e validar o fluxo de ponta a ponta (E-mail -> Automacao RPA -> Extracao -> Planilha/Banco -> API -> Dashboard).
 
@@ -45,9 +45,15 @@ python scripts/generate_kpi_reports.py
 
 ---
 
-## 3. Como Executar a Aplicacao (3 Terminais)
+## 3. Como Executar a Aplicacao
 
-Para o funcionamento continuo e visualizacao em tempo real, utilize 3 janelas do PowerShell abertas na raiz do projeto:
+Existem duas formas de rodar o projeto: **Desenvolvimento Misto (recomendado para testes locais, usando 3 terminais)** ou **Tudo via Docker**. A documentação abaixo foca no modo misto, que é o que você está utilizando.
+
+### Passo 0: Iniciar o Banco de Dados (Obrigatório)
+Antes de rodar a API, o banco PostgreSQL precisa estar rodando no Docker em segundo plano (o comando `-d` faz ele rodar por trás, então não "prende" um terminal):
+```powershell
+docker compose up -d postgres
+```
 
 ### Terminal 1 — Iniciar o Servidor API (Backend Local)
 Objetivo: Fornecer os dados do banco para o Dashboard via http://localhost:5001/api/kpis/dashboard.
@@ -58,10 +64,7 @@ python main.py
 ```
 Saida esperada: `Uvicorn running on http://0.0.0.0:5001`
 
-Alternativa via Docker (sobe banco + API juntos):
-```powershell
-docker compose up -d postgres api
-```
+*(Nota: Se preferir, você poderia usar `docker compose up -d postgres api` para rodar o banco e a API juntos no Docker, pulando este terminal 1).*
 
 ---
 
@@ -74,6 +77,8 @@ npm run dev
 ```
 Saida esperada: `Local: http://localhost:5173/`  
 Abra seu navegador em: http://localhost:5173
+
+> **Acesso ao Dashboard:** Se a aplicação solicitar autenticação, utilize as credenciais padrão sugeridas no `.env.example` (`bot.local@example.com` com a senha `troque-esta-senha-local`) ou as criadas localmente no seu banco através do script `create_admin.py`.
 
 ---
 

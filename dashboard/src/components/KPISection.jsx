@@ -8,6 +8,7 @@ import { Table, BarChart3, PencilLine } from 'lucide-react';
 
 function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey) {
   const isRatioKPI = kpiKey === 'logisticsVsProd';
+  const hasTargetData = !isRatioKPI && kpiKey !== 'incidentialCost';
   const resultField = isRatioKPI ? 'ratio' : 'result';
   const prevYearStr = `Y${parseInt(selectedYear.substring(1)) - 1}`;
 
@@ -29,8 +30,8 @@ function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey
         period: month,
         currentResult: cur ? cur[resultField] : null,
         previousResult: prev ? prev[resultField] : null,
-        target: cur && !isRatioKPI ? cur.target : null,
-        currentAchievement: cur && !isRatioKPI ? cur.achievement : null,
+        target: cur && hasTargetData ? cur.target : null,
+        currentAchievement: cur && hasTargetData ? cur.achievement : null,
       };
     });
   }
@@ -50,8 +51,8 @@ function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey
         period: q,
         currentResult: resultValue(curMonths),
         previousResult: resultValue(prevMonths),
-        target: !isRatioKPI ? avg(curMonths, 'target') : null,
-        currentAchievement: !isRatioKPI ? avg(curMonths, 'achievement') : null,
+        target: hasTargetData ? avg(curMonths, 'target') : null,
+        currentAchievement: hasTargetData ? avg(curMonths, 'achievement') : null,
       };
     });
   }
@@ -69,8 +70,8 @@ function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey
         period: h,
         currentResult: resultValue(curMonths),
         previousResult: resultValue(prevMonths),
-        target: !isRatioKPI ? avg(curMonths, 'target') : null,
-        currentAchievement: !isRatioKPI ? avg(curMonths, 'achievement') : null,
+        target: hasTargetData ? avg(curMonths, 'target') : null,
+        currentAchievement: hasTargetData ? avg(curMonths, 'achievement') : null,
       };
     });
   }
@@ -81,15 +82,15 @@ function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey
       period: selectedYear,
       currentResult: resultValue(currentData),
       previousResult: resultValue(prevData),
-      target: !isRatioKPI ? avg(currentData, 'target') : null,
-      currentAchievement: !isRatioKPI ? avg(currentData, 'achievement') : null,
+      target: hasTargetData ? avg(currentData, 'target') : null,
+      currentAchievement: hasTargetData ? avg(currentData, 'achievement') : null,
     },
     {
       period: prevYearStr,
       currentResult: resultValue(prevData),
       previousResult: null,
-      target: !isRatioKPI ? avg(prevData, 'target') : null,
-      currentAchievement: !isRatioKPI ? avg(prevData, 'achievement') : null,
+      target: hasTargetData ? avg(prevData, 'target') : null,
+      currentAchievement: hasTargetData ? avg(prevData, 'achievement') : null,
     },
   ];
 }
@@ -135,7 +136,7 @@ export default function KPISection({
       { key: 'previousResult', label: prevYearLabel, format: 'metric', unit },
       { key: 'currentResult', label: `${currentYearLabel} (Actual)`, format: 'metric', unit, highlight: true },
     ];
-    if (kpiKey !== 'logisticsVsProd') {
+    if (kpiKey !== 'logisticsVsProd' && kpiKey !== 'incidentialCost') {
       cols.splice(2, 0, { key: 'target', label: 'Target', format: 'metric', unit });
       cols.push({ key: 'currentAchievement', label: 'Achievement', format: 'achievement', highlight: true });
     }

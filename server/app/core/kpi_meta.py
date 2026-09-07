@@ -15,6 +15,7 @@ import re
 VALID_MONTHS: tuple[str, ...] = (
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    "Annual",  # sentinel para KPIs com granularidade somente anual (Air Freight Y24/Y25)
 )
 
 YEAR_PATTERN = re.compile(r"^Y\d{2}$")
@@ -22,11 +23,11 @@ YEAR_PATTERN = re.compile(r"^Y\d{2}$")
 # True  -> custo: bater a meta significa ficar abaixo dela.
 # False -> ganho: bater a meta significa superar o valor previsto.
 LOWER_IS_BETTER: dict[str, bool] = {
-    "logistic_cost": True,      # War Room — custo logistico sobre faturamento
-    "air_freight": True,        # Frete aereo sobre faturamento
-    "demurrage": True,          # Sobrestadia de conteineres
-    "total_cost": False,        # Task Cost Reduction — reducao alcancada
-    "incidental_cost": False,   # Resin Consolidation — saving obtido
+    "logistic_cost":   True,   # War Room — custo logistico sobre faturamento
+    "air_freight":     False,  # Frete aereo: resultado ÷ target; ≥ 100% = verde (guide)
+    "demurrage":       True,   # Sobrestadia de conteineres; target = 0
+    "total_cost":      False,  # Task Cost Reduction — reducao alcancada (saving)
+    "incidental_cost": False,  # Resin Consolidation — saving obtido
 }
 
 

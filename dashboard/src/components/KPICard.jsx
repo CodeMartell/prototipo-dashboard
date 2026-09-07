@@ -27,6 +27,8 @@ export default function KPICard({
   unit,
   lowerIsBetter,
   alwaysGoodStatus = false,
+  targetIsZero = false,       // Demurrage: target = 0; qualquer result > 0 → vermelho
+  noTrafficLight = false,     // Incidental Cost: sem semáforo
   previousLabel,
   previousValue,
   onClick,
@@ -36,9 +38,9 @@ export default function KPICard({
   const formatValue = (val) => formatMetricValue(val, unit);
 
   // Valores normalizados para a unidade de exibição (ex: 0.0538 -> 5.38 para %)
-  const currDisp = toDisplayValue(currentValue, unit);
-  const prevDisp = toDisplayValue(previousValue, unit);
-  const targetDisp = toDisplayValue(targetValue, unit);
+  const currDisp   = toDisplayValue(currentValue,  unit);
+  const prevDisp   = toDisplayValue(previousValue,  unit);
+  const targetDisp = toDisplayValue(targetValue,    unit);
 
   // Cálculos dinâmicos
   const calcVariation = variation !== undefined && variation !== null
@@ -55,10 +57,16 @@ export default function KPICard({
         : achievement)
     : calculateTargetAchievement(currDisp, targetDisp);
 
-  const formattedVariation = formatVariation(calcVariation);
-  const formattedDeviation = formatDeviation(calcDeviation, unit);
+  const formattedVariation  = formatVariation(calcVariation);
+  const formattedDeviation  = formatDeviation(calcDeviation, unit);
   const formattedAchievement = formatTargetAchievement(calcAchievement);
-  const achievementStatusClass = getAchievementStatusClass(calcAchievement, lowerIsBetter, alwaysGoodStatus);
+
+  const achievementStatusClass = getAchievementStatusClass(
+    calcAchievement,
+    lowerIsBetter,
+    alwaysGoodStatus,
+    { targetIsZero, noTrafficLight, resultValue: currDisp }
+  );
 
   const getVariationClass = () => {
     if (calcVariation === null || calcVariation === undefined) return 'neutral';
@@ -83,8 +91,11 @@ export default function KPICard({
     return lowerIsBetter ? <TrendingUp size={12} /> : <TrendingDown size={12} />;
   };
 
-  const isClickable = typeof onClick === 'function';
+  const isClickable   = typeof onClick === 'function';
   const hasCurrentData = currentValue !== null && currentValue !== undefined;
+
+  // Mostra pill de atingimento exceto para indicadores sem semáforo
+  const showAchievementPill = !noTrafficLight && formattedAchievement !== null;
 
   // Cartão clicável precisa ser alcançável por teclado, não só por mouse.
   const handleKeyDown = (event) => {
@@ -114,9 +125,14 @@ export default function KPICard({
         <div className="kpi-card__value">
           {hasCurrentData ? formatValue(currentValue) : 'No data'}
         </div>
-        {hasCurrentData && targetValue !== null && targetValue !== undefined && title !== 'Resin Consolidation' && (
+        {hasCurrentData && targetValue !== null && targetValue !== undefined && !targetIsZero && title !== 'Resin Consolidation' && (
           <div className="kpi-card__target-badge" title="Target for selected period">
             Target: {formatValue(targetValue)}
+          </div>
+        )}
+        {targetIsZero && hasCurrentData && (
+          <div className="kpi-card__target-badge" title="Target: zero occurrences">
+            Target: 0 ctnr
           </div>
         )}
       </div>
@@ -136,9 +152,14 @@ export default function KPICard({
             <Minus size={12} /> No variation
           </span>
         )}
-        {formattedAchievement !== null && title !== 'Resin Consolidation' && (
+        {showAchievementPill && (
           <span className={`achievement-pill ${achievementStatusClass}`} title="Target achievement for period">
             {formattedAchievement}
+          </span>
+        )}
+        {noTrafficLight && hasCurrentData && (
+          <span className="achievement-pill neutral" title="No traffic light for this indicator">
+            N/A
           </span>
         )}
       </div>
@@ -184,3 +205,4 @@ export default function KPICard({
     </div>
   );
 }
+

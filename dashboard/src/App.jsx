@@ -51,9 +51,10 @@ const KPI_CATALOG = [
     dataKey: 'incidental_cost',
     name: 'Resin Consolidation',
     unit: 'KUSD',
-    aggregate: 'avg',
+    aggregate: 'sum',
     valueKey: 'result',
-    lowerIsBetter: false, // saving: quanto maior, melhor
+    lowerIsBetter: false,
+    alwaysGoodStatus: true,
     color: '#2563EB',
     icon: Layers,
   },
@@ -62,11 +63,10 @@ const KPI_CATALOG = [
     dataKey: 'total_cost',
     name: 'Task Cost Reduction',
     unit: 'KBRL',
-    // Regra 3.3.1: Trimestral/Semestral/Anual = SOMA acumulada, não média.
     aggregate: 'sum',
     valueKey: 'result',
-    lowerIsBetter: false, // reducao alcancada: quanto maior, melhor
-    alwaysGoodStatus: true, // 3.3.1: semáforo sempre verde, é saving
+    lowerIsBetter: false,
+    alwaysGoodStatus: true,
     color: '#1D4ED8',
     icon: TrendingDown,
   },
@@ -75,9 +75,10 @@ const KPI_CATALOG = [
     dataKey: 'demurrage',
     name: 'Demurrage Cost',
     unit: 'CTNR',
-    aggregate: 'avg',
+    aggregate: 'sum',
     valueKey: 'result',
     lowerIsBetter: true,
+    targetIsZero: true,
     color: '#0EA5E9',
     icon: Anchor,
   },
@@ -88,7 +89,7 @@ const KPI_CATALOG = [
     unit: '%',
     aggregate: 'avg',
     valueKey: 'result',
-    lowerIsBetter: true,
+    lowerIsBetter: false,
     color: '#38BDF8',
     icon: Plane,
   },
@@ -97,9 +98,10 @@ const KPI_CATALOG = [
     dataKey: 'logistics_vs_prod',
     name: 'Incidental Cost',
     unit: 'Ratio',
-    aggregate: 'avg',
+    aggregate: 'sum',
     valueKey: 'ratio',
-    lowerIsBetter: true,
+    lowerIsBetter: false,
+    noTrafficLight: true,
     color: '#7C3AED',
     icon: Package,
   },
@@ -625,6 +627,8 @@ function App() {
                     unit={m.unit}
                     lowerIsBetter={m.lowerIsBetter}
                     alwaysGoodStatus={m.alwaysGoodStatus}
+                    targetIsZero={m.targetIsZero}
+                    noTrafficLight={m.noTrafficLight}
                     currentValue={m.latest}
                     targetValue={m.target}
                     achievement={m.achievement}

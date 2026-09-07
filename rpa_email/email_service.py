@@ -49,8 +49,8 @@ class EmailProcessingService:
 
         criteria = ["ALL"]
 
-        if self.settings.subject_filter:
-            subject = self.settings.subject_filter.replace('"', "").strip()
+        if len(self.settings.subject_filters) == 1:
+            subject = self.settings.subject_filters[0].replace('"', "").strip()
             criteria.extend(["SUBJECT", f'"{subject}"'])
 
         if self.settings.sender_filter:
@@ -170,12 +170,10 @@ class EmailProcessingService:
         else:
             comparable_date = received_at
 
-        if (
-            self.settings.subject_filter
-            and self.settings.subject_filter.lower()
-            not in subject.lower()
-        ):
-            return "assunto fora do padrão"
+        if self.settings.subject_filters:
+            subject_lower = subject.lower()
+            if not any(f.lower() in subject_lower for f in self.settings.subject_filters):
+                return "assunto fora do padrão"
 
         if (
             self.settings.sender_filter

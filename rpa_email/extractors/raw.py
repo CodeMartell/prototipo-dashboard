@@ -68,9 +68,9 @@ class RawReportExtractor:
                 ):
                     files[signature.key] = path
                     break
-        missing = [label for key, label in REQUIRED_FILES.items() if key not in files]
-        if missing:
-            raise ValueError("Relatórios brutos obrigatórios ausentes: " + ", ".join(missing))
+        # missing = [label for key, label in REQUIRED_FILES.items() if key not in files]
+        # if missing:
+        #     raise ValueError("Relatórios brutos obrigatórios ausentes: " + ", ".join(missing))
         return files
 
     @staticmethod
@@ -126,10 +126,14 @@ class RawReportExtractor:
             result.replace_kpis.add("logistic_cost")
         if source := files.get("freight"):
             self._append(result, "air_freight", source, extract_air_freight)
+            result.replace_kpis.add("air_freight")
         if source := files.get("indicators"):
             self._append(result, "incidental_cost", source, extract_resin_consolidation)
+            result.replace_kpis.add("incidental_cost")
             self._append(result, "total_cost", source, extract_task_cost_reduction)
+            result.replace_kpis.add("total_cost")
             self._append(result, "demurrage", source, extract_demurrage_cost)
+            result.replace_kpis.add("demurrage")
         if source := files.get("cost_vs_prod"):
             self._append_logistics_vs_prod(result, source)
         return result

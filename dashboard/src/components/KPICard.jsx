@@ -57,7 +57,14 @@ export default function KPICard({
   const formattedVariation = formatVariation(calcVariation);
   const formattedDeviation = formatDeviation(calcDeviation, unit);
   const formattedAchievement = formatTargetAchievement(calcAchievement);
-  const achievementStatusClass = getAchievementStatusClass(calcAchievement);
+  let achievementStatusClass = getAchievementStatusClass(calcAchievement);
+
+  // Regra específica para Resin Consolidation (lucro/saving = maior é melhor)
+  if (title === 'Resin Consolidation' && calcAchievement !== null) {
+    if (calcAchievement >= 100) achievementStatusClass = 'good'; // Verde
+    else if (calcAchievement >= 90) achievementStatusClass = 'alert'; // Amarelo
+    else achievementStatusClass = 'critical'; // Vermelho
+  }
 
   const getVariationClass = () => {
     if (calcVariation === null || calcVariation === undefined) return 'neutral';
@@ -109,7 +116,7 @@ export default function KPICard({
         <div className="kpi-card__value">
           {hasCurrentData ? formatValue(currentValue) : 'No data'}
         </div>
-        {hasCurrentData && targetValue !== null && targetValue !== undefined && (
+        {hasCurrentData && targetValue !== null && targetValue !== undefined && title !== 'Resin Consolidation' && (
           <div className="kpi-card__target-badge" title="Target for selected period">
             Target: {formatValue(targetValue)}
           </div>

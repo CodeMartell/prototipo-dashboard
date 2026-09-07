@@ -1,4 +1,4 @@
-﻿# Guia Completo de Execucao e Testes — Prototipo DataLens
+# Guia Completo de Execucao e Testes — Prototipo DataLens
 
 Este documento contem todos os comandos detalhados, diretorios de execucao e passos necessarios para executar e validar o fluxo de ponta a ponta (E-mail -> Automacao RPA -> Extracao -> Planilha/Banco -> API -> Dashboard).
 
@@ -74,6 +74,8 @@ npm run dev
 ```
 Saida esperada: `Local: http://localhost:5173/`  
 Abra seu navegador em: http://localhost:5173
+
+> **Acesso ao Dashboard:** Se a aplicação solicitar autenticação, utilize as credenciais padrão sugeridas no `.env.example` (`bot.local@example.com` com a senha `troque-esta-senha-local`) ou as criadas localmente no seu banco através do script `create_admin.py`.
 
 ---
 

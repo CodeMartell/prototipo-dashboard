@@ -27,9 +27,19 @@ class Settings(BaseSettings):
     #   FRONTEND_ORIGIN=https://meu-dominio,http://localhost:5173
     FRONTEND_ORIGIN: str = "http://localhost:5173"
 
+    # Regex opcional para origens dinâmicas — o caso concreto são os deploys
+    # de preview da Vercel, que ganham um subdomínio novo a cada branch.
+    # Deixe vazio para permitir só o que está em FRONTEND_ORIGIN.
+    # Exemplo: r"https://materials-dashboard-[a-z0-9-]+\.vercel\.app"
+    FRONTEND_ORIGIN_REGEX: str = ""
+
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.FRONTEND_ORIGIN.split(",") if origin.strip()]
+
+    @property
+    def cors_origin_regex(self) -> str | None:
+        return self.FRONTEND_ORIGIN_REGEX.strip() or None
 
     # Fallback de dados (compatibilidade com o protótipo atual)
     EXCEL_FALLBACK_PATH: str = "dados_dashboard.xlsx"

@@ -1,0 +1,92 @@
+# Stack Swarm do DataLens (API + banco proprio).
+#
+# Publicado pelo Traefik que ja roda na VPS: nenhuma porta e exposta no host.
+# O banco fica numa overlay interna, sem acesso de fora e sem contato com as
+# outras stacks (n8n, portainer) que compartilham a rede rafaelnet.
+#
+# Deploy:  docker stack deploy -c datalens.stack.yml datalens
+# Nomes de servico com prefixo "datalens-" para nao colidir com o servico
+# "postgres" da stack existente na mesma rede.
+
+services:
+  datalens-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - datalens_pg_data:/var/lib/postgresql/data
+    networks:
+      - datalens_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: 512M
+
+  datalens-api:
+    image: datalens-api:latest
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@datalens-db:5432/${POSTGRES_DB}
+      API_PORT: "5001"
+      ENVIRONMENT: production
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-480}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
+      FRONTEND_ORIGIN_REGEX: ${FRONTEND_ORIGIN_REGEX:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      PYTHONUNBUFFERED: "1"
+    networks:
+      - datalens_internal
+      - rafaelnet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: 512M
+      labels:
+        traefik.enable: "true"
+        traefik.docker.network: rafaelnet
+        traefik.http.routers.datalens-api.rule: Host(`${API_DOMAIN}`)
+        traefik.http.routers.datalens-api.entrypoints: websecure
+        traefik.http.routers.datalens-api.service: datalens-api
+        traefik.http.routers.datalens-api.tls.certresolver: letsencryptresolver
+        traefik.http.services.datalens-api.loadbalancer.server.port: "5001"
+
+volumes:
+  datalens_pg_data:
+    name: datalens_pg_data
+
+networks:
+  # Rede so da stack: isola o banco das outras aplicacoes do servidor.
+  datalens_internal:
+    driver: overlay
+    internal: true
+  # Rede onde o Traefik procura os servicos publicados.
+  rafaelnet:
+    external: true

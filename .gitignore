@@ -14,6 +14,9 @@ build/
 .env
 .env.*
 !.env.example
+# Build de produção do frontend: contém apenas a URL pública da API,
+# nenhum segredo. Versionado para a Vercel buildar sem configuração manual.
+!dashboard/.env.production
 rpa_email/.env
 server/.env
 

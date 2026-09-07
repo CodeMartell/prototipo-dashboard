@@ -5,8 +5,20 @@
 # variáveis de ambiente, antes de subir o servidor de verdade.
 set -e
 
+# No Swarm nao existe depends_on: a API pode subir antes do banco aceitar
+# conexao. alembic upgrade head e idempotente, entao repetir e seguro.
 echo "[api] Aplicando migrations..."
-alembic upgrade head
+attempt=1
+max_attempts=30
+until alembic upgrade head; do
+  if [ "$attempt" -ge "$max_attempts" ]; then
+    echo "[api] Falha ao aplicar migrations depois de $max_attempts tentativas."
+    exit 1
+  fi
+  echo "[api] Banco indisponivel (tentativa $attempt/$max_attempts). Nova tentativa em 3s..."
+  attempt=$((attempt + 1))
+  sleep 3
+done
 
 echo "[api] Garantindo perfil ADMIN..."
 python scripts/seed_roles.py

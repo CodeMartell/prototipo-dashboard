@@ -17,6 +17,7 @@ from app.schemas.dashboard_schema import (
     KpiRecordOut,
     LogisticsVsProdIn,
     LogisticsVsProdOut,
+    TaskCostSummaryOut,
 )
 from app.services.dashboard_service import DashboardService
 
@@ -41,6 +42,25 @@ def get_dashboard(service: DashboardService = Depends(_get_service)):
 @router.get("/extra/logistics-vs-prod", response_model=list[LogisticsVsProdOut])
 def get_logistics_vs_prod(service: DashboardService = Depends(_get_service)):
     return service.get_logistics_vs_prod()
+
+
+@router.get("/total_cost/summary", response_model=TaskCostSummaryOut)
+def get_total_cost_summary(
+    period: str,
+    year: str,
+    sub_period: str | None = None,
+    service: DashboardService = Depends(_get_service),
+):
+    """
+    Regra 3.3.1 — Task Cost Reduction agregado por período (soma acumulada
+    em quarterly/semiannual/annual, nunca média; status sempre "good").
+
+    Exemplos:
+      GET /api/kpis/total_cost/summary?period=annual&year=Y25
+      GET /api/kpis/total_cost/summary?period=quarterly&year=Y26&sub_period=Q1
+      GET /api/kpis/total_cost/summary?period=monthly&year=Y26&sub_period=Jan
+    """
+    return service.get_total_cost_summary(period=period, year=year, sub_period=sub_period)
 
 
 @router.get("/{kpi_type}", response_model=list[KpiRecordOut])

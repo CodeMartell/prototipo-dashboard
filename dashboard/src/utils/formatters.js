@@ -109,9 +109,17 @@ export const formatTargetAchievement = (value) => {
  * >= 90% e < 100% -> 'alert' (Amarelo)
  * < 90% -> 'critical' (Vermelho)
  */
-export const getAchievementStatusClass = (achievementPct) => {
+export const getAchievementStatusClass = (achievementPct, lowerIsBetter = false, alwaysGoodStatus = false) => {
+  // Regra 3.3.1 (Task Cost Reduction): qualquer valor de saving é positivo
+  // por natureza — o semáforo é sempre verde, independente do %.
+  if (alwaysGoodStatus) return 'good';
   if (achievementPct === null || achievementPct === undefined || Number.isNaN(achievementPct)) return 'neutral';
   const num = Number(achievementPct);
+  if (lowerIsBetter) {
+    if (num <= 100) return 'good';
+    if (num <= 110) return 'alert';
+    return 'critical';
+  }
   if (num >= 100) return 'good';
   if (num >= 90) return 'alert';
   return 'critical';

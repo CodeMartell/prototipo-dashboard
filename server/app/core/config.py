@@ -27,10 +27,9 @@ class Settings(BaseSettings):
     #   FRONTEND_ORIGIN=https://meu-dominio,http://localhost:5173
     FRONTEND_ORIGIN: str = "http://localhost:5173"
 
-    # Regex opcional para origens dinâmicas — o caso concreto são os deploys
-    # de preview da Vercel, que ganham um subdomínio novo a cada branch.
-    # Deixe vazio para permitir só o que está em FRONTEND_ORIGIN.
-    # Exemplo: r"https://materials-dashboard-[a-z0-9-]+\.vercel\.app"
+    # Regex opcional para liberar origens dinâmicas no CORS (ex.: subdomínios
+    # gerados por ambientes de preview). Deixe vazio para permitir apenas o
+    # que está em FRONTEND_ORIGIN. Exemplo: r"https://.*\.exemplo\.com"
     FRONTEND_ORIGIN_REGEX: str = ""
 
     @property

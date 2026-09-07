@@ -5,8 +5,9 @@
 # variáveis de ambiente, antes de subir o servidor de verdade.
 set -e
 
-# No Swarm nao existe depends_on: a API pode subir antes do banco aceitar
-# conexao. alembic upgrade head e idempotente, entao repetir e seguro.
+# Espera o banco aceitar conexao antes de seguir. O compose ja usa
+# depends_on com healthcheck, mas o retry cobre qualquer atraso e e seguro:
+# alembic upgrade head e idempotente.
 echo "[api] Aplicando migrations..."
 attempt=1
 max_attempts=30

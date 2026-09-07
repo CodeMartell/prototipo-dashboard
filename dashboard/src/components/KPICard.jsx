@@ -69,6 +69,7 @@ export default function KPICard({
   const getVariationClass = () => {
     if (calcVariation === null || calcVariation === undefined) return 'neutral';
     if (Math.abs(calcVariation) < 0.000001 || calcVariation.toFixed(2) === '0.00') return 'neutral';
+    if (title === 'Resin Consolidation') return 'positive';
     if (lowerIsBetter) return calcVariation < 0 ? 'positive' : 'negative';
     return calcVariation > 0 ? 'positive' : 'negative';
   };
@@ -78,6 +79,9 @@ export default function KPICard({
   const VariationIcon = () => {
     if (calcVariation === null || calcVariation === undefined || variationClass === 'neutral') {
       return <Minus size={12} />;
+    }
+    if (title === 'Resin Consolidation') {
+      return calcVariation >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />;
     }
     if (variationClass === 'positive') {
       return lowerIsBetter ? <TrendingDown size={12} /> : <TrendingUp size={12} />;
@@ -138,7 +142,7 @@ export default function KPICard({
             <Minus size={12} /> No variation
           </span>
         )}
-        {formattedAchievement !== null && (
+        {formattedAchievement !== null && title !== 'Resin Consolidation' && (
           <span className={`achievement-pill ${achievementStatusClass}`} title="Target achievement for period">
             {formattedAchievement}
           </span>

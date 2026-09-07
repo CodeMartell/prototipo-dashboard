@@ -75,12 +75,12 @@ export default function KPIComparisonMatrix({
                 </td>
 
                 <td className="matrix-cell--past">{formatMetricValue(m.prevValue, m.unit)}</td>
-                <td className="matrix-cell--past">{formatMetricValue(m.prevTarget, m.unit)}</td>
-                <td className="matrix-cell--past">{renderAchievement(m.prevAchievement)}</td>
+                <td className="matrix-cell--past">{m.name === 'Resin Consolidation' ? '—' : formatMetricValue(m.prevTarget, m.unit)}</td>
+                <td className="matrix-cell--past">{m.name === 'Resin Consolidation' ? '—' : renderAchievement(m.prevAchievement)}</td>
 
                 <td className="matrix-cell--current matrix-cell-highlight">{formatMetricValue(m.latest, m.unit)}</td>
-                <td className="matrix-cell--current">{formatMetricValue(m.target, m.unit)}</td>
-                <td className="matrix-cell--current">{renderAchievement(m.achievement)}</td>
+                <td className="matrix-cell--current">{m.name === 'Resin Consolidation' ? '—' : formatMetricValue(m.target, m.unit)}</td>
+                <td className="matrix-cell--current">{m.name === 'Resin Consolidation' ? '—' : renderAchievement(m.achievement)}</td>
               </tr>
             ))}
           </tbody>

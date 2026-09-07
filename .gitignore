@@ -50,7 +50,7 @@ dados.xlsx
 dados_dashboard.xlsx
 *.pdf
 RELATORIO_*.md
-
+DOCUMENTACAO_PROJETO.md
 # Sistema operacional & IDEs
 .DS_Store
 Thumbs.db

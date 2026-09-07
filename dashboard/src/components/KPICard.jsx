@@ -138,7 +138,7 @@ export default function KPICard({
             <Minus size={12} /> No variation
           </span>
         )}
-        {formattedAchievement !== null && (
+        {formattedAchievement !== null && title !== 'Resin Consolidation' && (
           <span className={`achievement-pill ${achievementStatusClass}`} title="Target achievement for period">
             {formattedAchievement}
           </span>

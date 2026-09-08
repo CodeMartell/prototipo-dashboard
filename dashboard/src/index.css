@@ -3421,30 +3421,64 @@ select:focus-visible {
 }
 
 /* ── Seletor de ano: <select> nativo estilizado ───────────────────────── */
+
+/*
+ * Dark mode (padrão do :root): força color-scheme dark para que o popup
+ * nativo do browser use fundo escuro e texto claro nas <option>.
+ * Definimos também bg/color explícitos como fallback.
+ */
 .year-select {
   appearance: none;
   -webkit-appearance: none;
   padding: 3px 26px 3px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: var(--surface-3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E") no-repeat right 8px center;
-  color: var(--text-secondary);
+  background-color: #252525;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  color: #E0E0E0;
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   min-width: 70px;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background-color 0.15s;
   outline: none;
+  /* Instrui o browser a renderizar o popup com tema escuro */
+  color-scheme: dark;
+}
+
+/* <option> herda color-scheme mas em alguns browsers precisa de override */
+.year-select option {
+  background-color: #252525;
+  color: #E0E0E0;
 }
 
 .year-select:hover {
   border-color: var(--accent);
-  color: var(--text-primary);
+  color: #fff;
 }
 
 .year-select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Tema claro: troca para cores claras */
+[data-theme="light"] .year-select {
+  background-color: #F1F5F9;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23555'/%3E%3C/svg%3E");
+  color: #334155;
+  color-scheme: light;
+}
+
+[data-theme="light"] .year-select option {
+  background-color: #FFFFFF;
+  color: #0F172A;
+}
+
+[data-theme="light"] .year-select:hover {
+  color: #0F172A;
 }
 
 .year-select--sm {

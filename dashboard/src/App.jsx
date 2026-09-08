@@ -55,6 +55,7 @@ const KPI_CATALOG = [
     valueKey: 'result',
     lowerIsBetter: false,
     alwaysGoodStatus: true,
+    noTrafficLight: true,   // sem target → sem achievement em nenhum lugar
     color: '#2563EB',
     icon: Layers,
   },
@@ -167,8 +168,9 @@ function App() {
 
   useEffect(() => {
     const px = FONT_SCALE_MAP[fontSize] || '14px';
+    // rem é relativo ao elemento <html> — precisa setar aqui para afetar toda a UI
+    document.documentElement.style.fontSize = px;
     document.documentElement.style.setProperty('--base-font-size', px);
-    document.body.style.fontSize = px;
     localStorage.setItem('fontSize', fontSize);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fontSize]);
@@ -717,6 +719,7 @@ function App() {
                     quarterlyData={activeKpi.quarterly}
                     accentColor={activeKpi.color}
                     lowerIsBetter={activeKpi.lowerIsBetter}
+                    noTrafficLight={activeKpi.noTrafficLight}
                     unit={activeKpi.unit}
                     selectedYear={selectedYear}
                     period={period}

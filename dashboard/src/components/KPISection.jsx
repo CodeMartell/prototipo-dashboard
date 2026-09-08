@@ -34,9 +34,9 @@ function defaultSubFor(periodType, selectedYear) {
   return selectedYear;
 }
 
-function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey) {
+function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, noTrafficLight) {
   const isRatioKPI = kpiKey === 'logisticsVsProd';
-  const hasTargetData = !isRatioKPI && kpiKey !== 'incidentialCost';
+  const hasTargetData = !isRatioKPI && kpiKey !== 'incidentialCost' && !noTrafficLight;
   const resultField = isRatioKPI ? 'ratio' : 'result';
   const prevYearStr = `Y${parseInt(selectedYear.substring(1)) - 1}`;
 
@@ -152,7 +152,7 @@ function filterBySubPeriod(chartData, subPeriod, periodType) {
 
 export default function KPISection({
   kpiKey, title, icon: Icon, monthlyData, quarterlyData,
-  accentColor, lowerIsBetter, unit, selectedYear, period, activePeriodLabel,
+  accentColor, lowerIsBetter, noTrafficLight = false, unit, selectedYear, period, activePeriodLabel,
   onEditData,
 }) {
   const [showTable, setShowTable] = useState(false);
@@ -194,7 +194,7 @@ export default function KPISection({
   };
 
   const chartData = useMemo(() => {
-    const raw = buildChartData(monthlyData, effectivePeriod, effectiveYear, availableYears, kpiKey);
+    const raw = buildChartData(monthlyData, effectivePeriod, effectiveYear, availableYears, kpiKey, noTrafficLight);
     const withResults = raw.filter((d) => d.currentResult !== null);
     let bestPeriod = null, worstPeriod = null;
     if (withResults.length > 0) {
@@ -237,12 +237,12 @@ export default function KPISection({
       { key: 'previousResult', label: prevYearLabel,           format: 'metric', unit },
       { key: 'currentResult',  label: `${currentYearLabel} (Actual)`, format: 'metric', unit, highlight: true },
     ];
-    if (kpiKey !== 'logisticsVsProd' && kpiKey !== 'incidentialCost') {
+    if (kpiKey !== 'logisticsVsProd' && kpiKey !== 'incidentialCost' && !noTrafficLight) {
       cols.splice(2, 0, { key: 'target',            label: 'Target',      format: 'metric',      unit });
       cols.push(       { key: 'currentAchievement', label: 'Achievement', format: 'achievement', highlight: true });
     }
     return cols;
-  }, [unit, kpiKey, prevYearLabel, currentYearLabel]);
+  }, [unit, kpiKey, noTrafficLight, prevYearLabel, currentYearLabel]);
 
   // Dados para export: se há um sub-período clicado, exporta só aquele; senão tudo
   const exportData = useMemo(() => {

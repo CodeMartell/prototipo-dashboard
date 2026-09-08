@@ -3417,31 +3417,40 @@ select:focus-visible {
 }
 
 .year-selector__pills {
-  display: flex;
-  gap: 4px;
+  display: none; /* removido — substituído por .year-select */
 }
 
-.year-pill {
-  padding: 3px 10px;
+/* ── Seletor de ano: <select> nativo estilizado ───────────────────────── */
+.year-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 3px 26px 3px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: transparent;
+  background: var(--surface-3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E") no-repeat right 8px center;
   color: var(--text-secondary);
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  min-width: 70px;
+  transition: border-color 0.15s, background 0.15s;
+  outline: none;
 }
 
-.year-pill:hover {
-  background: var(--surface-3);
+.year-select:hover {
+  border-color: var(--accent);
   color: var(--text-primary);
 }
 
-.year-pill.active {
-  background: var(--accent);
-  color: #fff;
+.year-select:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.year-select--sm {
+  padding: 2px 22px 2px 8px;
+  font-size: 0.72rem;
+  min-width: 58px;
 }
 
 .sub-period-filter--annual-hint {
@@ -3499,10 +3508,10 @@ select:focus-visible {
   flex-wrap: wrap;
 }
 
-.chart-panel__year-pills {
+.chart-panel__year-select-wrap {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--space-2);
   border-left: 1px solid var(--border);
   padding-left: var(--space-3);
   margin-left: var(--space-1);

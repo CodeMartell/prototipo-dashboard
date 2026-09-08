@@ -63,18 +63,19 @@ export default function PeriodFilter({
         {/* Seletor de ano — sempre visível, independente do tipo de período */}
         <div className="year-selector">
           <CalendarDays size={13} className="year-selector__icon" />
-          <span className="year-selector__label">Year:</span>
-          <div className="year-selector__pills">
+          <label className="year-selector__label" htmlFor="global-year-select">Year:</label>
+          <select
+            id="global-year-select"
+            className="year-select"
+            value={selectedYear}
+            onChange={(e) => onYearChange(e.target.value)}
+          >
             {yearOptions.map((year) => (
-              <button
-                key={year.key}
-                className={`year-pill ${selectedYear === year.key ? 'active' : ''}`}
-                onClick={() => onYearChange(year.key)}
-              >
+              <option key={year.key} value={year.key}>
                 {year.label}
-              </button>
+              </option>
             ))}
-          </div>
+          </select>
         </div>
       </div>
 

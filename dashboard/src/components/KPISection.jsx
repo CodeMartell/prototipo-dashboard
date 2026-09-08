@@ -332,20 +332,24 @@ export default function KPISection({
 
             {/* Seletor de ano local */}
             {availableYears.length > 1 && (
-              <div className="chart-panel__year-pills">
-                <span className="chart-panel__inline-filter-label">Year:</span>
-                {availableYears.map((yr) => (
-                  <button
-                    key={yr}
-                    className={`chart-period-pill ${effectiveYear === yr ? 'active' : ''}`}
-                    onClick={() => {
-                      setLocalYear(yr);
-                      setLocalSubPeriod(defaultSubFor(effectivePeriod, yr));
-                    }}
-                  >
-                    20{yr.substring(1)}
-                  </button>
-                ))}
+              <div className="chart-panel__year-select-wrap">
+                <label className="chart-panel__inline-filter-label" htmlFor={`year-select-${kpiKey}`}>Year:</label>
+                <select
+                  id={`year-select-${kpiKey}`}
+                  className="year-select year-select--sm"
+                  value={effectiveYear}
+                  onChange={(e) => {
+                    const yr = e.target.value;
+                    setLocalYear(yr);
+                    setLocalSubPeriod(defaultSubFor(effectivePeriod, yr));
+                  }}
+                >
+                  {availableYears.map((yr) => (
+                    <option key={yr} value={yr}>
+                      20{yr.substring(1)}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
 

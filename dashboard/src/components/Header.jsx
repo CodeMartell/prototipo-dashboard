@@ -10,6 +10,12 @@ import {
   Moon,
 } from 'lucide-react';
 
+const FONT_SIZES = [
+  { key: 'normal', title: 'Normal text size' },
+  { key: 'medium', title: 'Medium text size' },
+  { key: 'large',  title: 'Large text size'  },
+];
+
 export default function Header({ 
   alerts = [], 
   onNavigate,
@@ -19,6 +25,8 @@ export default function Header({
   onLogout,
   theme = 'dark',
   onToggleTheme,
+  fontSize = 'normal',
+  onFontSizeChange,
   canAccessAnalytics = false,
 }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -144,6 +152,25 @@ export default function Header({
             </div>
           )}
         </div>}
+
+        {/* ── Accessibility: Font Size Control ── */}
+        {onFontSizeChange && (
+          <div className="font-size-control" aria-label="Text size">
+            <span className="font-size-control__label" aria-hidden="true">A</span>
+            {FONT_SIZES.map((fs) => (
+              <button
+                key={fs.key}
+                className={`font-size-btn font-size-btn--${fs.key}${fontSize === fs.key ? ' active' : ''}`}
+                onClick={() => onFontSizeChange(fs.key)}
+                title={fs.title}
+                aria-label={fs.title}
+                aria-pressed={fontSize === fs.key}
+              >
+                A
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Theme Toggle Button */}
         <button

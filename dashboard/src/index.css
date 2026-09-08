@@ -139,7 +139,8 @@ body {
   transition: background-color 0.25s ease, color 0.25s ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-size: 14px;
+  /* --base-font-size é controlado pelo seletor de acessibilidade no header */
+  font-size: var(--base-font-size, 14px);
 }
 
 /* ================================
@@ -3676,4 +3677,74 @@ select:focus-visible {
   padding: 1px 5px;
   margin-left: 4px;
   font-weight: 500;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ACCESSIBILITY — Font Size Control
+   Exibido no header ao lado do toggle de tema.
+   Três botões "A" em tamanhos crescentes: normal / medium / large.
+   ════════════════════════════════════════════════════════════════════════ */
+
+.font-size-control {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-input, #181818);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 3px 8px 3px 6px;
+}
+
+[data-theme="light"] .font-size-control {
+  background: var(--bg-input, #F1F5F9);
+}
+
+/* Label decorativo "A" à esquerda */
+.font-size-control__label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-right: 4px;
+  user-select: none;
+  letter-spacing: 0.03em;
+}
+
+/* Base dos botões */
+.font-size-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1;
+  padding: 2px 5px;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tamanhos visuais progressivos dos três botões */
+.font-size-btn--normal { font-size: 0.7rem;  }
+.font-size-btn--medium { font-size: 0.88rem; }
+.font-size-btn--large  { font-size: 1.05rem; }
+
+/* Hover */
+.font-size-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated, #252525);
+  border-color: var(--border);
+}
+
+/* Selecionado */
+.font-size-btn.active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* Separador visual entre label e botões */
+.font-size-control__label::after {
+  display: none; /* sem pseudo-separador — gap é suficiente */
 }

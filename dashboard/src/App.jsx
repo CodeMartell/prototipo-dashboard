@@ -154,6 +154,26 @@ function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // ── Acessibilidade: tamanho de fonte ────────────────────────────────────
+  const FONT_SCALE_MAP = { normal: '14px', medium: '16px', large: '18px' };
+
+  const [fontSize, setFontSize] = useState(
+    () => localStorage.getItem('fontSize') || 'normal'
+  );
+
+  const handleFontSizeChange = useCallback((size) => {
+    setFontSize(size);
+  }, []);
+
+  useEffect(() => {
+    const px = FONT_SCALE_MAP[fontSize] || '14px';
+    document.documentElement.style.setProperty('--base-font-size', px);
+    document.body.style.fontSize = px;
+    localStorage.setItem('fontSize', fontSize);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fontSize]);
+  // ────────────────────────────────────────────────────────────────────────
+
   const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR_KEY);
   const [period, setPeriod] = useState('monthly'); // 'monthly' | 'quarterly' | 'semiannual' | 'annual'
   const [selectedSubPeriod, setSelectedSubPeriod] = useState(CURRENT_MONTH); // 'Jan'..'Dec', 'Q1'..'Q4', 'H1'..'H2', 'Y26'
@@ -568,6 +588,8 @@ function App() {
           onLogout={handleLogout}
           theme={theme}
           onToggleTheme={toggleTheme}
+          fontSize={fontSize}
+          onFontSizeChange={handleFontSizeChange}
           canAccessAnalytics={isAnalyticsAllowed}
         />
 

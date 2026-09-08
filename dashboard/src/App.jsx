@@ -439,20 +439,21 @@ function App() {
     return monthlyArr.filter((d) => d.year === year);
   }, [period, selectedSubPeriod]);
 
-  // Estatísticas do período: calculado SEMPRE pela MÉDIA dos meses componentes
+  // Estatísticas do período: no anual a média divide sempre por 12 meses; nos demais períodos divide pelos meses válidos
   const getPeriodStats = useCallback((monthlyArr, quarterlyArr, year, valueKey, aggregate = 'avg', _lowerIsBetter) => {
     const isRatio = valueKey === 'ratio';
     const rows = selectPeriodRows(monthlyArr, quarterlyArr, year);
+    const fixedDivisor = period === 'annual' ? 12 : null;
 
     // Regra de negócio 3.3.1: Task Cost Reduction usa SOMA acumulada em
     // Trimestral/Semestral/Anual (não média) — os demais KPIs continuam
     // em média, conforme o `aggregate` de cada um no KPI_CATALOG.
-    const result = isRatio ? aggregateRatio(rows) : aggregateField(rows, valueKey, aggregate);
-    const target = isRatio ? null : aggregateField(rows, 'target', aggregate);
-    const achievement = isRatio ? null : aggregateField(rows, 'achievement', 'avg');
+    const result = isRatio ? aggregateRatio(rows) : aggregateField(rows, valueKey, aggregate, fixedDivisor);
+    const target = isRatio ? null : aggregateField(rows, 'target', aggregate, fixedDivisor);
+    const achievement = isRatio ? null : aggregateField(rows, 'achievement', 'avg', fixedDivisor);
 
     return { result, target, achievement };
-  }, [selectPeriodRows]);
+  }, [selectPeriodRows, period]);
 
   // Helper para métricas do subperíodo ativo
   const getSubPeriodMetric = useCallback((monthlyArr, quarterlyArr, valueKey = 'result', aggregate = 'avg', lowerIsBetter = true, unit = '%') => {
@@ -470,8 +471,16 @@ function App() {
 
     const variation = calculateVariation(currDisp, prevDisp);
     const variationAbs = calculateDeviation(currDisp, prevDisp);
-    const achievement = calculateTargetAchievement(currDisp, targetDisp);
-    const prevAchievement = calculateTargetAchievement(prevDisp, prevTargetDisp);
+    const achievement = current.achievement !== null && current.achievement !== undefined
+      ? (typeof current.achievement === 'number' && current.achievement <= 2 && current.achievement > 0
+          ? current.achievement * 100
+          : current.achievement)
+      : calculateTargetAchievement(currDisp, targetDisp, lowerIsBetter);
+    const prevAchievement = previous.achievement !== null && previous.achievement !== undefined
+      ? (typeof previous.achievement === 'number' && previous.achievement <= 2 && previous.achievement > 0
+          ? previous.achievement * 100
+          : previous.achievement)
+      : calculateTargetAchievement(prevDisp, prevTargetDisp, lowerIsBetter);
 
     // Sparkline com série mensal do ano selecionado
     const sparkline = monthlyArr

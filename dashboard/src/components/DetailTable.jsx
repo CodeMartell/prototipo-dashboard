@@ -14,7 +14,7 @@ const formatCell = (value, format, unit) => {
   if (format === 'currency') return formatCurrency(value);
   if (format === 'achievement') {
     const num = Number(value);
-    const pct = num <= 1 && num > 0 ? num * 100 : num;
+    const pct = num <= 2 && num > 0 ? num * 100 : num;
     return formatTargetAchievement(pct);
   }
   return value;
@@ -103,7 +103,7 @@ export default function DetailTable({
                   if (col.highlight && value !== null && value !== undefined) {
                     if (col.format === 'achievement') {
                       const num = Number(value);
-                      const pct = num <= 1 && num > 0 ? num * 100 : num;
+                      const pct = num <= 2 && num > 0 ? num * 100 : num;
                       const status = getAchievementStatusClass(pct);
                       if (status === 'good') cellStyle = { color: 'var(--success)', fontWeight: 600 };
                       else if (status === 'alert') cellStyle = { color: 'var(--warning)', fontWeight: 600 };

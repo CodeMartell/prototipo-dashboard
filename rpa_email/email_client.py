@@ -60,6 +60,38 @@ def _message_body(message: Message) -> str:
     return body
 
 
+def _google_drive_files_mapping(message: Message) -> dict[str, str]:
+    import html as html_lib
+    body = _message_body(message)
+    mapping: dict[str, str] = {}
+    # 1. Plain text pattern: filename immediately preceding the URL
+    for fn, fid in re.findall(
+        r"([^\n\r<>]+?\.(?:xlsb|xlsx|csv|zip))\s*<\s*https://drive\.google\.com/(?:file/d/|open\?id=|uc\?id=)([a-zA-Z0-9_-]+)",
+        body,
+        re.IGNORECASE,
+    ):
+        clean_fn = fn.strip().strip("'\" ")
+        if clean_fn and fid not in mapping:
+            mapping[fid] = clean_fn
+
+    # 2. HTML chip patterns
+    for fid, fn in re.findall(
+        r'href=["\']https://drive\.google\.com/(?:file/d/|open\?id=|uc\?id=)([a-zA-Z0-9_-]+)[^"\']*["\'][^>]*aria-label=["\']([^"\']+)["\']',
+        body,
+        re.IGNORECASE,
+    ):
+        clean_fn = html_lib.unescape(fn).strip().strip("'\" ")
+        if clean_fn and fid not in mapping:
+            mapping[fid] = clean_fn
+
+    # 3. Add any other drive IDs found without explicit names
+    for fid in _google_drive_ids(message):
+        if fid not in mapping:
+            mapping[fid] = ""
+
+    return mapping
+
+
 def _google_drive_ids(message: Message) -> list[str]:
     return list(
         dict.fromkeys(
@@ -106,41 +138,54 @@ class EmailClient:
     def _download_google_drive_files(message: Message, destination: Path) -> int:
         import httpx
 
-        body = _message_body(message)
-        drive_ids = _google_drive_ids(message)
-        if not drive_ids:
+        files_map = _google_drive_files_mapping(message)
+        if not files_map:
             return 0
-            
+
         destination.mkdir(parents=True, exist_ok=True)
         downloaded = 0
-        
-        for index, file_id in enumerate(drive_ids, start=1):
+
+        for index, (file_id, expected_name) in enumerate(files_map.items(), start=1):
             download_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm=t"
             try:
-                with httpx.Client(follow_redirects=True, timeout=120.0) as client:
+                with httpx.Client(follow_redirects=True, timeout=180.0) as client:
                     response = client.get(download_url)
                     if response.status_code != 200 or len(response.content) < 100:
                         continue
-                    
-                    # Extrair nome do arquivo do header Content-Disposition
+
+                    # If Google Drive returns the HTML virus scan warning page, follow the form
+                    if b"<html" in response.content.lower() and (
+                        b"download-form" in response.content or b"download anyway" in response.content.lower()
+                    ):
+                        action_match = re.search(r'action="([^"]+)"', response.text)
+                        action = action_match.group(1) if action_match else "https://drive.usercontent.google.com/download"
+                        inputs = dict(re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]+)"', response.text))
+                        response = client.get(action, params=inputs)
+
+                    # Se a resposta ainda for HTML, não é uma planilha válida
+                    if b"<html" in response.content.lower() or b"<!doctype html" in response.content.lower():
+                        continue
+
+                    if response.status_code != 200 or len(response.content) < 100:
+                        continue
+
+                    # Extrair nome do arquivo: 1º Content-Disposition, 2º mapeamento do e-mail, 3º fallback
                     cd = response.headers.get("content-disposition", "")
                     header_name = content_disposition_filename(cd)
                     if header_name:
                         raw_name = header_name
+                    elif expected_name:
+                        raw_name = expected_name
                     else:
-                        # Tentar achar no corpo da mensagem
-                        body_fn_match = re.search(r"([a-zA-Z0-9_.'() -]+\.(?:xlsb|xlsx|csv|zip))", body, re.IGNORECASE)
-                        raw_name = body_fn_match.group(1).strip() if body_fn_match else f"drive_file_{index}.xlsx"
-                    
+                        raw_name = f"drive_file_{index}.xlsx"
+
                     filename = safe_filename(raw_name)
                     path = destination / filename
-                    if path.exists():
-                        path = destination / f"{path.stem}_{index}{path.suffix}"
                     path.write_bytes(response.content)
                     downloaded += 1
             except Exception:
                 pass
-                
+
         return downloaded
 
     @staticmethod

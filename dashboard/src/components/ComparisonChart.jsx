@@ -10,7 +10,7 @@ import {
   Cell,
 } from 'recharts';
 import { BarChart3 } from 'lucide-react';
-import { formatMetricValue } from '../utils/formatters';
+import { formatMetricValue, formatTargetAchievement } from '../utils/formatters';
 import { calculateVariation } from '../utils/kpiData';
 
 const formatValue = (val, unit) => formatMetricValue(val, unit);
@@ -56,7 +56,13 @@ function CustomTooltip({ active, payload, label, unit, currentYearLabel = '2026'
       {data.currentAchievement !== undefined && data.currentAchievement !== null && (
         <div className="custom-tooltip__row">
           <span className="custom-tooltip__label">Target Achievement</span>
-          <span className="custom-tooltip__value">{(data.currentAchievement * 100).toFixed(0)}%</span>
+          <span className="custom-tooltip__value">
+            {formatTargetAchievement(
+              data.currentAchievement <= 2 && data.currentAchievement > 0
+                ? data.currentAchievement * 100
+                : data.currentAchievement
+            )}
+          </span>
         </div>
       )}
 

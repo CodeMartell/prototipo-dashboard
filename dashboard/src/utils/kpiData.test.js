@@ -82,20 +82,29 @@ test('calculateDeviation and formatDeviation correctly format percentage and non
 });
 
 test('calculateTargetAchievement and getAchievementStatusClass follow the color rules', () => {
-  const ach = calculateTargetAchievement(5.38, 6.48);
+  // Para custo (lowerIsBetter = true): meta 6.48, resultado 5.38 -> bateu meta (120.45% -> good/verde)
+  const achCostGood = calculateTargetAchievement(5.38, 6.48, true);
+  assert.ok(Math.abs(achCostGood - 120.4459) < 0.01);
+  assert.equal(formatTargetAchievement(achCostGood), '120.45%');
+  assert.equal(getAchievementStatusClass(achCostGood, true), 'good');
+
+  // Para indicador normal (higher is better): 5.38 / 6.48 = 83.02% -> critical/vermelho
+  const ach = calculateTargetAchievement(5.38, 6.48, false);
   assert.ok(Math.abs(ach - 83.02469) < 0.001);
   assert.equal(formatTargetAchievement(ach), '83.02%');
   assert.equal(getAchievementStatusClass(ach), 'critical');
 
-  const achGood = calculateTargetAchievement(6.50, 6.48);
+  const achGood = calculateTargetAchievement(6.50, 6.48, false);
   assert.equal(formatTargetAchievement(achGood), '100.31%');
   assert.equal(getAchievementStatusClass(achGood), 'good');
 
-  const achWarning = calculateTargetAchievement(6.00, 6.48);
+  const achWarning = calculateTargetAchievement(6.00, 6.48, false);
   assert.equal(formatTargetAchievement(achWarning), '92.59%');
   assert.equal(getAchievementStatusClass(achWarning), 'alert');
 
+  // Semáforo: >= 100 verde, >= 90 amarelo, < 90 vermelho
   assert.equal(getAchievementStatusClass(100.0), 'good');
+  assert.equal(getAchievementStatusClass(120.0), 'good');
   assert.equal(getAchievementStatusClass(99.99), 'alert');
   assert.equal(getAchievementStatusClass(90.0), 'alert');
   assert.equal(getAchievementStatusClass(89.99), 'critical');
@@ -123,12 +132,13 @@ test('War Room Jan/26 Benchmark card metrics validation', () => {
 
   const variation = calculateVariation(currDisp, prevDisp);
   const deviation = calculateDeviation(currDisp, prevDisp);
-  const achievement = calculateTargetAchievement(currDisp, targetDisp);
+  // War Room é custo (lowerIsBetter = true): target / result = 6.48 / 5.38 = 120.45%
+  const achievement = calculateTargetAchievement(currDisp, targetDisp, true);
 
   assert.equal(formatVariation(variation), '+0.75%');
   assert.equal(formatDeviation(deviation, unit), '+0.04 p.p.');
-  assert.equal(formatTargetAchievement(achievement), '83.02%');
-  assert.equal(getAchievementStatusClass(achievement), 'critical');
+  assert.equal(formatTargetAchievement(achievement), '120.45%');
+  assert.equal(getAchievementStatusClass(achievement, true), 'good');
 });
 
 test('Incidental Cost aggregates cost and production before calculating the ratio', () => {
@@ -184,6 +194,12 @@ test('Trimestral, Semestral and Anual calculations use arithmetic mean for regul
   }));
   const yearAvg = aggregateField(yearMonths, 'result', 'avg');
   assert.equal(yearAvg, 15.5);
+
+  // Quando há apenas 10 meses preenchidos no ano, a média anual divide por 12 (divisor fixo)
+  const tenMonths = yearMonths.slice(0, 10);
+  const tenMonthsSum = tenMonths.reduce((acc, m) => acc + m.result, 0); // 10+11+...+19 = 145
+  const tenMonthsAnnualAvg = aggregateField(tenMonths, 'result', 'avg', 12);
+  assert.equal(tenMonthsAnnualAvg, 145 / 12);
 
   const quarterly = buildQuarterlySeries(q1Months, { valueKey: 'result' });
   assert.equal(quarterly.length, 1);

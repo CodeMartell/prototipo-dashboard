@@ -73,25 +73,29 @@ export const calculateDeviation = (current, previous) => {
   return current - previous;
 };
 
-/** Atingimento da meta: (current / target) * 100 */
-export const calculateTargetAchievement = (current, target) => {
+/** Atingimento da meta: se lowerIsBetter, (target / current) * 100; senão (current / target) * 100 */
+export const calculateTargetAchievement = (current, target, lowerIsBetter = false) => {
   if (target === null || target === undefined || target === 0 || Number.isNaN(target)) return null;
-  if (current === null || current === undefined || Number.isNaN(current)) return null;
-  return (current / target) * 100;
+  if (current === null || current === undefined || current === 0 || Number.isNaN(current)) return null;
+  return lowerIsBetter ? (target / current) * 100 : (current / target) * 100;
 };
 
 const isNumber = (value) => value !== null && value !== undefined && !Number.isNaN(value);
 
 /**
- * Agrega um campo de uma lista de registros por média aritmética.
- * Devolve null quando nenhum registro do periodo tem valor.
+ * Agrega um campo de uma lista de registros por média aritmética ou soma.
+ * Se fixedDivisor for fornecido no modo avg (ex: 12 no período anual),
+ * a soma dos valores válidos é dividida por fixedDivisor.
+ * Devolve null quando nenhum registro do período tem valor.
  */
-export const aggregateField = (rows, field, mode = 'avg') => {
+export const aggregateField = (rows, field, mode = 'avg', fixedDivisor = null) => {
   const valid = rows.filter((row) => isNumber(row?.[field]));
   if (!valid.length) return null;
 
   const total = valid.reduce((sum, row) => sum + row[field], 0);
-  return mode === 'sum' ? total : total / valid.length;
+  if (mode === 'sum') return total;
+  const divisor = fixedDivisor && fixedDivisor > 0 ? fixedDivisor : valid.length;
+  return total / divisor;
 };
 
 /** Razão ponderada do Incidental Cost: soma dos custos / soma da produção. */
@@ -104,14 +108,15 @@ export const aggregateRatio = (rows = []) => {
 };
 
 /**
- * O War Room só informa target a partir de Y26. Nos anos anteriores o backend
- * recebe zero por compatibilidade de contrato, mas a interface deve representar
- * corretamente a ausência da meta.
+ * O War Room só exibe target e achievement quando foram informados.
+ * Se o target for zero ou nulo (valor técnico de contrato), a interface
+ * representa a ausência de meta como null.
  */
 export const normalizeWarRoomRows = (rows = []) => rows.map((row) => {
-  const year = parseInt(String(row?.year || '').replace(/\D/g, ''), 10);
-  if (Number.isNaN(year) || year >= 26) return row;
-  return { ...row, target: null, achievement: null };
+  if (row?.target === 0 || row?.target === null || row?.target === undefined) {
+    return { ...row, target: null, achievement: null };
+  }
+  return row;
 });
 
 /**

@@ -34,7 +34,7 @@ export default function KPIComparisonMatrix({
 
     if (value === null || value === undefined) return '—';
     const num = Number(value);
-    const pct = num <= 1 && num > 0 ? num * 100 : num;
+    const pct = num <= 2 && num > 0 ? num * 100 : num;
     const formatted = formatTargetAchievement(pct);
 
     // Demurrage: target = 0 → qualquer resultado > 0 é vermelho

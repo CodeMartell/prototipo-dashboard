@@ -131,12 +131,10 @@ export const getAchievementStatusClass = (
   }
   if (achievementPct === null || achievementPct === undefined || Number.isNaN(achievementPct)) return 'neutral';
   const num = Number(achievementPct);
-  if (lowerIsBetter) {
-    if (num <= 100) return 'good';
-    if (num <= 110) return 'alert';
-    return 'critical';
-  }
-  // Air Freight e War Room (lowerIsBetter: false): verde >= 100%, amarelo >= 90%, vermelho < 90%
+  // Regra padrão de atingimento (inclusive War Room e demais):
+  // >= 100% -> 'good' (Verde)
+  // >= 90% e < 100% -> 'alert' (Amarelo)
+  // < 90% -> 'critical' (Vermelho)
   if (num >= 100) return 'good';
   if (num >= 90)  return 'alert';
   return 'critical';

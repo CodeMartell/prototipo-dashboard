@@ -40,10 +40,11 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
   const resultField = isRatioKPI ? 'ratio' : 'result';
   const prevYearStr = `Y${parseInt(selectedYear.substring(1)) - 1}`;
 
-  const avg = (arr, field) => {
+  const avg = (arr, field, fixedDivisor = null) => {
     const valid = arr.filter((d) => d[field] !== null && d[field] !== undefined);
     if (!valid.length) return null;
-    return valid.reduce((s, d) => s + d[field], 0) / valid.length;
+    const divisor = fixedDivisor && fixedDivisor > 0 ? fixedDivisor : valid.length;
+    return valid.reduce((s, d) => s + d[field], 0) / divisor;
   };
 
   const sum = (arr, field) => {
@@ -53,11 +54,13 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
   };
 
   // Demurrage usa soma acumulada
-  const aggregateFn = kpiKey === 'demurrage' ? sum : avg;
+  const aggregateFn = (rows, field, fixedDivisor = null) =>
+    kpiKey === 'demurrage' ? sum(rows, field) : avg(rows, field, fixedDivisor);
 
   const currentData = monthlyData.filter((d) => d.year === selectedYear);
   const prevData    = monthlyData.filter((d) => d.year === prevYearStr);
-  const resultValue = (rows) => isRatioKPI ? aggregateRatio(rows) : aggregateFn(rows, resultField);
+  const resultValue = (rows, fixedDivisor = null) =>
+    isRatioKPI ? aggregateRatio(rows) : aggregateFn(rows, resultField, fixedDivisor);
 
   // Detecta se os dados são apenas de granularidade anual (ex: AIR Freight Y24/Y25)
   const isAnnualOnly = currentData.length > 0 && currentData.every((d) => d.month === 'Annual');
@@ -135,10 +138,10 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
       const yrData = monthlyData.filter((d) => d.year === yr);
       return {
         period: `20${yr.substring(1)}`,
-        currentResult:      resultValue(yrData),
+        currentResult:      resultValue(yrData, 12),
         previousResult:     null,
-        target:             hasTargetData ? avg(yrData, 'target') : null,
-        currentAchievement: hasTargetData ? avg(yrData, 'achievement') : null,
+        target:             hasTargetData ? avg(yrData, 'target', 12) : null,
+        currentAchievement: hasTargetData ? avg(yrData, 'achievement', 12) : null,
       };
     });
 }

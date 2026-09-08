@@ -52,10 +52,10 @@ export default function KPICard({
     : calculateDeviation(currDisp, prevDisp);
 
   const calcAchievement = achievement !== undefined && achievement !== null
-    ? (achievement <= 1 && achievement > 0 && !String(achievement).includes('%') && targetDisp !== null
-        ? calculateTargetAchievement(currDisp, targetDisp)
-        : achievement)
-    : calculateTargetAchievement(currDisp, targetDisp);
+    ? (typeof achievement === 'number' && achievement <= 2 && achievement > 0
+        ? achievement * 100
+        : Number(achievement))
+    : calculateTargetAchievement(currDisp, targetDisp, lowerIsBetter);
 
   const formattedVariation  = formatVariation(calcVariation);
   const formattedDeviation  = formatDeviation(calcDeviation, unit);
@@ -125,7 +125,7 @@ export default function KPICard({
         <div className="kpi-card__value">
           {hasCurrentData ? formatValue(currentValue) : 'No data'}
         </div>
-        {hasCurrentData && targetValue !== null && targetValue !== undefined && !targetIsZero && title !== 'Resin Consolidation' && (
+        {hasCurrentData && targetValue !== null && targetValue !== undefined && Number(targetValue) > 0 && !targetIsZero && title !== 'Resin Consolidation' && (
           <div className="kpi-card__target-badge" title="Target for selected period">
             Target: {formatValue(targetValue)}
           </div>

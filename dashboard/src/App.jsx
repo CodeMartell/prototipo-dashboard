@@ -480,7 +480,7 @@ function App() {
     () =>
       KPI_CATALOG.map((def) => {
         const sourceRows = datasets[def.dataKey] || [];
-        const monthly = def.key === 'logisticCost'
+        const monthly = (def.key === 'logisticCost' || def.key === 'airFreight')
           ? normalizeWarRoomRows(sourceRows)
           : sourceRows;
         return {

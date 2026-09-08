@@ -80,6 +80,20 @@ payload e calcula a razão apenas quando a produção é positiva. Na versão 26
 2026 ocupa apenas as colunas de janeiro a julho; as colunas seguintes são
 controles/acumulados e não são interpretadas como agosto a dezembro.
 
+### Regra de negócio — Air Freight (%)
+
+| Item | Regra |
+| --- | --- |
+| **Base de cálculo mensal** | `Freight Amount (linha 9) / Material Cost (linha 8)` da aba "Annual Result". |
+| **ACC anual (2024/2025/2026)** | `SOMA(linha 9, 12 meses) / SOMA(linha 8, 12 meses)`. |
+| **Validação obrigatória** | O ACC anual calculado precisa bater com a coluna ACC já existente na planilha (`coluna P` para 2024, `coluna AC` para 2025). Divergências emitem log de warning. |
+| **Target** | Só existe para 2026 (coluna 42 da linha TV Rate: 0,0022 ou 0,22%). Anos 2024 e 2025 não possuem meta cadastrada e ficam com `target: null`. |
+| **Resultado** | Vem por e-mail mensal (Slide 3) com fallback de preenchimento manual via modal. |
+| **% do KPI** | `Resultado / Target` (avaliado contra as faixas de semáforo). |
+| **Agregação** | Média dos meses do período (trimestral, semestral e anual). |
+| **Regras de semáforo** | 🟢 **Verde:** `>= 100%`<br>🟡 **Amarelo:** `90% a 99%`<br>🔴 **Vermelho:** `< 90%` |
+| **Limite temporal** | A extração encerra no primeiro mês sem dado real (Julho/2026). Meses subsequentes não são preenchidos com valores falsos ou zerados. |
+
 ## Planilha normalizada
 
 Os cinco KPIs padrão usam as colunas `month`, `year`, `target`, `result` e,

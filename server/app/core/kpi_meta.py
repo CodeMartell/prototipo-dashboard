@@ -24,7 +24,7 @@ YEAR_PATTERN = re.compile(r"^Y\d{2}$")
 # False -> ganho: bater a meta significa superar o valor previsto.
 LOWER_IS_BETTER: dict[str, bool] = {
     "logistic_cost":   True,   # War Room — custo logistico sobre faturamento
-    "air_freight":     False,  # Frete aereo: resultado ÷ target; ≥ 100% = verde (guide)
+    "air_freight":     True,   # Frete aereo: custo sobre faturamento (target / result)
     "demurrage":       True,   # Sobrestadia de conteineres; target = 0
     "total_cost":      False,  # Task Cost Reduction — reducao alcancada (saving)
     "incidental_cost": False,  # Resin Consolidation — saving obtido

@@ -103,10 +103,10 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
       const prevMonths = prevData.filter((d) => months.includes(d.month));
       return {
         period: q,
-        currentResult:      resultValue(curMonths),
-        previousResult:     resultValue(prevMonths),
-        target:             hasTargetData ? avg(curMonths, 'target') : null,
-        currentAchievement: hasTargetData ? avg(curMonths, 'achievement') : null,
+        currentResult:      resultValue(curMonths, 3),
+        previousResult:     resultValue(prevMonths, 3),
+        target:             hasTargetData ? avg(curMonths, 'target', 3) : null,
+        currentAchievement: hasTargetData ? avg(curMonths, 'achievement', 3) : null,
       };
     });
   }
@@ -121,10 +121,10 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
       const prevMonths = prevData.filter((d) => months.includes(d.month));
       return {
         period: h,
-        currentResult:      resultValue(curMonths),
-        previousResult:     resultValue(prevMonths),
-        target:             hasTargetData ? avg(curMonths, 'target') : null,
-        currentAchievement: hasTargetData ? avg(curMonths, 'achievement') : null,
+        currentResult:      resultValue(curMonths, 6),
+        previousResult:     resultValue(prevMonths, 6),
+        target:             hasTargetData ? avg(curMonths, 'target', 6) : null,
+        currentAchievement: hasTargetData ? avg(curMonths, 'achievement', 6) : null,
       };
     });
   }

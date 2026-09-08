@@ -59,7 +59,7 @@ class ApiReportSender:
                 if response.status_code != 200:
                     raise IngestionError(f'Ingestao rejeitada (HTTP {response.status_code})')
                 status = response.json().get('status')
-                if status not in ('processed', 'skipped'):
+                if status not in ('processed', 'skipped', 'pending'):
                     raise IngestionError('API nao confirmou a ingestao')
                 return status
         except httpx.TimeoutException:

@@ -1,25 +1,17 @@
 """
 app/schemas/ingestion_schema.py
-Contrato entre esta API  e o bot de extração (Épico 2/3).
-O bot deixa de escrever direto no Postgres e passa a chamar
-POST /api/ingestion/kpi-report com esse formato.
-
-kpi_type aceita os 5 nomes padrão ("logistic_cost", "air_freight",
-"incidental_cost", "total_cost", "demurrage") ou "logistics_vs_prod"
-(que usa os campos logistics_cost/production_amount/ratio em vez de
-target/result).
+Contrato entre esta API e o bot de extração (Épico 2/3).
 """
 import re
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-
 NonNegativeFinite = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 VALID_MONTHS = {
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    "Annual",  # sentinel para KPIs com granularidade somente anual (Air Freight Y24/Y25)
+    "Annual",
 }
 YEAR_PATTERN = re.compile(r"^Y\d{2}$")
 
@@ -44,11 +36,15 @@ class PeriodValidated(BaseModel):
 
 
 class ProcessedEmailIn(BaseModel):
-    """Metadados do e-mail, pro controle de duplicidade (Épico 2)."""
+    """Metadados do e-mail, pro controle de duplicidade e governança de staging."""
 
     message_id: str
     subject: str
     sender: str
+    file_name: str | None = None
+    period_start: str | None = None
+    period_end: str | None = None
+    period_label: str | None = None
 
     @field_validator("message_id", "subject", "sender")
     @classmethod
@@ -60,16 +56,16 @@ class ProcessedEmailIn(BaseModel):
 
 
 class KpiReportIn(PeriodValidated):
-    """Um registro de KPI padrão, já extraído e validado pelo Épico 3."""
+    """Um registro de KPI padrão."""
 
-    kpi_type: str  # logistic_cost | air_freight | incidental_cost | total_cost | demurrage
+    kpi_type: str
     target: NonNegativeFinite
     result: NonNegativeFinite
     achievement: NonNegativeFinite | None = None
 
 
 class LogisticsVsProdIn(PeriodValidated):
-    """Registro da tabela logistics_vs_prod — campos diferentes do padrão."""
+    """Registro da tabela logistics_vs_prod."""
 
     logistics_cost: NonNegativeFinite
     production_amount: NonNegativeFinite

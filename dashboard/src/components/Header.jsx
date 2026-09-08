@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Download, 
   Bell, 
@@ -28,11 +29,12 @@ export default function Header({
   fontSize = 'normal',
   onFontSizeChange,
   canAccessAnalytics = false,
+  pendingCount = 0,
 }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
 
-  // Close notifications dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -153,7 +155,7 @@ export default function Header({
           )}
         </div>}
 
-        {/* ── Accessibility: Font Size Control ── */}
+        {/* Font Size Control */}
         {onFontSizeChange && (
           <div className="font-size-control" aria-label="Text size">
             <span className="font-size-control__label" aria-hidden="true">A</span>
@@ -181,9 +183,39 @@ export default function Header({
           {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
         </button>
 
-        <div className="header__user">
+        {/* Link para a Página de Perfil (/perfil) */}
+        <div 
+          className="header__user header__user--clickable"
+          onClick={() => navigate('/perfil')}
+          title="Ver perfil, histórico de atividades e aprovações de planilhas"
+          style={{ cursor: 'pointer', position: 'relative' }}
+        >
           <div className="header__avatar">
             {(user?.name || user?.email || 'U').slice(0, 2).toUpperCase()}
+            {pendingCount > 0 && (
+              <span 
+                className="header__pending-badge animate-bounce"
+                title={`${pendingCount} planilha(s) pendente(s) de aprovação`}
+                style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  borderRadius: '9999px',
+                  width: '18px',
+                  height: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 0 2px var(--bg-card, #1e293b)'
+                }}
+              >
+                {pendingCount}
+              </span>
+            )}
           </div>
           <div className="header__user-info">
             <span className="header__user-name">{user?.name || user?.email || 'User'}</span>

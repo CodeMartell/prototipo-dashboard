@@ -1,11 +1,6 @@
 /**
  * src/services/api.js
  * Cliente único de comunicação com o backend (FastAPI, /api/*).
- *
- * O vite.config.js já faz proxy de /api -> http://localhost:5001,
- * então as chamadas aqui usam caminhos relativos (funciona em dev
- * sem problema de CORS; em produção, ajustar o proxy/base URL conforme
- * onde a API for hospedada).
  */
 
 const TOKEN_KEY = 'datalens_token';
@@ -37,11 +32,6 @@ export function logout() {
    Login
    ──────────────────────────────── */
 
-/**
- * Faz login na API (POST /api/auth/login), guarda o token e os dados
- * do usuário (via GET /api/auth/me). Lança erro com mensagem amigável
- * em caso de falha — a LoginPage decide o que mostrar.
- */
 export async function login(email, password) {
   logout();
   const response = await fetch('/api/auth/login', {
@@ -62,8 +52,6 @@ export async function login(email, password) {
     throw new Error('Resposta de autenticação inválida.');
   }
 
-  // Busca os dados do usuário logado (email/role) pra exibir no Header
-  // e pra decisões de UI (ex: esconder Analysis pra VISUALIZADOR).
   const meResponse = await fetch('/api/auth/me', {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -107,7 +95,7 @@ async function authFetch(path, options = {}) {
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(body.error || `Erro na API (status ${response.status})`);
+    throw new Error(body.detail || body.error || `Erro na API (status ${response.status})`);
   }
 
   return response.json();
@@ -117,15 +105,9 @@ async function authFetch(path, options = {}) {
    Dados do dashboard
    ──────────────────────────────── */
 
-/**
- * O backend guarda o ano como string cheia ("2025", "2026"), mas os
- * componentes do dashboard (gráficos, comparação YoY) esperam o
- * formato curto usado nos mocks ("Y25", "Y26"). Convertemos aqui,
- * numa única camada, pra não precisar tocar em cada componente.
- */
 function toShortYear(fullYear) {
   if (!fullYear) return fullYear;
-  if (/^Y\d{2}$/.test(fullYear)) return fullYear; // já está no formato certo
+  if (/^Y\d{2}$/.test(fullYear)) return fullYear;
   return `Y${String(fullYear).slice(-2)}`;
 }
 
@@ -141,14 +123,6 @@ function normalizeLogisticsVsProd(records) {
   }));
 }
 
-/**
- * Busca todos os KPIs do dashboard numa única chamada
- * (GET /api/kpis/dashboard), já normalizados. Cobre os 6 indicadores:
- * logistic_cost, air_freight, incidental_cost, total_cost, demurrage e
- * logistics_vs_prod.
- * Lança UnauthorizedError se a sessão expirou — quem chamar decide
- * se redireciona pro /login.
- */
 export async function fetchDashboardData() {
   const data = await authFetch('/api/kpis/dashboard');
 
@@ -166,10 +140,6 @@ export async function fetchDashboardData() {
    Lançamento manual de indicadores
    ──────────────────────────────── */
 
-/**
- * O banco guarda o ano como "Y25"/"Y26" (mesmo formato usado na tela),
- * mas aceitamos "2026" caso venha de outra origem.
- */
 function toApiYear(year) {
   if (!year) throw new Error('Ano obrigatório.');
   const digits = String(year).replace(/\D/g, '');
@@ -177,10 +147,6 @@ function toApiYear(year) {
   return `Y${digits.slice(-2)}`;
 }
 
-/**
- * Grava (cria ou atualiza) o valor de um indicador padrão num mês.
- * O backend calcula o achievement quando ele não é enviado.
- */
 export async function saveKpiRecord(kpiType, { year, month, target, result, achievement = null }) {
   return authFetch(`/api/kpis/${kpiType}/${toApiYear(year)}/${month}`, {
     method: 'PUT',
@@ -189,10 +155,6 @@ export async function saveKpiRecord(kpiType, { year, month, target, result, achi
   });
 }
 
-/**
- * Grava (cria ou atualiza) custo logístico x volume produzido num mês.
- * O backend calcula o ratio quando ele não é enviado.
- */
 export async function saveLogisticsVsProd({ year, month, logisticsCost, productionAmount, ratio = null }) {
   return authFetch(`/api/kpis/extra/logistics-vs-prod/${toApiYear(year)}/${month}`, {
     method: 'PUT',
@@ -205,9 +167,69 @@ export async function saveLogisticsVsProd({ year, month, logisticsCost, producti
   });
 }
 
-/** Remove o lançamento de um indicador num mês. */
 export async function deleteKpiRecord(kpiType, { year, month }) {
   return authFetch(`/api/kpis/${kpiType}/${toApiYear(year)}/${month}`, { method: 'DELETE' });
+}
+
+/* ────────────────────────────────
+   Perfil, Auditoria e Governança
+   ──────────────────────────────── */
+
+export async function fetchActivityLog({ actionType = '', limit = 100, offset = 0 } = {}) {
+  const params = new URLSearchParams();
+  if (actionType) params.append('action_type', actionType);
+  params.append('limit', limit);
+  params.append('offset', offset);
+  return authFetch(`/api/profile/activity?${params.toString()}`);
+}
+
+export async function fetchKpiChanges({ kpiType = '', source = '', limit = 100, offset = 0 } = {}) {
+  const params = new URLSearchParams();
+  if (kpiType) params.append('kpi_type', kpiType);
+  if (source) params.append('source', source);
+  params.append('limit', limit);
+  params.append('offset', offset);
+  return authFetch(`/api/profile/kpi-changes?${params.toString()}`);
+}
+
+export async function fetchEmailIngestions({ status = '', limit = 50, offset = 0 } = {}) {
+  const params = new URLSearchParams();
+  if (status) params.append('status', status);
+  params.append('limit', limit);
+  params.append('offset', offset);
+  return authFetch(`/api/profile/email-ingestions?${params.toString()}`);
+}
+
+export async function fetchPendingIngestions() {
+  return authFetch('/api/profile/pending-ingestions');
+}
+
+export async function acceptIngestion(queueId) {
+  return authFetch(`/api/profile/ingestions/${queueId}/accept`, {
+    method: 'POST',
+  });
+}
+
+export async function acceptPartialIngestion(queueId, items) {
+  return authFetch(`/api/profile/ingestions/${queueId}/accept-partial`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
+  });
+}
+
+export async function rejectIngestion(queueId, reason = '') {
+  return authFetch(`/api/profile/ingestions/${queueId}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function rollbackIngestion(queueId) {
+  return authFetch(`/api/profile/ingestions/${queueId}/rollback`, {
+    method: 'POST',
+  });
 }
 
 export { UnauthorizedError };

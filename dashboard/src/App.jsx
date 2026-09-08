@@ -10,7 +10,7 @@ import MetricsModal from './components/MetricsModal';
 import AnalyticsPanel from './components/AnalyticsPanel';
 import { DollarSign, Plane, Package, Calendar, AlertTriangle, TrendingDown, Anchor, Layers } from 'lucide-react';
 import KpiEntryModal from './components/KpiEntryModal';
-import { fetchDashboardData, getCurrentUser, logout, UnauthorizedError } from './services/api';
+import { fetchDashboardData, fetchPendingIngestions, getCurrentUser, logout, UnauthorizedError } from './services/api';
 import { canAccessAnalytics, canEditKpiData } from './services/permissions';
 
 import {
@@ -190,6 +190,15 @@ function App() {
   const [datasets, setDatasets] = useState(EMPTY_DATASETS);
   const [dataSource, setDataSource] = useState('loading'); // 'loading' | 'api' | 'error'
   const [loadError, setLoadError] = useState(null);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchPendingIngestions()
+        .then((items) => setPendingCount(items?.length || 0))
+        .catch(() => {});
+    }
+  }, [currentUser]);
 
   // --- LOADING API DATA ---
   const loadFromApi = useCallback(() => {
@@ -439,11 +448,11 @@ function App() {
     return monthlyArr.filter((d) => d.year === year);
   }, [period, selectedSubPeriod]);
 
-  // Estatísticas do período: no anual a média divide sempre por 12 meses; nos demais períodos divide pelos meses válidos
+  // Estatísticas do período: no trimestral divide por 3, no semestral por 6, no anual por 12 (divisores fixos de período)
   const getPeriodStats = useCallback((monthlyArr, quarterlyArr, year, valueKey, aggregate = 'avg', _lowerIsBetter) => {
     const isRatio = valueKey === 'ratio';
     const rows = selectPeriodRows(monthlyArr, quarterlyArr, year);
-    const fixedDivisor = period === 'annual' ? 12 : null;
+    const fixedDivisor = period === 'quarterly' ? 3 : period === 'semiannual' ? 6 : period === 'annual' ? 12 : null;
 
     // Regra de negócio 3.3.1: Task Cost Reduction usa SOMA acumulada em
     // Trimestral/Semestral/Anual (não média) — os demais KPIs continuam
@@ -602,6 +611,7 @@ function App() {
           fontSize={fontSize}
           onFontSizeChange={handleFontSizeChange}
           canAccessAnalytics={isAnalyticsAllowed}
+          pendingCount={pendingCount}
         />
 
         <main className="dashboard-main">

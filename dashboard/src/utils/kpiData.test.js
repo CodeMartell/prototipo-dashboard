@@ -201,9 +201,29 @@ test('Trimestral, Semestral and Anual calculations use arithmetic mean for regul
   const tenMonthsAnnualAvg = aggregateField(tenMonths, 'result', 'avg', 12);
   assert.equal(tenMonthsAnnualAvg, 145 / 12);
 
+  // Divisores fixos com meses incompletos:
+  // Trimestre com apenas 1 mês (ex.: Jul no Q3): soma dividida por 3
+  const q3Partial = [{ month: 'Jul', year: 'Y26', result: 9.0, target: 6.0 }];
+  assert.equal(aggregateField(q3Partial, 'result', 'avg', 3), 3.0);
+  assert.equal(aggregateField(q3Partial, 'target', 'avg', 3), 2.0);
+
+  // Semestre com apenas 2 meses (ex.: Jul e Aug no H2): soma dividida por 6
+  const h2Partial = [
+    { month: 'Jul', year: 'Y26', result: 9.0 },
+    { month: 'Aug', year: 'Y26', result: 15.0 },
+  ];
+  assert.equal(aggregateField(h2Partial, 'result', 'avg', 6), 4.0);
+
   const quarterly = buildQuarterlySeries(q1Months, { valueKey: 'result' });
   assert.equal(quarterly.length, 1);
   assert.equal(quarterly[0].quarter, 'Q1');
   assert.equal(quarterly[0].result, 6.0);
   assert.equal(quarterly[0].target, 6.0);
+
+  const quarterlyPartial = buildQuarterlySeries(q3Partial, { valueKey: 'result' });
+  assert.equal(quarterlyPartial.length, 1);
+  assert.equal(quarterlyPartial[0].quarter, 'Q3');
+  assert.equal(quarterlyPartial[0].result, 3.0);
+  assert.equal(quarterlyPartial[0].target, 2.0);
 });
+

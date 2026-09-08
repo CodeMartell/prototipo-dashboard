@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
 import App from './App.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
 import RequireAuth from './components/RequireAuth.jsx';
 
 createRoot(document.getElementById('root')).render(
@@ -22,6 +23,16 @@ createRoot(document.getElementById('root')).render(
           element={
             <RequireAuth>
               <App />
+            </RequireAuth>
+          }
+        />
+
+        {/* Página de Perfil e Governança — protegida */}
+        <Route
+          path="/perfil"
+          element={
+            <RequireAuth>
+              <ProfilePage />
             </RequireAuth>
           }
         />

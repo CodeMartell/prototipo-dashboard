@@ -1,11 +1,6 @@
 """
 app/controllers/dashboard_controller.py
-Endpoints de KPI. Só recebe requisição, valida entrada e devolve
-resposta — nenhuma regra de negócio ou SQL aqui.
-
-Leitura: qualquer usuário autenticado.
-Escrita manual (PUT/DELETE): restrita ao perfil ADMIN, já que altera a
-base que alimenta o dashboard.
+Endpoints de KPI.
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -51,15 +46,6 @@ def get_total_cost_summary(
     sub_period: str | None = None,
     service: DashboardService = Depends(_get_service),
 ):
-    """
-    Regra 3.3.1 — Task Cost Reduction agregado por período (soma acumulada
-    em quarterly/semiannual/annual, nunca média; status sempre "good").
-
-    Exemplos:
-      GET /api/kpis/total_cost/summary?period=annual&year=Y25
-      GET /api/kpis/total_cost/summary?period=quarterly&year=Y26&sub_period=Q1
-      GET /api/kpis/total_cost/summary?period=monthly&year=Y26&sub_period=Jan
-    """
     return service.get_total_cost_summary(period=period, year=year, sub_period=sub_period)
 
 
@@ -91,7 +77,7 @@ def upsert_logistics_vs_prod(
     service: DashboardService = Depends(_get_service),
     _current_user: dict = Depends(require_role("ADMIN")),
 ):
-    return service.save_logistics_vs_prod(year=year, month=month, payload=payload)
+    return service.save_logistics_vs_prod(year=year, month=month, payload=payload, user=_current_user)
 
 
 @router.put("/{kpi_type}/{year}/{month}", response_model=KpiRecordOut)
@@ -104,7 +90,7 @@ def upsert_kpi_record(
     _current_user: dict = Depends(require_role("ADMIN")),
 ):
     """Cria ou atualiza o lançamento de um indicador num mês específico."""
-    return service.save_kpi_record(kpi_type, year=year, month=month, payload=payload)
+    return service.save_kpi_record(kpi_type, year=year, month=month, payload=payload, user=_current_user)
 
 
 @router.delete("/{kpi_type}/{year}/{month}")
@@ -115,4 +101,4 @@ def delete_kpi_record(
     service: DashboardService = Depends(_get_service),
     _current_user: dict = Depends(require_role("ADMIN")),
 ):
-    return service.delete_kpi_record(kpi_type, year=year, month=month)
+    return service.delete_kpi_record(kpi_type, year=year, month=month, user=_current_user)

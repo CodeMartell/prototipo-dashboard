@@ -356,7 +356,7 @@ class EmailProcessingService:
                         parseaddr(message.get('From', ''))[1],
                     )
                     ingestion_status = self.report_sender.send(payload)
-                    if ingestion_status not in ('processed', 'skipped'):
+                    if ingestion_status not in ('processed', 'skipped', 'pending'):
                         raise ValueError('Ingestao nao confirmada')
 
                     self._record(

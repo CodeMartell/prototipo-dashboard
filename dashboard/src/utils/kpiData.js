@@ -149,9 +149,9 @@ export const buildQuarterlySeries = (monthlyRows = [], { valueKey = 'result', lo
       };
     }
 
-    const value = aggregateField(rows, valueKey, 'avg');
-    const target = aggregateField(rows, 'target', 'avg');
-    const achievement = aggregateField(rows, 'achievement', 'avg');
+    const value = aggregateField(rows, valueKey, 'avg', 3);
+    const target = aggregateField(rows, 'target', 'avg', 3);
+    const achievement = aggregateField(rows, 'achievement', 'avg', 3);
 
     return { quarter, year, target, achievement, [valueKey]: value };
   });

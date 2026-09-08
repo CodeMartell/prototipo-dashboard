@@ -1,9 +1,8 @@
-from unittest.mock import Mock, call
+from unittest.mock import Mock, MagicMock
 
 import pytest
 from pydantic import ValidationError
 
-from app.core.exceptions import DomainError
 from app.schemas.ingestion_schema import IngestionPayload
 from app.services.ingestion_service import IngestionService
 
@@ -15,27 +14,21 @@ def payload(**record_changes):
             "records": [record]}
 
 
-def test_ingestion_persists_and_commits():
+def test_ingestion_queues_pending_item():
     dashboard, emails = Mock(), Mock()
+    mock_db = MagicMock()
+    dashboard.db = mock_db
+    dashboard.list_kpi_records.return_value = []
+    dashboard.list_logistics_vs_prod.return_value = []
+    mock_db.scalars.return_value.first.return_value = None
+
     emails.exists.return_value = False
     result = IngestionService(dashboard, emails).ingest(IngestionPayload(**payload()))
-    assert result == {"status": "processed", "kpi_records": 1, "logistics_vs_prod_records": 0}
-    dashboard.upsert_kpi_record.assert_called_once_with(kpi_type="logistic_cost", month="Jan", year="Y26",
-                                                      target=0.04, result=0.05, achievement=None)
-    assert emails.create.call_args.args[0].message_id == "<test@example.com>"
-    dashboard.commit.assert_called_once()
-
-
-def test_snapshot_replaces_existing_indicator_before_upsert():
-    dashboard, emails = Mock(), Mock()
-    emails.exists.return_value = False
-    data = payload()
-    data["replace_kpis"] = ["logistic_cost"]
-
-    IngestionService(dashboard, emails).ingest(IngestionPayload(**data))
-
-    dashboard.delete_all_kpi_records.assert_called_once_with("logistic_cost")
-    assert dashboard.method_calls[0] == call.delete_all_kpi_records("logistic_cost")
+    
+    assert result["status"] == "pending"
+    assert "queue_id" in result
+    assert mock_db.add.called
+    assert mock_db.commit.called
 
 
 def test_partial_snapshot_is_rejected():
@@ -51,15 +44,6 @@ def test_duplicate_email_does_not_write():
     emails.exists.return_value = True
     assert IngestionService(dashboard, emails).ingest(IngestionPayload(**payload()))["status"] == "skipped"
     assert dashboard.mock_calls == []
-    emails.create.assert_not_called()
-
-
-def test_unknown_kpi_does_not_commit():
-    dashboard, emails = Mock(), Mock()
-    emails.exists.return_value = False
-    with pytest.raises(DomainError):
-        IngestionService(dashboard, emails).ingest(IngestionPayload(**payload(kpi_type="unknown")))
-    dashboard.commit.assert_not_called()
     emails.create.assert_not_called()
 
 

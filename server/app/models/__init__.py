@@ -10,6 +10,9 @@ from app.models.kpi import (
 )
 from app.models.processed_email import ProcessedEmail
 from app.models.dashboard_data import KpiRecord, LogisticsVsProdRecord
+from app.models.activity_log import ActivityLog
+from app.models.kpi_change_log import KpiChangeLog
+from app.models.email_ingest_queue import EmailIngestQueue
 
 __all__ = [
     "Role",
@@ -23,4 +26,7 @@ __all__ = [
     "ProcessedEmail",
     "KpiRecord",
     "LogisticsVsProdRecord",
+    "ActivityLog",
+    "KpiChangeLog",
+    "EmailIngestQueue",
 ]

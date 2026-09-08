@@ -2,9 +2,9 @@
 main.py
 Entry point — instancia o FastAPI, registra middlewares, exception
 handlers e os routers de cada controller.
-Equivalente ao server.ts do projeto Node/Express.
 """
-from fastapi import FastAPI
+import time
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.controllers import (
@@ -12,19 +12,27 @@ from app.controllers import (
     auth_controller,
     dashboard_controller,
     ingestion_controller,
+    profile_controller,
     user_controller,
 )
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import logger
+from app.database.base import Base
+from app.database.session import engine
+import app.models  # noqa: F401
 
 settings = get_settings()
+
+# Garantir criação automática das tabelas (activity_logs, kpi_change_logs, email_ingest_queue)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    logger.warning(f"Aviso ao inicializar tabelas do banco: {e}")
 
 app = FastAPI(
     title="Dashboard KPI Logístico — API",
     version="1.0.0",
-    # /docs e /openapi.json ficam disponíveis automaticamente, sem
-    # precisar escrever um swagger.ts manual como no projeto Node.
 )
 
 app.add_middleware(
@@ -35,8 +43,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi import Request
-import time
 
 @app.middleware("http")
 async def access_log_middleware(request: Request, call_next):
@@ -51,9 +57,10 @@ async def access_log_middleware(request: Request, call_next):
             request.url.path,
             request.url.scheme,
             response.status_code,
-            duration
+            duration,
         )
     return response
+
 
 register_exception_handlers(app)
 
@@ -62,6 +69,7 @@ app.include_router(user_controller.router)
 app.include_router(dashboard_controller.router)
 app.include_router(analysis_controller.router)
 app.include_router(ingestion_controller.router)
+app.include_router(profile_controller.router)
 
 
 @app.get("/api/health", tags=["health"])

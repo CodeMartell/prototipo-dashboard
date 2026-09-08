@@ -11,6 +11,7 @@ from app.core.kpi_meta import (
     validate_year,
 )
 from app.models.kpi import KPI_MODEL_MAP
+from app.models.kpi_change_log import KpiChangeLog
 from app.repositories.dashboard_repository import DashboardRepository
 from app.schemas.dashboard_schema import (
     KpiRecordIn,
@@ -19,9 +20,8 @@ from app.schemas.dashboard_schema import (
     LogisticsVsProdOut,
     TaskCostSummaryOut,
 )
+from app.services.activity_log_service import ActivityLogService
 
-# Regra 3.3.1 — Task Cost Reduction: agrupamento de meses por
-# trimestre/semestre, igual ao que o frontend já usa (mesmos rótulos).
 QUARTER_MONTHS: dict[str, list[str]] = {
     "Q1": ["Jan", "Feb", "Mar"],
     "Q2": ["Apr", "May", "Jun"],
@@ -52,10 +52,6 @@ class DashboardService:
         return [LogisticsVsProdOut.model_validate(r) for r in records]
 
     def get_dashboard(self) -> dict[str, list]:
-        """
-        Série completa de todos os indicadores numa só resposta — evita o
-        frontend disparar seis requisições para montar a tela inicial.
-        """
         payload: dict[str, list] = {
             kpi_type: self.get_kpi(kpi_type, year=None, month=None) for kpi_type in KPI_MODEL_MAP
         }
@@ -65,11 +61,6 @@ class DashboardService:
     def get_total_cost_summary(
         self, period: str, year: str, sub_period: str | None
     ) -> TaskCostSummaryOut:
-        """
-        Regra 3.3.1 (Task Cost Reduction): agregação por SOMA acumulada em
-        Trimestral/Semestral/Anual — nunca média — e status sempre "good",
-        já que qualquer valor de saving é positivo por natureza.
-        """
         year = self._ensure_valid_year(year)
         records = self.repository.list_kpi_records("total_cost", year=year, month=None)
 
@@ -113,7 +104,7 @@ class DashboardService:
             target=target_sum,
             result=result_sum,
             achievement=achievement,
-            status="good",  # regra 3.3.1: sempre verde, independente do valor
+            status="good",
             months_included=[r.month for r in filtered],
         )
 
@@ -122,7 +113,12 @@ class DashboardService:
     # ------------------------------------------------------------------
 
     def save_kpi_record(
-        self, kpi_type: str, year: str, month: str, payload: KpiRecordIn
+        self,
+        kpi_type: str,
+        year: str,
+        month: str,
+        payload: KpiRecordIn,
+        user: dict | None = None,
     ) -> KpiRecordOut:
         self._ensure_valid_kpi_type(kpi_type)
         month, year = self._ensure_valid_period(month, year)
@@ -130,6 +126,20 @@ class DashboardService:
         achievement = payload.achievement
         if achievement is None:
             achievement = compute_achievement(kpi_type, payload.target, payload.result)
+
+        existing_records = self.repository.list_kpi_records(kpi_type, year=year, month=month)
+        existing = existing_records[0] if existing_records else None
+
+        snapshot_before = None
+        if existing:
+            snapshot_before = {
+                "target": float(existing.target) if existing.target is not None else None,
+                "result": float(existing.result) if existing.result is not None else None,
+                "achievement": float(existing.achievement) if existing.achievement is not None else None,
+            }
+
+        user_id = user.get("id") if user else None
+        user_email = user.get("email") if user else None
 
         self.repository.upsert_kpi_record(
             kpi_type=kpi_type,
@@ -139,7 +149,53 @@ class DashboardService:
             result=payload.result,
             achievement=achievement,
         )
+
+        db = getattr(self.repository, "db", None)
+
+        fields_to_check = [
+            ("target", existing.target if existing else None, payload.target),
+            ("result", existing.result if existing else None, payload.result),
+            ("achievement", existing.achievement if existing else None, achievement),
+        ]
+
+        for field_name, old_val, new_val in fields_to_check:
+            old_float = float(old_val) if old_val is not None else None
+            new_float = float(new_val) if new_val is not None else None
+            if old_float != new_float:
+                change = KpiChangeLog(
+                    user_id=user_id,
+                    user_email=user_email,
+                    kpi_type=kpi_type,
+                    month=month,
+                    year=year,
+                    field_name=field_name,
+                    old_value=old_float,
+                    new_value=new_float,
+                    source="manual",
+                    snapshot_before=snapshot_before,
+                )
+                if db and hasattr(db, "add"):
+                    db.add(change)
+
         self.repository.commit()
+
+        if db and hasattr(db, "add"):
+            ActivityLogService(db).log(
+                action_type="MANUAL_EDIT",
+                user_id=user_id,
+                user_email=user_email,
+                entity_type=kpi_type,
+                entity_id=f"{kpi_type}:{month}:{year}",
+                detail={
+                    "kpi_type": kpi_type,
+                    "month": month,
+                    "year": year,
+                    "target": payload.target,
+                    "result": payload.result,
+                    "achievement": achievement,
+                    "snapshot_before": snapshot_before,
+                },
+            )
 
         return KpiRecordOut(
             month=month,
@@ -150,13 +206,31 @@ class DashboardService:
         )
 
     def save_logistics_vs_prod(
-        self, year: str, month: str, payload: LogisticsVsProdIn
+        self,
+        year: str,
+        month: str,
+        payload: LogisticsVsProdIn,
+        user: dict | None = None,
     ) -> LogisticsVsProdOut:
         month, year = self._ensure_valid_period(month, year)
 
         ratio = payload.ratio
         if ratio is None:
             ratio = compute_ratio(payload.logistics_cost, payload.production_amount)
+
+        existing_list = [r for r in self.repository.list_logistics_vs_prod() if r.month == month and r.year == year]
+        existing = existing_list[0] if existing_list else None
+
+        snapshot_before = None
+        if existing:
+            snapshot_before = {
+                "logistics_cost": float(existing.logistics_cost),
+                "production_amount": float(existing.production_amount),
+                "ratio": float(existing.ratio) if existing.ratio is not None else None,
+            }
+
+        user_id = user.get("id") if user else None
+        user_email = user.get("email") if user else None
 
         self.repository.upsert_logistics_vs_prod(
             month=month,
@@ -165,7 +239,53 @@ class DashboardService:
             production_amount=payload.production_amount,
             ratio=ratio,
         )
+
+        db = getattr(self.repository, "db", None)
+
+        fields_to_check = [
+            ("logistics_cost", existing.logistics_cost if existing else None, payload.logistics_cost),
+            ("production_amount", existing.production_amount if existing else None, payload.production_amount),
+            ("ratio", existing.ratio if existing else None, ratio),
+        ]
+
+        for field_name, old_val, new_val in fields_to_check:
+            old_float = float(old_val) if old_val is not None else None
+            new_float = float(new_val) if new_val is not None else None
+            if old_float != new_float:
+                change = KpiChangeLog(
+                    user_id=user_id,
+                    user_email=user_email,
+                    kpi_type="logistics_vs_prod",
+                    month=month,
+                    year=year,
+                    field_name=field_name,
+                    old_value=old_float,
+                    new_value=new_float,
+                    source="manual",
+                    snapshot_before=snapshot_before,
+                )
+                if db and hasattr(db, "add"):
+                    db.add(change)
+
         self.repository.commit()
+
+        if db and hasattr(db, "add"):
+            ActivityLogService(db).log(
+                action_type="MANUAL_EDIT",
+                user_id=user_id,
+                user_email=user_email,
+                entity_type="logistics_vs_prod",
+                entity_id=f"logistics_vs_prod:{month}:{year}",
+                detail={
+                    "kpi_type": "logistics_vs_prod",
+                    "month": month,
+                    "year": year,
+                    "logistics_cost": payload.logistics_cost,
+                    "production_amount": payload.production_amount,
+                    "ratio": ratio,
+                    "snapshot_before": snapshot_before,
+                },
+            )
 
         return LogisticsVsProdOut(
             month=month,
@@ -175,17 +295,56 @@ class DashboardService:
             ratio=ratio,
         )
 
-    def delete_kpi_record(self, kpi_type: str, year: str, month: str) -> dict:
-        """Remove o lançamento de um período — usado para desfazer input manual."""
+    def delete_kpi_record(self, kpi_type: str, year: str, month: str, user: dict | None = None) -> dict:
         self._ensure_valid_kpi_type(kpi_type)
         month, year = self._ensure_valid_period(month, year)
+
+        existing_records = self.repository.list_kpi_records(kpi_type, year=year, month=month)
+        existing = existing_records[0] if existing_records else None
+
+        user_id = user.get("id") if user else None
+        user_email = user.get("email") if user else None
 
         deleted = self.repository.delete_kpi_record(kpi_type, month=month, year=year)
         if not deleted:
             raise DomainError(
                 f"Nenhum lançamento de {kpi_type} em {month}/{year} para remover.", status_code=404
             )
+
+        db = getattr(self.repository, "db", None)
+
+        if existing and db and hasattr(db, "add"):
+            snapshot_before = {
+                "target": float(existing.target) if existing.target is not None else None,
+                "result": float(existing.result) if existing.result is not None else None,
+                "achievement": float(existing.achievement) if existing.achievement is not None else None,
+            }
+            change = KpiChangeLog(
+                user_id=user_id,
+                user_email=user_email,
+                kpi_type=kpi_type,
+                month=month,
+                year=year,
+                field_name="record_deleted",
+                old_value=float(existing.result) if existing.result is not None else None,
+                new_value=None,
+                source="manual",
+                snapshot_before=snapshot_before,
+            )
+            db.add(change)
+
         self.repository.commit()
+
+        if db and hasattr(db, "add"):
+            ActivityLogService(db).log(
+                action_type="MANUAL_DELETE",
+                user_id=user_id,
+                user_email=user_email,
+                entity_type=kpi_type,
+                entity_id=f"{kpi_type}:{month}:{year}",
+                detail={"kpi_type": kpi_type, "month": month, "year": year},
+            )
+
         return {"status": "deleted", "kpi_type": kpi_type, "month": month, "year": year}
 
     # ------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import React from 'react';
+import { CalendarDays } from 'lucide-react';
 
 export default function PeriodFilter({
   activePeriod,
@@ -45,20 +46,39 @@ export default function PeriodFilter({
 
   return (
     <div className="period-filter-wrapper">
-      {/* High-level Grouping Selector */}
-      <div className="period-filter">
-        {periods.map((p) => (
-          <button
-            key={p.key}
-            className={`filter-pill ${activePeriod === p.key ? 'active' : ''}`}
-            onClick={() => onPeriodChange(p.key)}
-          >
-            {p.label}
-          </button>
-        ))}
+      {/* Linha superior: pílulas de agrupamento + seletor de ano sempre visível */}
+      <div className="period-filter-top-row">
+        <div className="period-filter">
+          {periods.map((p) => (
+            <button
+              key={p.key}
+              className={`filter-pill ${activePeriod === p.key ? 'active' : ''}`}
+              onClick={() => onPeriodChange(p.key)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Seletor de ano — sempre visível, independente do tipo de período */}
+        <div className="year-selector">
+          <CalendarDays size={13} className="year-selector__icon" />
+          <span className="year-selector__label">Year:</span>
+          <div className="year-selector__pills">
+            {yearOptions.map((year) => (
+              <button
+                key={year.key}
+                className={`year-pill ${selectedYear === year.key ? 'active' : ''}`}
+                onClick={() => onYearChange(year.key)}
+              >
+                {year.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Specific Sub-Period Selector */}
+      {/* Sub-seletor de período — só aparece quando NÃO é anual */}
       {activePeriod === 'monthly' && (
         <div className="sub-period-filter">
           <span className="sub-period-filter__label">Month under Verification:</span>
@@ -110,20 +130,12 @@ export default function PeriodFilter({
         </div>
       )}
 
+      {/* Período anual: o seletor de ano no topo já é suficiente — nenhuma fila extra */}
       {activePeriod === 'annual' && (
-        <div className="sub-period-filter">
-          <span className="sub-period-filter__label">Year under Verification:</span>
-          <div className="sub-period-pills-scroll">
-            {yearOptions.map((year) => (
-              <button
-                key={year.key}
-                className={`sub-filter-pill ${selectedYear === year.key ? 'active' : ''}`}
-                onClick={() => onYearChange(year.key)}
-              >
-                {year.label}
-              </button>
-            ))}
-          </div>
+        <div className="sub-period-filter sub-period-filter--annual-hint">
+          <span className="sub-period-filter__label">
+            Displaying full year data for <strong>{yearOptions.find(y => y.key === selectedYear)?.label ?? selectedYear}</strong>. Use the year selector above to switch.
+          </span>
         </div>
       )}
     </div>

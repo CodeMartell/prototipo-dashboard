@@ -26,17 +26,36 @@ export default function KPIComparisonMatrix({
   const prevPeriodLabel = isAnnual ? prevYearLabel : `${selectedSubPeriod}/${prevYearLabel.substring(2)}`;
   const periodNoun = PERIOD_NOUN[periodType] || 'Period';
 
-  const renderAchievement = (value) => {
+  const renderAchievement = (value, metric) => {
+    // Incidental Cost não tem semáforo (noTrafficLight)
+    if (metric?.noTrafficLight) return '—';
+    // Resin Consolidation e Task Cost Reduction não têm target definido
+    if (metric?.name === 'Resin Consolidation' || metric?.name === 'Task Cost Reduction') return '—';
+
     if (value === null || value === undefined) return '—';
     const num = Number(value);
     const pct = num <= 1 && num > 0 ? num * 100 : num;
     const formatted = formatTargetAchievement(pct);
-    const status = getAchievementStatusClass(pct);
+
+    // Demurrage: target = 0 → qualquer resultado > 0 é vermelho
+    let status;
+    if (metric?.key === 'demurrage') {
+      status = pct === 0 || (metric.prevAchievement === 0 && value === 0) ? 'good' : 'critical';
+    } else {
+      status = getAchievementStatusClass(pct, metric?.lowerIsBetter, metric?.alwaysGoodStatus);
+    }
+
     return (
       <span className={`achievement-pill ${status}`}>
         {formatted}
       </span>
     );
+  };
+
+  const renderTarget = (metric, value) => {
+    if (metric?.name === 'Resin Consolidation') return '—';
+    if (metric?.noTrafficLight) return '—';
+    return formatMetricValue(value, metric?.unit);
   };
 
   return (
@@ -67,22 +86,33 @@ export default function KPIComparisonMatrix({
             </tr>
           </thead>
           <tbody>
-            {metrics.map((m) => (
-              <tr key={m.key}>
-                <td className="matrix-cell-name">
-                  <span className="matrix-cell-dot" aria-hidden="true" />
-                  <strong>{m.name}</strong>
-                </td>
+            {metrics.map((m) => {
+              const Icon = m.icon;
+              return (
+                <tr key={m.key}>
+                  <td className="matrix-cell-name">
+                    {Icon ? (
+                      <Icon
+                        size={14}
+                        style={{ color: m.color, marginRight: '6px', verticalAlign: 'middle', flexShrink: 0 }}
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <span className="matrix-cell-dot" aria-hidden="true" />
+                    )}
+                    <strong>{m.name}</strong>
+                  </td>
 
-                <td className="matrix-cell--past">{formatMetricValue(m.prevValue, m.unit)}</td>
-                <td className="matrix-cell--past">{m.name === 'Resin Consolidation' ? '—' : formatMetricValue(m.prevTarget, m.unit)}</td>
-                <td className="matrix-cell--past">{m.name === 'Resin Consolidation' ? '—' : renderAchievement(m.prevAchievement)}</td>
+                  <td className="matrix-cell--past">{formatMetricValue(m.prevValue, m.unit)}</td>
+                  <td className="matrix-cell--past">{renderTarget(m, m.prevTarget)}</td>
+                  <td className="matrix-cell--past">{renderAchievement(m.prevAchievement, m)}</td>
 
-                <td className="matrix-cell--current matrix-cell-highlight">{formatMetricValue(m.latest, m.unit)}</td>
-                <td className="matrix-cell--current">{m.name === 'Resin Consolidation' ? '—' : formatMetricValue(m.target, m.unit)}</td>
-                <td className="matrix-cell--current">{m.name === 'Resin Consolidation' ? '—' : renderAchievement(m.achievement)}</td>
-              </tr>
-            ))}
+                  <td className="matrix-cell--current matrix-cell-highlight">{formatMetricValue(m.latest, m.unit)}</td>
+                  <td className="matrix-cell--current">{renderTarget(m, m.target)}</td>
+                  <td className="matrix-cell--current">{renderAchievement(m.achievement, m)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

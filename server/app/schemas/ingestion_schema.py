@@ -16,7 +16,11 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 NonNegativeFinite = Annotated[float, Field(ge=0, allow_inf_nan=False)]
-VALID_MONTHS = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
+VALID_MONTHS = {
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    "Annual",  # sentinel para KPIs com granularidade somente anual (Air Freight Y24/Y25)
+}
 YEAR_PATTERN = re.compile(r"^Y\d{2}$")
 
 

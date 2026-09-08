@@ -108,11 +108,27 @@ export const formatTargetAchievement = (value) => {
  * >= 100% -> 'good' (Verde)
  * >= 90% e < 100% -> 'alert' (Amarelo)
  * < 90% -> 'critical' (Vermelho)
+ *
+ * Flags especiais:
+ *  - alwaysGoodStatus: semáforo sempre verde (Resin Consolidation, Task Cost Reduction)
+ *  - targetIsZero: target = 0; qualquer resultado > 0 → vermelho (Demurrage)
+ *  - noTrafficLight: sem semáforo (Incidental Cost) → retorna 'neutral'
  */
-export const getAchievementStatusClass = (achievementPct, lowerIsBetter = false, alwaysGoodStatus = false) => {
-  // Regra 3.3.1 (Task Cost Reduction): qualquer valor de saving é positivo
-  // por natureza — o semáforo é sempre verde, independente do %.
+export const getAchievementStatusClass = (
+  achievementPct,
+  lowerIsBetter = false,
+  alwaysGoodStatus = false,
+  { targetIsZero = false, noTrafficLight = false, resultValue = null } = {}
+) => {
+  // Incidental Cost: sem semáforo
+  if (noTrafficLight) return 'neutral';
+  // Resin Consolidation / Task Cost Reduction: sempre verde
   if (alwaysGoodStatus) return 'good';
+  // Demurrage: target = 0; qualquer resultado > 0 é vermelho
+  if (targetIsZero) {
+    if (resultValue === null || resultValue === undefined) return 'neutral';
+    return Number(resultValue) === 0 ? 'good' : 'critical';
+  }
   if (achievementPct === null || achievementPct === undefined || Number.isNaN(achievementPct)) return 'neutral';
   const num = Number(achievementPct);
   if (lowerIsBetter) {
@@ -120,8 +136,9 @@ export const getAchievementStatusClass = (achievementPct, lowerIsBetter = false,
     if (num <= 110) return 'alert';
     return 'critical';
   }
+  // Air Freight e War Room (lowerIsBetter: false): verde >= 100%, amarelo >= 90%, vermelho < 90%
   if (num >= 100) return 'good';
-  if (num >= 90) return 'alert';
+  if (num >= 90)  return 'alert';
   return 'critical';
 };
 

@@ -16,6 +16,7 @@ LOGGER = logging.getLogger(__name__)
 EXPECTED_MONTHS = {
     "Jan","Feb","Mar","Apr","May","Jun",
     "Jul","Aug","Sep","Oct","Nov","Dec",
+    "Annual",  # sentinel para KPIs com granularidade somente anual (ex: Air Freight Y24/Y25)
 }
 EXPECTED_YEARS = {"Y24","Y25","Y26","Y27"}
 LOWER_IS_BETTER = {

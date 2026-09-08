@@ -992,8 +992,70 @@ body {
 }
 
 .action-plan-history__heading span {
+  display: block;
+  margin-top: 3px;
   color: var(--text-muted);
   font-size: 0.65rem;
+}
+
+.action-plan-history__toggle-all {
+  padding: 5px 9px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.action-plan-history__toggle-all:hover,
+.action-plan-history__toggle-all:focus-visible {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+  outline: none;
+}
+
+.action-plan-history__empty {
+  padding: var(--space-3);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
+
+.action-plan-period-group + .action-plan-period-group {
+  margin-top: var(--space-2);
+}
+
+.action-plan-period-group__header {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  width: 100%;
+  gap: var(--space-2);
+  padding: 8px 10px;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.action-plan-period-group__header span:nth-child(2) {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 500;
+}
+
+.action-plan-period-group__header[aria-expanded='true'] {
+  margin-bottom: var(--space-2);
+  border-color: rgba(148, 163, 184, 0.35);
 }
 
 .action-plan-history__grid {

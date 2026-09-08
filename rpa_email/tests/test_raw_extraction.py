@@ -78,7 +78,13 @@ def test_raw_xlsx_files_are_routed_to_domain_extractors(tmp_path):
     assert result.demurrage[0].achievement == 1.0
     assert result.logistics_vs_prod[0].ratio == 0.2
     assert result.logistics_vs_prod[1].ratio == 0.25
-    assert result.replace_kpis == {"logistic_cost"}
+    assert result.replace_kpis == {
+        "logistic_cost",
+        "air_freight",
+        "incidental_cost",
+        "total_cost",
+        "demurrage",
+    }
     assert [(row.year, row.month) for row in result.logistic_cost] == [
         ("Y24", "Jan"),
         ("Y25", "Jan"),
@@ -141,17 +147,15 @@ def test_incidental_cost_rejects_zero_production_amount(tmp_path):
     assert any("custo/produção inválido em Jan/Y26" in error for error in result.errors)
 
 
-def test_missing_raw_source_rejects_entire_batch(tmp_path):
+def test_missing_raw_source_extracts_available_reports(tmp_path):
     _save_raw_workbooks(tmp_path)
     (tmp_path / "_26.07 Incidental Cost_Total_v0.xlsx").unlink()
 
     result = RawReportExtractor().extract(tmp_path)
 
-    assert result.logistic_cost == []
+    assert len(result.logistic_cost) == 3
     assert result.logistics_vs_prod == []
-    assert result.errors == [
-        "Relatórios brutos obrigatórios ausentes: Incidental Cost_Total"
-    ]
+    assert result.errors == []
 
 
 def test_invalid_raw_value_blocks_partial_payload(tmp_path):

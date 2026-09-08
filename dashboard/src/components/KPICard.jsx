@@ -157,11 +157,6 @@ export default function KPICard({
             {formattedAchievement}
           </span>
         )}
-        {noTrafficLight && hasCurrentData && (
-          <span className="achievement-pill neutral" title="No traffic light for this indicator">
-            N/A
-          </span>
-        )}
       </div>
 
       <div className="kpi-card__sparkline">

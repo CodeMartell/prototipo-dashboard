@@ -144,7 +144,7 @@ export default function KPICard({
       </div>
 
       <div className="kpi-card__sparkline">
-        {sparklineData && sparklineData.length > 1 && (
+        {hasCurrentData && sparklineData && sparklineData.length > 1 && (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={sparklineData}>
               <defs>
@@ -166,7 +166,7 @@ export default function KPICard({
         )}
       </div>
 
-      {previousLabel && (
+      {hasCurrentData && previousLabel && (
         <div className="kpi-card__prev">
           <span>Previous period ({previousLabel}):</span>{' '}
           <strong>

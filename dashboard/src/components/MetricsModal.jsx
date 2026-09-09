@@ -1,163 +1,150 @@
-import React from 'react';
-import { X, Database, HelpCircle, Calculator, CheckCircle2, Layers, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { AlertCircle, Calculator, CheckCircle2, ChevronRight, Database, FileSpreadsheet, HelpCircle, Layers, Lightbulb, X } from 'lucide-react';
 
-const METRICS_EXPLANATIONS = [
+const METRICS = [
   {
-    id: 'warRoom',
-    title: '1. War Room Report (Logistic Cost KPI TV %)',
-    formula: 'Logistic Cost (%) = Total Logistics Cost / Gross Production Value',
-    source: 'Relatório War Room (aba "Logistic", linha 67) / E-mail semanal',
-    badge: 'Lower is Better',
-    badgeColor: 'var(--brand-800)',
-    concept: 'Percentual do custo total de movimentação logística em relação ao faturamento bruto de produção de TVs.',
-    rationale: 'Mede a eficiência logística em relação ao volume financeiro fabril. Se a produção sobe, o frete nominal aumenta, mas a taxa percentual deve cair ou se manter estável por ganho de escala.',
-    semaphore: '🟢 Verde: >= 100% | 🟡 Amarelo: 90% a 99% | 🔴 Vermelho: < 90%',
-    example: 'Em Jan/26, gasto logístico de 5,4% contra meta de 6,5% = 120% de atingimento (Verde).'
+    id: 'warRoom', name: 'War Room Report', descriptor: 'Logistics Cost', unit: '%', badge: 'Lower is better', color: '#3B82F6',
+    formula: 'Logistics Cost (%) = Total Logistics Cost ÷ Gross Production Value',
+    concept: 'Percentage of total logistics handling costs relative to the gross production value of TVs.',
+    source: 'War Room Report, “Logistic” sheet, row 67. Received by weekly operational email.',
+    businessRule: 'Measures logistics efficiency relative to factory output. As production grows, nominal freight may increase, while the percentage should decrease or remain stable through scale gains.',
+    statusRule: 'Green: ≥ 100% achievement · Yellow: 90%–99.99% · Red: < 90%',
+    example: 'Jan/26: 5.4% actual against a 6.5% ceiling results in approximately 120% target achievement (green).',
   },
   {
-    id: 'airFreight',
-    title: '2. Air Freight (%) — Frete Aéreo Emergencial',
-    formula: 'Mensal: Freight Amount (linha 9) / Material Cost (linha 8)\nACC Anual: SOMA(Freight, 12 meses) / SOMA(Material, 12 meses)',
-    source: 'Relatório 260606_ Freight Air (Monthly).xlsb (aba "Annual Result") / E-mail mensal (Slide 3) + fallback manual',
-    badge: 'Crisis Monitoring',
-    badgeColor: 'var(--accent-teal)',
-    concept: 'Proporção dos custos de frete aéreo não planejado (emergencial) em relação ao custo total de materiais (TV).',
-    rationale: 'O frete aéreo custa de 4x a 8x mais que o marítimo. Acompanha gargalos críticos de fornecimento e atrasos de componentes que exigem transporte urgente. Target só existe para 2026 (fixo anual, cadastrado na coluna 42); 2024 e 2025 possuem histórico mensal sem meta.',
-    semaphore: '🟢 Verde: >= 100% | 🟡 Amarelo: 90% a 99% | 🔴 Vermelho: < 90%',
-    accValidation: 'O ACC anual calculado é validado automaticamente contra as colunas pré-existentes na planilha (coluna P para 2024, coluna AC para 2025). Divergências disparam alerta de auditoria.',
-    example: 'Em Jul/26: Freight Amount / Material Cost = 0,358% (Target 0,22%). Atingimento = 61,36% (Vermelho).'
+    id: 'airFreight', name: 'Air Freight', descriptor: 'Emergency freight cost', unit: '%', badge: 'Crisis monitoring', color: '#38BDF8',
+    formula: 'Monthly = Freight Amount ÷ Material Cost\nAnnual ACC = Σ Freight Amount ÷ Σ Material Cost',
+    concept: 'Share of unplanned emergency air freight costs in relation to total TV material cost.',
+    source: 'Freight Air monthly report, “Annual Result” sheet, rows 8 and 9. Received by monthly email; manual entry remains available.',
+    businessRule: 'Tracks supply shortages and component delays that require urgent transportation. A target is available from 2026; 2024 and 2025 are historical periods without a target.',
+    validation: 'The calculated annual ACC is checked against the accumulated columns available in the source report. Divergences must be reviewed.',
+    statusRule: 'Green: ≥ 100% achievement · Yellow: 90%–99.99% · Red: < 90%',
+    example: 'Jul/26: 0.358% actual against a 0.22% target results in 61.36% achievement (red).',
   },
   {
-    id: 'resinConsolidation',
-    title: '3. Resin Consolidation (KUSD) — Otimização de Resina',
-    formula: 'Saving Líquido = Saving Bruto (CTN 20 Fts) - Custos Globais - Impostos BR (34,39%)',
-    source: 'Relatório Incidental Cost (aba "Resin Consolidation") / E-mail mensal',
-    badge: 'Saving / Ganho',
-    badgeColor: '#2563EB',
-    concept: 'Economia financeira líquida obtida pela consolidação de resina plástica em contêineres de 40 pés vs 20 pés.',
-    rationale: 'Todo saving positivo representa ganho direto de produtividade para a operação. Não há target de teto; a agregação anual/trimestral é por SOMA acumulada.',
-    semaphore: '🟢 Sempre Verde: qualquer valor de saving apurado é positivo por definição.',
-    example: 'Em Jun/26, saving líquido de $3,34 KUSD alcançado na operação Manaus.'
+    id: 'resinConsolidation', name: 'Resin Consolidation', descriptor: 'Resin optimization saving', unit: 'KUSD', badge: 'Saving', color: '#2563EB',
+    formula: 'Net Saving = Gross Saving (20 ft container) − Global Costs − Brazilian Taxes (34.39%)',
+    concept: 'Net financial saving generated by consolidating plastic resin shipments in 40 ft containers instead of 20 ft containers.',
+    source: 'Incidental Cost report, “Resin Consolidation” sheet. Received by monthly operational email.',
+    businessRule: 'Positive saving represents a direct productivity gain. Quarterly, semiannual and annual results are accumulated by sum.',
+    statusRule: 'No target-achievement status is displayed for this indicator.',
+    example: 'Jun/26: USD 3.34 K in net saving generated by the Manaus operation.',
   },
   {
-    id: 'taskCost',
-    title: '4. Task Cost Reduction (KBRL) — Redução de Custos Operacionais',
-    formula: 'Redução Alcançada = Custos Orçados - Custos Realizados (KBRL)',
-    source: 'Planilha de Task Cost Reduction / Relatório mensal de controladoria',
-    badge: 'Saving / Redução',
-    badgeColor: '#1D4ED8',
-    concept: 'Redução nominal de custos de tarefas e processos logísticos executados pela equipe.',
-    rationale: 'Mede os projetos de redução contínua de custos operacionais (Kaizen/Six Sigma). A agregação anual, semestral e trimestral é realizada por SOMA acumulada.',
-    semaphore: '🟢 Sempre Verde: reduções alcançadas representam economia comprovada.',
-    example: 'Em Jun/26, redução acumulada de 688 KBRL realizada contra meta de 641 KBRL.'
+    id: 'taskCost', name: 'Task Cost Reduction', descriptor: 'Operational cost reduction', unit: 'KBRL', badge: 'Cost saving', color: '#1D4ED8',
+    formula: 'Achieved Reduction = Budgeted Costs − Actual Costs',
+    concept: 'Nominal reduction in logistics task and process costs delivered by the team.',
+    source: 'Task Cost Reduction spreadsheet and monthly controlling report.',
+    businessRule: 'Measures continuous operational cost-reduction projects. Quarterly, semiannual and annual results are accumulated by sum.',
+    statusRule: 'Green: ≥ 100% achievement · Yellow: 90%–99.99% · Red: < 90%',
+    example: 'Jun/26: BRL 688 K in accumulated reduction against a BRL 641 K target.',
   },
   {
-    id: 'demurrage',
-    title: '5. Demurrage Cost (CTNR) — Sobrestadia de Contêineres',
-    formula: 'Demurrage = Quantidade de contêineres retidos além do free-time (CTNR)',
-    source: 'Relatório Demurrage Cost / Controle de devolução de vazios dos armadores',
-    badge: 'Target Zero',
-    badgeColor: '#0EA5E9',
-    concept: 'Total de contêineres com cobrança de diárias extras por atraso na desova e devolução.',
-    rationale: 'A meta de demurrage é estritamente ZERO contêineres. Qualquer valor acima de zero indica perda financeira e ineficiência de pátio/porto.',
-    semaphore: '🟢 Verde: 0 contêineres (meta atingida) | 🔴 Vermelho: > 0 contêineres (qualquer ocorrência)',
-    example: 'Em Y25, foram registrados 5 contêineres em sobrestadia (Vermelho, $925 USD de custo).'
+    id: 'demurrage', name: 'Demurrage Cost', descriptor: 'Container overstay', unit: 'CTNR', badge: 'Zero target', color: '#0EA5E9',
+    formula: 'Demurrage = Number of containers retained beyond free time',
+    concept: 'Total containers charged additional daily fees due to delays in unloading and returning empty equipment.',
+    source: 'Demurrage Cost report and shipping-line empty-container return control.',
+    businessRule: 'The target is exactly zero containers. Any value above zero represents financial loss and an operational delay.',
+    statusRule: 'Green: 0 containers · Red: more than 0 containers',
+    example: 'A period with 5 containers beyond free time is classified as red.',
   },
   {
-    id: 'logisticsVsProd',
-    title: '6. Incidental Cost (Ratio) — Custo Logístico vs Produção',
-    formula: 'Ratio = Nominal Logistics Cost (MUSD) / Nominal Production Value (MUSD)',
-    source: 'Master Sheet (dados.xlsx — Tab 3) consolidando GERP e Financeiro',
-    badge: 'Direct Ratio',
-    badgeColor: '#7C3AED',
-    concept: 'Relação pura e não ponderada entre despesa logística (MUSD) e valor produzido (MUSD).',
-    rationale: 'Fornece visibilidade transparente da variação estrutural do custo logístico sem distorções de metas variáveis. A agregação é a soma dos custos dividida pela soma da produção.',
-    semaphore: '⚪ Sem Semáforo: indicador analítico de proporção direta sem semáforo associado.',
-    example: 'Em Jun/26: $2,64M USD custo / $49,27M USD produção = Ratio 0,0536 (5,36%).'
-  }
+    id: 'incidentalCost', name: 'Incidental Cost', descriptor: 'Logistics cost vs production', unit: 'Ratio', badge: 'Direct ratio', color: '#7C3AED',
+    formula: 'Incidental Cost Ratio = Incidental Cost (MUSD) ÷ Production Amount (MUSD)',
+    concept: 'Relationship between incidental logistics expenditure and the corresponding production amount.',
+    source: 'Incidental Cost_Total report, “Incidental Cost (MUSD)” sheet: row 82 (cost), row 95 (production) and row 96 (reported ratio). Received by monthly email.',
+    businessRule: 'Monthly values are calculated directly. Quarterly, semiannual and annual results use the sum of cost divided by the sum of production.',
+    validation: 'The calculated monthly ratio is checked against the percentage reported on row 96 for the same year and month.',
+    statusRule: 'Not applicable. This indicator has no fixed target and no target-achievement status.',
+    example: 'Jun/26: USD 2.64 M ÷ USD 49.27 M = 5.36%.',
+  },
 ];
 
+function DetailBlock({ icon: Icon, label, children, accent = false }) {
+  return (
+    <section className={`metric-guide__block${accent ? ' metric-guide__block--accent' : ''}`}>
+      <div className="metric-guide__block-title"><Icon size={15} />{label}</div>
+      <div className="metric-guide__block-content">{children}</div>
+    </section>
+  );
+}
+
+function StatusRule({ metric }) {
+  if (metric.id === 'resinConsolidation' || metric.id === 'incidentalCost') {
+    return <span className="metric-status-rule metric-status-rule--neutral"><span className="metric-status-dot metric-status-dot--neutral" />{metric.statusRule}</span>;
+  }
+
+  if (metric.id === 'demurrage') {
+    return (
+      <div className="metric-status-list">
+        <span className="metric-status-rule"><span className="metric-status-dot metric-status-dot--green" /><strong>Green</strong> 0 containers</span>
+        <span className="metric-status-rule"><span className="metric-status-dot metric-status-dot--red" /><strong>Red</strong> More than 0 containers</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="metric-status-list">
+      <span className="metric-status-rule"><span className="metric-status-dot metric-status-dot--green" /><strong>Green</strong> ≥ 100% achievement</span>
+      <span className="metric-status-rule"><span className="metric-status-dot metric-status-dot--yellow" /><strong>Yellow</strong> 90%–99.99%</span>
+      <span className="metric-status-rule"><span className="metric-status-dot metric-status-dot--red" /><strong>Red</strong> &lt; 90%</span>
+    </div>
+  );
+}
+
 export default function MetricsModal({ isOpen, onClose }) {
+  const [activeId, setActiveId] = useState(METRICS[0].id);
   if (!isOpen) return null;
+  const metric = METRICS.find((item) => item.id === activeId) || METRICS[0];
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '840px' }}>
+      <div className="modal-content metrics-modal" onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title">
             <Database size={20} className="modal-title-icon" />
-            <div>
-              <h3>Metrics Guide & Data Origin</h3>
-              <p>Racional lógico, fórmulas de cálculo, origens oficiais e regras de semáforo dos 6 indicadores</p>
-            </div>
+            <div><h3>Metric Dictionary & Data Origin</h3><p>Definitions, formulas, official sources and calculation rules</p></div>
           </div>
-          <button className="btn-close" onClick={onClose}>
-            <X size={18} />
-          </button>
+          <button className="btn-close" onClick={onClose} aria-label="Close metric guide"><X size={18} /></button>
         </div>
 
-        <div className="modal-body">
+        <div className="metrics-modal__body">
           <div className="metrics-intro-card">
-            <HelpCircle size={18} style={{ color: 'var(--brand-800)', flexShrink: 0, marginTop: '2px' }} />
-            <div>
-              <strong>Auditoria e Origem dos Dados (Data Origin):</strong>
-              <p>
-                Os 6 indicadores são alimentados automaticamente por robôs RPA que monitoram planilhas e e-mails operacionais (ARUM, GERP, relatórios de War Room e relatórios mensais de Frete Aéreo).
-                Para indicadores de custo com meta percentual (War Room e Air Freight), o atingimento reflete o cumprimento do teto orçamentário.
-              </p>
-            </div>
+            <HelpCircle size={18} />
+            <div><strong>How to use this guide</strong><p>Select a metric to understand what it measures, where its data comes from and how its result is calculated.</p></div>
           </div>
 
-          <div className="metrics-grid">
-            {METRICS_EXPLANATIONS.map((item) => (
-              <div key={item.id} className="metric-card-detail">
-                <div className="metric-card-detail__header">
-                  <h4>{item.title}</h4>
-                  <span className="metric-badge" style={{ backgroundColor: item.badgeColor + '22', color: item.badgeColor, borderColor: item.badgeColor + '44' }}>
-                    {item.badge}
-                  </span>
-                </div>
+          <div className="metrics-guide">
+            <nav className="metrics-guide__nav" aria-label="Metric list">
+              <div className="metrics-guide__nav-label">Available metrics</div>
+              {METRICS.map((item, index) => (
+                <button type="button" key={item.id} className={`metrics-guide__nav-item${item.id === metric.id ? ' active' : ''}`} onClick={() => setActiveId(item.id)} style={{ '--metric-color': item.color }}>
+                  <span className="metrics-guide__nav-number">{String(index + 1).padStart(2, '0')}</span>
+                  <span><strong>{item.name}</strong><small>{item.unit} · {item.descriptor}</small></span>
+                  <ChevronRight size={15} />
+                </button>
+              ))}
+            </nav>
 
-                <div className="metric-card-detail__formula">
-                  <Calculator size={14} />
-                  <code style={{ whiteSpace: 'pre-line' }}>{item.formula}</code>
-                </div>
-
-                <div className="metric-card-detail__row">
-                  <strong><Layers size={13} /> Conceito:</strong> {item.concept}
-                </div>
-
-                <div className="metric-card-detail__row">
-                  <strong><Database size={13} /> Origem (Data Origin):</strong> {item.source}
-                </div>
-
-                <div className="metric-card-detail__row">
-                  <strong><CheckCircle2 size={13} /> Racional de Negócio:</strong> {item.rationale}
-                </div>
-
-                {item.accValidation && (
-                  <div className="metric-card-detail__row" style={{ color: 'var(--accent-amber, #d97706)' }}>
-                    <strong><AlertCircle size={13} /> Validação ACC:</strong> {item.accValidation}
-                  </div>
-                )}
-
-                <div className="metric-card-detail__row" style={{ background: 'var(--surface-2)', padding: '6px 10px', borderRadius: '6px', marginTop: '4px' }}>
-                  <strong>Regra de Semáforo:</strong>&nbsp;{item.semaphore}
-                </div>
-
-                <div className="metric-card-detail__example">
-                  <strong>Exemplo Prático:</strong> {item.example}
-                </div>
+            <article className="metric-guide__detail" style={{ '--metric-color': metric.color }}>
+              <header className="metric-guide__header">
+                <div><span className="metric-guide__eyebrow">Metric definition</span><h4>{metric.name}</h4><p>{metric.descriptor}</p></div>
+                <div className="metric-guide__tags"><span>{metric.unit}</span><span>{metric.badge}</span></div>
+              </header>
+              <DetailBlock icon={Calculator} label="Formula" accent><code>{metric.formula}</code></DetailBlock>
+              <div className="metric-guide__columns">
+                <DetailBlock icon={Layers} label="Concept">{metric.concept}</DetailBlock>
+                <DetailBlock icon={FileSpreadsheet} label="Data origin">{metric.source}</DetailBlock>
               </div>
-            ))}
+              <DetailBlock icon={CheckCircle2} label="Business rule">{metric.businessRule}</DetailBlock>
+              {metric.validation && <DetailBlock icon={AlertCircle} label="Data validation">{metric.validation}</DetailBlock>}
+              <DetailBlock icon={Database} label="Status rule"><StatusRule metric={metric} /></DetailBlock>
+              <DetailBlock icon={Lightbulb} label="Practical example" accent>{metric.example}</DetailBlock>
+            </article>
           </div>
         </div>
 
-        <div className="modal-footer">
-          <button className="btn btn--primary" onClick={onClose}>
-            Entendido, fechar guia
-          </button>
-        </div>
+        <div className="modal-footer"><button className="btn btn--primary" onClick={onClose}>Close guide</button></div>
       </div>
     </div>
   );

@@ -1852,14 +1852,20 @@ body {
   color: var(--text-muted);
 }
 
-@media (max-width: 760px) {
+/* Avoid squeezing the detail panel on notebooks and displays using OS scaling. */
+@media (max-width: 1180px) {
   .metrics-modal__body { overflow-y: auto; }
   .metrics-guide { grid-template-columns: 1fr; height: auto; overflow: visible; }
   .metrics-guide__nav { display: flex; border-right: 0; border-bottom: 1px solid var(--border); overflow-x: auto; }
   .metrics-guide__nav-label { display: none; }
   .metrics-guide__nav-item { min-width: 190px; }
   .metric-guide__detail { overflow: visible; }
+}
+
+@media (max-width: 760px) {
   .metric-guide__columns { grid-template-columns: 1fr; }
+  .metric-guide__header { flex-direction: column; }
+  .metric-guide__tags { justify-content: flex-start; }
 }
 
 .modal-footer {

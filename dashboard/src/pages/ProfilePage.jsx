@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -212,7 +212,7 @@ export default function ProfilePage() {
             <ArrowLeft size={16} />
             Voltar ao Dashboard
           </button>
-          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Governança & Perfil</span>
+          <span className="profile-header-bar__title">Governança & Perfil</span>
         </div>
         <button className="btn-back" onClick={loadData} title="Atualizar dados">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
@@ -233,14 +233,14 @@ export default function ProfilePage() {
 
       {/* Messages */}
       {successMessage && (
-        <div style={{ margin: '1rem 2rem 0', padding: '0.75rem 1.25rem', backgroundColor: 'rgba(16,185,129,0.15)', border: '1px solid #10b981', color: '#34d399', borderRadius: '0.5rem' }}>
-          <CheckCircle2 size={16} style={{ display: 'inline', marginRight: '0.5rem' }} />
+        <div className="profile-alert profile-alert--success">
+          <CheckCircle2 size={16} />
           {successMessage}
         </div>
       )}
       {error && (
-        <div style={{ margin: '1rem 2rem 0', padding: '0.75rem 1.25rem', backgroundColor: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', color: '#fca5a5', borderRadius: '0.5rem' }}>
-          <AlertTriangle size={16} style={{ display: 'inline', marginRight: '0.5rem' }} />
+        <div className="profile-alert profile-alert--error">
+          <AlertTriangle size={16} />
           {error}
         </div>
       )}
@@ -288,34 +288,34 @@ export default function ProfilePage() {
         {/* TAB 1: STAGING QUEUE */}
         {activeTab === 'staging' && (
           <div>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', marginBottom: '1.5rem' }}>
+            <p className="profile-tab-description">
               Todas as planilhas recebidas por e-mail entram primeiro nesta fila de staging.
               Revise o impacto no dashboard antes de aceitar.
             </p>
 
             {pendingIngestions.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', backgroundColor: 'var(--bg-card, #1e293b)', borderRadius: '0.75rem', border: '1px solid var(--border-color, #334155)' }}>
-                <CheckCircle2 size={40} style={{ color: '#10b981', marginBottom: '0.5rem' }} />
+              <div className="profile-empty-state">
+                <CheckCircle2 size={40} className="profile-empty-state__icon" />
                 <h3>Nenhuma atualização pendente</h3>
-                <p style={{ color: 'var(--text-muted, #94a3b8)' }}>Todas as planilhas ingeridas estão aprovadas ou revisadas.</p>
+                <p>Todas as planilhas ingeridas estão aprovadas ou revisadas.</p>
               </div>
             ) : (
               pendingIngestions.map((item) => (
                 <div key={item.id} className="queue-card">
                   <div className="queue-card__header">
                     <div className="queue-card__title">
-                      <FileSpreadsheet size={20} style={{ color: '#38bdf8' }} />
+                      <FileSpreadsheet size={20} className="queue-card__title-icon" />
                       <div>
                         <h3>{item.file_name || item.subject}</h3>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted, #94a3b8)' }}>
+                        <span className="queue-card__meta">
                           De: <strong>{item.sender}</strong> • Período: <strong>{item.period_label || 'Não detectado'}</strong>
                         </span>
                       </div>
                     </div>
-                    <div>
+                    <div className="queue-card__tags">
                       <span className="status-tag status-tag--pending">Pendente</span>
                       {item.is_update && (
-                        <span className="status-tag status-tag--superseded" style={{ marginLeft: '0.5rem' }}>Atualização</span>
+                        <span className="status-tag status-tag--superseded">Atualização</span>
                       )}
                     </div>
                   </div>
@@ -342,11 +342,11 @@ export default function ProfilePage() {
                     </thead>
                     <tbody>
                       {(item.diff_snapshot || []).map((diff, i) => (
-                        <tr key={i} style={diff.has_conflict ? { backgroundColor: 'rgba(239, 68, 68, 0.05)' } : {}}>
+                        <tr key={i} className={diff.has_conflict ? 'row--conflict' : ''}>
                           <td>
                             <strong>{formatKpiName(diff.kpi_type)}</strong>
                             {diff.has_conflict && (
-                              <span style={{ fontSize: '0.7rem', display: 'block', color: '#fca5a5' }}>
+                              <span className="conflict-detail-text">
                                 {diff.conflict_detail}
                               </span>
                             )}
@@ -390,7 +390,7 @@ export default function ProfilePage() {
                         </button>
                       </>
                     ) : (
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94a3b8)' }}>
+                      <span className="not-admin-note">
                         Apenas Administradores podem aprovar/rejeitar planilhas.
                       </span>
                     )}
@@ -404,14 +404,14 @@ export default function ProfilePage() {
         {/* TAB 2: AUDIT ACTIVITY LOG */}
         {activeTab === 'activity' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <p style={{ color: 'var(--text-muted, #94a3b8)', margin: 0 }}>
+            <div className="profile-filter-row">
+              <p className="profile-tab-description" style={{ margin: 0 }}>
                 Trilha auditável completa de acessos, logins, alterações manuais e ações de governança.
               </p>
               <select
+                className="profile-filter-select"
                 value={activityFilter}
                 onChange={(e) => setActivityFilter(e.target.value)}
-                style={{ padding: '0.5rem', backgroundColor: 'var(--bg-card, #1e293b)', color: '#fff', border: '1px solid var(--border-color, #334155)', borderRadius: '0.375rem' }}
               >
                 <option value="">Todas as Ações</option>
                 <option value="LOGIN">Logins</option>
@@ -423,7 +423,7 @@ export default function ProfilePage() {
               </select>
             </div>
 
-            <table className="diff-table" style={{ backgroundColor: 'var(--bg-card, #1e293b)', borderRadius: '0.75rem' }}>
+            <table className="diff-table diff-table--card">
               <thead>
                 <tr>
                   <th>Data/Hora</th>
@@ -441,17 +441,15 @@ export default function ProfilePage() {
                 ) : (
                   activityLogs.map((log) => (
                     <tr key={log.id}>
-                      <td style={{ fontSize: '0.8rem', color: 'var(--text-muted, #94a3b8)' }}>
+                      <td className="val-old">
                         {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR') : '—'}
                       </td>
                       <td>{log.user_email || log.user_id || 'SISTEMA (RPA)'}</td>
                       <td>
-                        <span className="status-tag" style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa' }}>
-                          {log.action_type}
-                        </span>
+                        <span className="action-tag">{log.action_type}</span>
                       </td>
                       <td>{log.entity_type ? `${log.entity_type} (${log.entity_id || ''})` : '—'}</td>
-                      <td style={{ fontSize: '0.8rem' }}>
+                      <td className="val-old" style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
                         {log.detail ? JSON.stringify(log.detail) : '—'}
                       </td>
                     </tr>
@@ -465,11 +463,11 @@ export default function ProfilePage() {
         {/* TAB 3: MANUAL CHANGES LOG */}
         {activeTab === 'changes' && (
           <div>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', marginBottom: '1rem' }}>
+            <p className="profile-tab-description">
               Rastreabilidade de campos sobrescritos manualmente (Target, Resultado, Demurrage, etc.).
             </p>
 
-            <table className="diff-table" style={{ backgroundColor: 'var(--bg-card, #1e293b)', borderRadius: '0.75rem' }}>
+            <table className="diff-table diff-table--card">
               <thead>
                 <tr>
                   <th>Data / Hora</th>
@@ -490,7 +488,7 @@ export default function ProfilePage() {
                 ) : (
                   kpiChanges.map((c) => (
                     <tr key={c.id}>
-                      <td style={{ fontSize: '0.8rem', color: 'var(--text-muted, #94a3b8)' }}>
+                      <td className="val-old">
                         {c.changed_at ? new Date(c.changed_at).toLocaleString('pt-BR') : '—'}
                       </td>
                       <td>{c.user_email || 'Usuário'}</td>
@@ -500,7 +498,14 @@ export default function ProfilePage() {
                       <td className="val-old">{c.old_value !== null ? c.old_value.toLocaleString() : '—'}</td>
                       <td className="val-new">{c.new_value !== null ? c.new_value.toLocaleString() : '—'}</td>
                       <td>
-                        <span className="status-tag" style={c.source === 'manual' ? { backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' } : { backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>
+                        <span
+                          className="status-tag"
+                          style={
+                            c.source === 'manual'
+                              ? { background: 'rgba(245,158,11,0.12)', color: 'var(--warning)', borderColor: 'rgba(245,158,11,0.28)' }
+                              : { background: 'rgba(34,197,94,0.12)', color: 'var(--success)', borderColor: 'rgba(34,197,94,0.28)' }
+                          }
+                        >
                           {c.source}
                         </span>
                       </td>
@@ -515,11 +520,11 @@ export default function ProfilePage() {
         {/* TAB 4: EMAIL INGESTION HISTORY */}
         {activeTab === 'emails' && (
           <div>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', marginBottom: '1rem' }}>
+            <p className="profile-tab-description">
               Histórico completo de planilhas recebidas por e-mail e seu estado no pipeline de governança.
             </p>
 
-            <table className="diff-table" style={{ backgroundColor: 'var(--bg-card, #1e293b)', borderRadius: '0.75rem' }}>
+            <table className="diff-table diff-table--card">
               <thead>
                 <tr>
                   <th>Data de Recebimento</th>
@@ -539,7 +544,7 @@ export default function ProfilePage() {
                 ) : (
                   emailHistory.map((item) => (
                     <tr key={item.id}>
-                      <td style={{ fontSize: '0.8rem', color: 'var(--text-muted, #94a3b8)' }}>
+                      <td className="val-old">
                         {item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : '—'}
                       </td>
                       <td>
@@ -552,7 +557,7 @@ export default function ProfilePage() {
                           {item.status}
                         </span>
                       </td>
-                      <td style={{ fontSize: '0.8rem' }}>
+                      <td className="val-old">
                         {item.reviewer_email || '—'}
                       </td>
                       <td>
@@ -577,10 +582,10 @@ export default function ProfilePage() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Rejeitar Atualização de Planilha</h3>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.9rem' }}>
+            <p className="modal-subtitle">
               Arquivo: <strong>{rejectModalItem.file_name}</strong> ({rejectModalItem.period_label})
             </p>
-            <label style={{ fontSize: '0.875rem', fontWeight: 'bold' }}>Motivo da rejeição (opcional):</label>
+            <label className="modal-label">Motivo da rejeição (opcional):</label>
             <textarea
               className="modal-textarea"
               placeholder="Ex: Planilha de mês anterior enviada por engano..."
@@ -600,10 +605,10 @@ export default function ProfilePage() {
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '700px' }}>
             <h3>Aceitar Parcialmente Planilha</h3>
-            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.9rem' }}>
+            <p className="modal-subtitle">
               Selecione quais KPIs e períodos deseja aceitar e aplicar no dashboard:
             </p>
-            <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--border-color, #334155)', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+            <div className="partial-list-wrapper">
               <table className="diff-table">
                 <thead>
                   <tr>
@@ -651,3 +656,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

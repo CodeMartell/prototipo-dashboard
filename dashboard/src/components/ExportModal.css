@@ -1,0 +1,274 @@
+﻿/* ExportModal.css — Design System Aligned with DataLens */
+
+.export-modal {
+  max-width: 760px;
+  width: 95%;
+  background: var(--bg-card, #1E1E1E);
+  border: 1px solid var(--border, #3d3d3d);
+  border-radius: var(--radius-xl, 12px);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+  color: var(--text-primary, #FFFFFF);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.export-modal__body {
+  padding: var(--space-6, 1.5rem);
+  max-height: calc(85vh - 140px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6, 1.5rem);
+}
+
+/* Sections */
+.export-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 0.75rem);
+}
+
+.export-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
+}
+
+.export-section__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary, #FFFFFF);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+}
+
+.export-section__badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 9999px);
+  background: rgba(231, 25, 74, 0.15);
+  color: var(--brand-500, #E7194A);
+  border: 1px solid rgba(231, 25, 74, 0.3);
+}
+
+.export-section__actions {
+  display: flex;
+  gap: var(--space-2, 0.5rem);
+}
+
+.btn-link-action {
+  background: transparent;
+  border: none;
+  color: var(--brand-400, #ED4570);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm, 4px);
+  transition: all 0.15s ease;
+}
+
+.btn-link-action:hover {
+  background: rgba(231, 25, 74, 0.1);
+  color: var(--brand-500, #E7194A);
+  text-decoration: underline;
+}
+
+/* KPI Selection Grid */
+.export-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-3, 0.75rem);
+}
+
+.export-kpi-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--bg-elevated, #252525);
+  border: 1px solid var(--border-light, #333333);
+  border-radius: var(--radius-lg, 8px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.export-kpi-card:hover {
+  border-color: var(--border, #3d3d3d);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.export-kpi-card--selected {
+  border-color: var(--brand-500, #E7194A);
+  background: rgba(231, 25, 74, 0.08);
+  box-shadow: 0 0 0 1px rgba(231, 25, 74, 0.3);
+}
+
+.export-kpi-card__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 0.75rem);
+}
+
+.export-kpi-card__checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--brand-500, #E7194A);
+  cursor: pointer;
+}
+
+.export-kpi-card__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md, 6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+
+.export-kpi-card__info {
+  display: flex;
+  flex-direction: column;
+}
+
+.export-kpi-card__name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary, #FFFFFF);
+}
+
+.export-kpi-card__unit {
+  font-size: 0.7rem;
+  color: var(--text-muted, #BDBDBD);
+  text-transform: uppercase;
+}
+
+/* Period Config Grid */
+.export-options-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4, 1rem);
+}
+
+.export-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+}
+
+.export-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary, #E0E0E0);
+}
+
+.export-select {
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-input, #181818);
+  border: 1px solid var(--border, #3d3d3d);
+  border-radius: var(--radius-md, 6px);
+  color: var(--text-primary, #FFFFFF);
+  font-size: 0.875rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.export-select:focus {
+  border-color: var(--brand-500, #E7194A);
+}
+
+/* Scope Pills */
+.export-scope-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
+}
+
+.export-scope-pill {
+  padding: 0.5rem 0.85rem;
+  background: var(--bg-elevated, #252525);
+  border: 1px solid var(--border-light, #333333);
+  border-radius: var(--radius-md, 6px);
+  color: var(--text-secondary, #E0E0E0);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+}
+
+.export-scope-pill:hover {
+  border-color: var(--border, #3d3d3d);
+  color: var(--text-primary, #FFFFFF);
+}
+
+.export-scope-pill--active {
+  background: rgba(231, 25, 74, 0.12);
+  border-color: var(--brand-500, #E7194A);
+  color: var(--text-primary, #FFFFFF);
+  font-weight: 500;
+}
+
+/* Preview / Summary Card */
+.export-summary-banner {
+  padding: 0.85rem 1.15rem;
+  border-radius: var(--radius-lg, 8px);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border, #3d3d3d);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 0.75rem);
+}
+
+.export-summary-banner__text {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #E0E0E0);
+}
+
+.export-summary-banner__count {
+  font-weight: 600;
+  color: var(--brand-400, #ED4570);
+}
+
+.export-summary-banner--warning {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+/* Modal Actions Footer */
+.export-modal__actions {
+  padding: var(--space-4, 1rem) var(--space-6, 1.5rem);
+  border-top: 1px solid var(--border, #3d3d3d);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3, 0.75rem);
+  background: var(--bg-elevated, #252525);
+}
+
+@media (max-width: 640px) {
+  .export-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .export-options-row {
+    grid-template-columns: 1fr;
+  }
+  .export-modal__actions {
+    flex-direction: column-reverse;
+  }
+  .export-modal__actions button {
+    width: 100%;
+  }
+}

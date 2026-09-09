@@ -23,7 +23,10 @@ const formatCell = (value, format, unit) => {
 export default function DetailTable({
   data,
   columns,
-  _lowerIsBetter,
+  lowerIsBetter,
+  alwaysGoodStatus = false,
+  targetIsZero = false,
+  noTrafficLight = false,
   bestPeriod,
   worstPeriod,
   anomalies = [],
@@ -104,10 +107,15 @@ export default function DetailTable({
                     if (col.format === 'achievement') {
                       const num = Number(value);
                       const pct = num <= 2 && num > 0 ? num * 100 : num;
-                      const status = getAchievementStatusClass(pct);
+                      const status = getAchievementStatusClass(pct, lowerIsBetter, alwaysGoodStatus, {
+                        targetIsZero,
+                        noTrafficLight,
+                        resultValue: row.currentResult,
+                      });
                       if (status === 'good') cellStyle = { color: 'var(--success)', fontWeight: 600 };
                       else if (status === 'alert') cellStyle = { color: 'var(--warning)', fontWeight: 600 };
-                      else cellStyle = { color: 'var(--danger)', fontWeight: 600 };
+                      else if (status === 'critical') cellStyle = { color: 'var(--danger)', fontWeight: 600 };
+                      else cellStyle = { color: 'var(--text-muted)' };
                     }
                   }
 

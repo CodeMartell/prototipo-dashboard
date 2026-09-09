@@ -42,7 +42,7 @@ def test_sender_rejects_failures_without_exposing_secrets(failure):
         if failure == 'malformed':
             return httpx.Response(200, text='secret')
         if failure == 'unknown':
-            return httpx.Response(200, json={'status': 'pending'})
+            return httpx.Response(200, json={'status': 'invalid_status'})
         return httpx.Response(int(failure), text='secret')
     sender = ApiReportSender('http://api-test:5001', 'bot@example.com', 'secret', transport=httpx.MockTransport(respond))
     with pytest.raises(IngestionError) as error:
@@ -89,7 +89,7 @@ def test_invalid_input_never_marks_success(tmp_path, monkeypatch, failure):
     elif failure == 'empty':
         extraction.logistic_cost.clear()
     else:
-        sender.send.return_value = 'pending'
+        sender.send.return_value = 'invalid_status'
     result = service.execute()
     assert (result.errors, result.processed) == (1, 0)
     assert not repository.is_terminal('message-id:<synthetic@example.com>')

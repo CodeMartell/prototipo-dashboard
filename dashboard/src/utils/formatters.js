@@ -124,10 +124,13 @@ export const getAchievementStatusClass = (
   if (noTrafficLight) return 'neutral';
   // Resin Consolidation / Task Cost Reduction: sempre verde
   if (alwaysGoodStatus) return 'good';
-  // Demurrage: target = 0; qualquer resultado > 0 é vermelho
+  // Demurrage: target = 0; resultado 0 → verde; resultado > 0 → vermelho
   if (targetIsZero) {
-    if (resultValue === null || resultValue === undefined) return 'neutral';
-    return Number(resultValue) === 0 ? 'good' : 'critical';
+    if (resultValue !== null && resultValue !== undefined) {
+      return Number(resultValue) === 0 ? 'good' : 'critical';
+    }
+    if (achievementPct === null || achievementPct === undefined || Number.isNaN(achievementPct)) return 'neutral';
+    return Number(achievementPct) >= 100 ? 'good' : 'critical';
   }
   if (achievementPct === null || achievementPct === undefined || Number.isNaN(achievementPct)) return 'neutral';
   const num = Number(achievementPct);

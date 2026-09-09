@@ -75,8 +75,12 @@ export const calculateDeviation = (current, previous) => {
 
 /** Atingimento da meta: se lowerIsBetter, (target / current) * 100; senão (current / target) * 100 */
 export const calculateTargetAchievement = (current, target, lowerIsBetter = false) => {
-  if (target === null || target === undefined || target === 0 || Number.isNaN(target)) return null;
-  if (current === null || current === undefined || current === 0 || Number.isNaN(current)) return null;
+  if (target === null || target === undefined || Number.isNaN(target)) return null;
+  if (current === null || current === undefined || Number.isNaN(current)) return null;
+  if (target === 0) {
+    return current === 0 ? 100 : 0;
+  }
+  if (current === 0) return null;
   return lowerIsBetter ? (target / current) * 100 : (current / target) * 100;
 };
 

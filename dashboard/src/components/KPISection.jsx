@@ -155,7 +155,7 @@ function filterBySubPeriod(chartData, subPeriod, periodType) {
 
 export default function KPISection({
   kpiKey, title, icon: Icon, monthlyData, quarterlyData,
-  accentColor, lowerIsBetter, noTrafficLight = false, unit, selectedYear, period, activePeriodLabel,
+  accentColor, lowerIsBetter, alwaysGoodStatus = false, targetIsZero = false, noTrafficLight = false, unit, selectedYear, period, activePeriodLabel,
   onEditData,
 }) {
   const [showTable, setShowTable] = useState(false);
@@ -415,6 +415,9 @@ export default function KPISection({
               data={chartData}
               columns={columns}
               lowerIsBetter={lowerIsBetter}
+              alwaysGoodStatus={alwaysGoodStatus}
+              targetIsZero={targetIsZero}
+              noTrafficLight={noTrafficLight}
               bestPeriod={chartData.find((d) => d.isBest)?.period}
               worstPeriod={chartData.find((d) => d.isWorst)?.period}
               anomalies={chartData.filter((d) => d.isAnomaly).map((d) => d.period)}

@@ -109,7 +109,17 @@ test('calculateTargetAchievement and getAchievementStatusClass follow the color 
   assert.equal(getAchievementStatusClass(90.0), 'alert');
   assert.equal(getAchievementStatusClass(89.99), 'critical');
 
-  assert.equal(calculateTargetAchievement(5.38, 0), null);
+  // Demurrage (targetIsZero): target = 0, result = 0 -> 100% atingimento, status 'good' (Verde)
+  const demurrageGoodAch = calculateTargetAchievement(0, 0, true);
+  assert.equal(demurrageGoodAch, 100);
+  assert.equal(getAchievementStatusClass(demurrageGoodAch, true, false, { targetIsZero: true, resultValue: 0 }), 'good');
+  assert.equal(getAchievementStatusClass(100, true, false, { targetIsZero: true }), 'good');
+
+  // Demurrage (targetIsZero): target = 0, result > 0 -> 0% atingimento, status 'critical' (Vermelho)
+  const demurrageBadAch = calculateTargetAchievement(5, 0, true);
+  assert.equal(demurrageBadAch, 0);
+  assert.equal(getAchievementStatusClass(demurrageBadAch, true, false, { targetIsZero: true, resultValue: 5 }), 'critical');
+
   assert.equal(calculateTargetAchievement(5.38, null), null);
   assert.equal(calculateTargetAchievement(null, 6.48), null);
   assert.equal(formatTargetAchievement(null), null);

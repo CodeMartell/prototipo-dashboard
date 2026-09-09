@@ -26,7 +26,7 @@ export default function KPIComparisonMatrix({
   const prevPeriodLabel = isAnnual ? prevYearLabel : `${selectedSubPeriod}/${prevYearLabel.substring(2)}`;
   const periodNoun = PERIOD_NOUN[periodType] || 'Period';
 
-  const renderAchievement = (value, metric) => {
+  const renderAchievement = (value, metric, actualValue) => {
     // Incidental Cost não tem semáforo (noTrafficLight)
     if (metric?.noTrafficLight) return '—';
     // Resin Consolidation e Task Cost Reduction não têm target definido
@@ -37,13 +37,16 @@ export default function KPIComparisonMatrix({
     const pct = num <= 2 && num > 0 ? num * 100 : num;
     const formatted = formatTargetAchievement(pct);
 
-    // Demurrage: target = 0 → qualquer resultado > 0 é vermelho
-    let status;
-    if (metric?.key === 'demurrage') {
-      status = pct === 0 || (metric.prevAchievement === 0 && value === 0) ? 'good' : 'critical';
-    } else {
-      status = getAchievementStatusClass(pct, metric?.lowerIsBetter, metric?.alwaysGoodStatus);
-    }
+    const status = getAchievementStatusClass(
+      pct,
+      metric?.lowerIsBetter,
+      metric?.alwaysGoodStatus,
+      {
+        targetIsZero: metric?.targetIsZero,
+        noTrafficLight: metric?.noTrafficLight,
+        resultValue: actualValue,
+      }
+    );
 
     return (
       <span className={`achievement-pill ${status}`}>
@@ -105,11 +108,11 @@ export default function KPIComparisonMatrix({
 
                   <td className="matrix-cell--past">{formatMetricValue(m.prevValue, m.unit)}</td>
                   <td className="matrix-cell--past">{renderTarget(m, m.prevTarget)}</td>
-                  <td className="matrix-cell--past">{renderAchievement(m.prevAchievement, m)}</td>
+                  <td className="matrix-cell--past">{renderAchievement(m.prevAchievement, m, m.prevValue)}</td>
 
                   <td className="matrix-cell--current matrix-cell-highlight">{formatMetricValue(m.latest, m.unit)}</td>
                   <td className="matrix-cell--current">{renderTarget(m, m.target)}</td>
-                  <td className="matrix-cell--current">{renderAchievement(m.achievement, m)}</td>
+                  <td className="matrix-cell--current">{renderAchievement(m.achievement, m, m.latest)}</td>
                 </tr>
               );
             })}

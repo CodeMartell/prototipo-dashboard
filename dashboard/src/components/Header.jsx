@@ -30,6 +30,7 @@ export default function Header({
   onFontSizeChange,
   canAccessAnalytics = false,
   pendingCount = 0,
+  onOpenExport,
 }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -224,7 +225,7 @@ export default function Header({
         </div>
 
         <div className="header__actions">
-          <button className="btn btn--primary">
+          <button className="btn btn--primary" onClick={onOpenExport} title="Exportar indicadores em planilha">
             <Download size={14} />
             Export
           </button>

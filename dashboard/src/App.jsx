@@ -7,6 +7,7 @@ import PeriodFilter from './components/PeriodFilter';
 import KPICard from './components/KPICard';
 import KPIComparisonMatrix from './components/KPIComparisonMatrix';
 import MetricsModal from './components/MetricsModal';
+import ExportModal from './components/ExportModal';
 import AnalyticsPanel from './components/AnalyticsPanel';
 import { DollarSign, Plane, Package, Calendar, AlertTriangle, TrendingDown, Anchor, Layers } from 'lucide-react';
 import KpiEntryModal from './components/KpiEntryModal';
@@ -181,6 +182,7 @@ function App() {
   const [selectedSubPeriod, setSelectedSubPeriod] = useState(CURRENT_MONTH); // 'Jan'..'Dec', 'Q1'..'Q4', 'H1'..'H2', 'Y26'
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [entryModalKpiKey, setEntryModalKpiKey] = useState(null);
   const [entryMonth, setEntryMonth] = useState(CURRENT_MONTH);
 
@@ -612,6 +614,7 @@ function App() {
           onFontSizeChange={handleFontSizeChange}
           canAccessAnalytics={isAnalyticsAllowed}
           pendingCount={pendingCount}
+          onOpenExport={() => setIsExportModalOpen(true)}
         />
 
         <main className="dashboard-main">
@@ -738,6 +741,8 @@ function App() {
                     quarterlyData={activeKpi.quarterly}
                     accentColor={activeKpi.color}
                     lowerIsBetter={activeKpi.lowerIsBetter}
+                    alwaysGoodStatus={activeKpi.alwaysGoodStatus}
+                    targetIsZero={activeKpi.targetIsZero}
                     noTrafficLight={activeKpi.noTrafficLight}
                     unit={activeKpi.unit}
                     selectedYear={selectedYear}
@@ -778,6 +783,18 @@ function App() {
 
       {/* Metrics Explanation Modal */}
       <MetricsModal isOpen={isMetricsModalOpen} onClose={() => setIsMetricsModalOpen(false)} />
+
+      {/* Consolidated Export Modal */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        kpiCatalog={KPI_CATALOG}
+        datasets={datasets}
+        selectedYear={selectedYear}
+        availableYears={availableYears}
+        period={period}
+        selectedSubPeriod={selectedSubPeriod}
+      />
 
       {/* Lançamento manual de valores do indicador */}
       <KpiEntryModal

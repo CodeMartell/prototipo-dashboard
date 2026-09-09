@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Save, AlertTriangle, Loader2 } from 'lucide-react';
+import { X, Save, AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { MONTHS } from '../utils/kpiData';
-import { saveKpiRecord, saveLogisticsVsProd } from '../services/api';
+import { saveKpiRecord, saveLogisticsVsProd, deleteKpiRecord } from '../services/api';
 
 /**
  * Lançamento manual dos valores de um indicador num mês.
@@ -54,6 +54,8 @@ export default function KpiEntryModal({
   const [month, setMonth] = useState(defaultMonth);
   const [fields, setFields] = useState({ target: '', result: '', logisticsCost: '', productionAmount: '' });
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [error, setError] = useState(null);
 
   const yearOptions = useMemo(() => {
@@ -77,6 +79,7 @@ export default function KpiEntryModal({
     setYear(defaultYear);
     setMonth(MONTHS.includes(defaultMonth) ? defaultMonth : MONTHS[0]);
     setError(null);
+    setDeleteConfirm(false);
   }, [isOpen, defaultYear, defaultMonth]);
 
   useEffect(() => {
@@ -145,6 +148,21 @@ export default function KpiEntryModal({
       setError(err.message || 'Não foi possível salvar. Tente novamente.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setError(null);
+    setIsDeleting(true);
+    try {
+      await deleteKpiRecord(kpi.dataKey, { year, month });
+      await onSaved?.();
+      onClose?.();
+    } catch (err) {
+      setError(err.message || 'Não foi possível excluir o lançamento. Tente novamente.');
+      setDeleteConfirm(false);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -260,13 +278,55 @@ export default function KpiEntryModal({
           )}
 
           <div className="kpi-entry-form__actions">
-            <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isSaving}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn--primary" disabled={isSaving}>
-              {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-              {isSaving ? 'Saving...' : 'Save values'}
-            </button>
+            {/* Delete zone — only shown for an existing record */}
+            {existingRecord && (
+              <div className="kpi-entry-form__delete-zone">
+                {deleteConfirm ? (
+                  <>
+                    <span className="kpi-entry-form__delete-warning">
+                      <AlertTriangle size={13} /> Excluir permanentemente?
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn--danger"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                      {isDeleting ? 'Excluindo...' : 'Confirmar exclusão'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      onClick={() => setDeleteConfirm(false)}
+                      disabled={isDeleting}
+                    >
+                      Cancelar
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn--danger-outline"
+                    onClick={() => setDeleteConfirm(true)}
+                    disabled={isSaving}
+                  >
+                    <Trash2 size={14} />
+                    Deletar lançamento
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="kpi-entry-form__save-zone">
+              <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isSaving || isDeleting}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn--primary" disabled={isSaving || isDeleting}>
+                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                {isSaving ? 'Saving...' : 'Save values'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

@@ -2208,8 +2208,65 @@ select:focus-visible {
 
 .kpi-entry-form__actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.kpi-entry-form__save-zone {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.kpi-entry-form__delete-zone {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.kpi-entry-form__delete-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+/* Button variant: solid danger */
+.btn--danger {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+.btn--danger:hover {
+  background: #c01234;
+  border-color: #c01234;
+}
+
+/* Button variant: outlined danger */
+.btn--danger-outline {
+  background: transparent;
+  color: var(--danger);
+  border-color: rgba(231, 25, 74, 0.45);
+}
+.btn--danger-outline:hover {
+  background: rgba(231, 25, 74, 0.1);
+  border-color: var(--danger);
+}
+
+/* Button variant: ghost (no border) */
+.btn--ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: transparent;
+}
+.btn--ghost:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-primary);
 }
 
 @media (max-width: 520px) {

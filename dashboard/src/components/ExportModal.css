@@ -186,6 +186,13 @@
   border-color: var(--brand-500, #E7194A);
 }
 
+.export-scope-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #a0a0a0);
+  font-style: italic;
+}
+
 /* Scope Pills */
 .export-scope-pills {
   display: flex;
@@ -217,6 +224,81 @@
   border-color: var(--brand-500, #E7194A);
   color: var(--text-primary, #FFFFFF);
   font-weight: 500;
+}
+
+/* Year Checkboxes */
+.export-year-dropdown {
+  position: relative;
+}
+
+.export-year-dropdown__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  gap: 0.5rem;
+}
+
+.export-year-dropdown__chevron {
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.export-year-dropdown__chevron--open {
+  transform: rotate(180deg);
+}
+
+.export-year-dropdown__panel {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--bg-elevated, #252525);
+  border: 1px solid var(--border-light, #333333);
+  border-radius: var(--radius-md, 6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.export-year-dropdown__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.2rem;
+  border-bottom: 1px solid var(--border-light, #333333);
+}
+
+.export-year-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text-secondary, #E0E0E0);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  user-select: none;
+}
+
+.export-year-dropdown__item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.export-year-dropdown__item:has(input:checked) {
+  color: var(--text-primary, #FFFFFF);
+  font-weight: 500;
+}
+
+.export-year-dropdown__item input {
+  cursor: pointer;
+  accent-color: var(--brand-500, #E7194A);
 }
 
 /* Preview / Summary Card */

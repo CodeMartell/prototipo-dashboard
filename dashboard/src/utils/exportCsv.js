@@ -5,6 +5,7 @@
  */
 
 import { formatMetricValue, getAchievementStatusClass } from './formatters.js';
+import { QUARTER_MONTHS, SEMESTER_MONTHS, calculateTargetAchievement } from './kpiData.js';
 
 const MONTHS_ORDER = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -55,29 +56,127 @@ export function toCsvString(rows, delimiter = ',') {
   return lines.join('\r\n');
 }
 
+const AGGREGATED_SCOPES = ['quarterly', 'semiannual', 'annual'];
+
+function aggregateValue(items, field, mode) {
+  const valid = items.filter((d) => d[field] !== null && d[field] !== undefined && !Number.isNaN(Number(d[field])));
+  if (!valid.length) return null;
+  const total = valid.reduce((sum, d) => sum + Number(d[field]), 0);
+  return mode === 'sum' ? total : total / valid.length;
+}
+
+function buildStatusLabel(kpi, achievementPct, targetValue, resultValue) {
+  const statusClass = getAchievementStatusClass(achievementPct, kpi.lowerIsBetter, kpi.alwaysGoodStatus, {
+    targetIsZero: targetValue === 0,
+    noTrafficLight: kpi.noTrafficLight,
+    resultValue,
+  });
+  if (statusClass === 'good') return 'Target Met';
+  if (statusClass === 'alert') return 'Attention';
+  if (statusClass === 'critical') return 'Off Target';
+  return '—';
+}
+
 /**
  * Constrói as linhas consolidadas para exportação de um ou mais indicadores.
+ *
+ * scope 'quarterly' | 'semiannual' | 'annual' geram UMA linha agregada por
+ * (indicador, ano) — respeitando a regra de soma/média de CADA indicador
+ * (kpi.aggregate), igual ao dashboard principal. Os demais scopes mantêm o
+ * comportamento anterior: uma linha por mês, sem agregar.
  */
 export function buildConsolidatedRows({
   selectedKpis = [],
   datasets = {},
-  year = 'Y26',
+  years = ['Y26'],
   scope = 'all_months',
   selectedSubPeriod = 'Jan',
   specificMonth = 'Jan',
+  specificQuarter = 'Q1',
+  specificSemester = 'H1',
 }) {
   const rows = [];
 
   selectedKpis.forEach((kpi) => {
     const rawData = datasets[kpi.dataKey] || [];
-    let filtered = [...rawData];
+    const isRatio = kpi.valueKey === 'ratio' || kpi.dataKey === 'logistics_vs_prod';
 
-    // Filtro por ano (se for 'all', não filtra ano)
-    if (year && year !== 'all') {
-      filtered = filtered.filter((d) => d.year === year);
+    let byYear = [...rawData];
+    if (years && years.length > 0) {
+      byYear = byYear.filter((d) => years.includes(d.year));
+    } else {
+      byYear = [];
     }
 
-    // Filtro por escopo de período
+    if (AGGREGATED_SCOPES.includes(scope)) {
+      years.forEach((yr) => {
+        let monthsToInclude = MONTHS_ORDER;
+        let periodLabel = 'Ano Completo';
+        if (scope === 'quarterly') {
+          monthsToInclude = QUARTER_MONTHS[specificQuarter] || [];
+          periodLabel = specificQuarter;
+        } else if (scope === 'semiannual') {
+          monthsToInclude = SEMESTER_MONTHS[specificSemester] || [];
+          periodLabel = specificSemester;
+        }
+
+        const group = byYear.filter((d) => d.year === yr && monthsToInclude.includes(d.month));
+        if (group.length === 0) return;
+
+        const yearLabel = yr.startsWith('Y') ? `20${yr.substring(1)}` : yr;
+        const mode = kpi.aggregate || 'avg';
+
+        let resultFormatted = '—';
+        let targetFormatted = '—';
+        let achievementFormatted = '—';
+        let statusLabel = '—';
+        let costFormatted = '—';
+        let prodFormatted = '—';
+        let ratioFormatted = '—';
+
+        if (isRatio) {
+          const costSum = aggregateValue(group, 'logistics_cost', 'sum');
+          const prodSum = aggregateValue(group, 'production_amount', 'sum');
+          const ratioVal = costSum != null && prodSum ? costSum / prodSum : null;
+          costFormatted = costSum != null ? String(costSum) : '—';
+          prodFormatted = prodSum != null ? String(prodSum) : '—';
+          ratioFormatted = ratioVal != null ? String(ratioVal) : '—';
+          resultFormatted = ratioFormatted;
+        } else {
+          const resultAgg = aggregateValue(group, kpi.valueKey || 'result', mode);
+          const targetAgg = aggregateValue(group, 'target', mode);
+          resultFormatted = resultAgg != null ? formatMetricValue(resultAgg, kpi.unit) : '—';
+          targetFormatted = targetAgg != null ? formatMetricValue(targetAgg, kpi.unit) : '—';
+
+          if (resultAgg != null && targetAgg != null && !kpi.noTrafficLight) {
+            const pct = calculateTargetAchievement(resultAgg, targetAgg, kpi.lowerIsBetter);
+            if (pct != null) {
+              achievementFormatted = `${pct.toFixed(2)}%`;
+              statusLabel = buildStatusLabel(kpi, pct, targetAgg, resultAgg);
+            }
+          }
+        }
+
+        rows.push({
+          Indicator: kpi.name,
+          Year: yearLabel,
+          Period: periodLabel,
+          Actual: resultFormatted,
+          Target: targetFormatted,
+          Achievement: achievementFormatted,
+          Unit: kpi.unit || '—',
+          Status: statusLabel,
+          Logistics_Cost: costFormatted,
+          Production_Volume: prodFormatted,
+          Ratio: ratioFormatted,
+        });
+      });
+      return;
+    }
+
+    // --- Scopes de linha por mês (comportamento já existente) ---
+    let filtered = byYear;
+
     if (scope === 'current_period') {
       filtered = filtered.filter((d) => d.month === selectedSubPeriod);
     } else if (scope === 'specific_month') {
@@ -96,7 +195,6 @@ export function buildConsolidatedRows({
 
     filtered.forEach((d) => {
       const yearLabel = d.year && d.year.startsWith('Y') ? `20${d.year.substring(1)}` : d.year;
-      const isRatio = kpi.valueKey === 'ratio' || kpi.dataKey === 'logistics_vs_prod';
 
       let resultFormatted = '—';
       let targetFormatted = '—';
@@ -120,30 +218,21 @@ export function buildConsolidatedRows({
           const num = Number(d.achievement);
           const pct = num <= 2 && num > 0 ? num * 100 : num;
           achievementFormatted = `${pct.toFixed(2)}%`;
-
-          const statusClass = getAchievementStatusClass(pct, kpi.lowerIsBetter, kpi.alwaysGoodStatus, {
-            targetIsZero: kpi.targetIsZero,
-            noTrafficLight: kpi.noTrafficLight,
-            resultValue: resultVal,
-          });
-
-          if (statusClass === 'good') statusLabel = 'Meta Atingida';
-          else if (statusClass === 'alert') statusLabel = 'Atenção';
-          else if (statusClass === 'critical') statusLabel = 'Fora da Meta';
+          statusLabel = buildStatusLabel(kpi, pct, d.target, resultVal);
         }
       }
 
       rows.push({
-        Indicador: kpi.name,
-        Ano: yearLabel,
-        Periodo: d.month,
-        Realizado: resultFormatted,
-        Meta: targetFormatted,
-        Atingimento: achievementFormatted,
-        Unidade: kpi.unit || '—',
+        Indicator: kpi.name,
+        Year: yearLabel,
+        Period: d.month,
+        Actual: resultFormatted,
+        Target: targetFormatted,
+        Achievement: achievementFormatted,
+        Unit: kpi.unit || '—',
         Status: statusLabel,
-        Custo_Logistico: costFormatted,
-        Volume_Producao: prodFormatted,
+        Logistics_Cost: costFormatted,
+        Production_Volume: prodFormatted,
         Ratio: ratioFormatted,
       });
     });

@@ -1614,43 +1614,22 @@ body {
   color: var(--accent-green);
 }
 
-/* =============================================
-   METRIC DICTIONARY & DATA ORIGIN MODAL
-   Estratégia: modal largo + somente 1 scroll
-   (no painel de detalhes à direita)
-   ============================================= */
-
-/*
-  Sobrescreve max-width e max-height do .modal-content base.
-  O overlay tem padding: 1.25rem em cada lado (calc disso).
-*/
+/* Metric dictionary: compact navigation + focused reading panel */
 .metrics-modal {
-  width: min(1100px, calc(100vw - 40px));
-  max-width: min(1100px, calc(100vw - 40px));
-  max-height: 90vh;
-  height: 90vh;
+  width: min(1040px, calc(100vw - 32px));
+  max-width: 1040px;
+  height: min(760px, calc(100vh - 32px));
 }
 
-/*
-  O body ocupa todo o espaço entre header e footer.
-  flex: 1 + min-height: 0 são essenciais para o filho
-  (metrics-guide) poder usar overflow: hidden corretamente.
-*/
 .metrics-modal__body {
-  flex: 1;
   min-height: 0;
-  padding: 16px 20px;
+  padding: var(--space-5);
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
-/* Card de instrução no topo — não cresce, não encolhe */
 .metrics-modal .metrics-intro-card {
-  flex: 0 0 auto;
+  margin-bottom: var(--space-4);
   align-items: flex-start;
-  margin-bottom: 0;
 }
 
 .metrics-modal .metrics-intro-card > svg {
@@ -1662,32 +1641,20 @@ body {
   margin: 2px 0 0;
 }
 
-/*
-  Grid principal: nav fixa à esquerda + painel à direita.
-  flex: 1 + min-height: 0 fazem o grid preencher o body
-  sem transbordar.
-  overflow: hidden no grid evita scroll externo.
-*/
 .metrics-guide {
-  flex: 1;
-  min-height: 0;
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr);
+  height: calc(100% - 76px);
+  min-height: 0;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg-input);
 }
 
-/*
-  Nav lateral: scroll vertical se necessário,
-  mas com 6 itens normalmente não é preciso.
-  overflow-x: hidden evita scroll horizontal acidental.
-*/
 .metrics-guide__nav {
-  padding: 12px;
+  padding: var(--space-3);
   overflow-y: auto;
-  overflow-x: hidden;
   border-right: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.018);
 }
@@ -1702,11 +1669,12 @@ body {
 }
 
 .metrics-guide__nav-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   align-items: center;
   width: 100%;
   gap: 8px;
-  padding: 10px 8px;
+  padding: 11px 9px;
   color: var(--text-secondary);
   background: transparent;
   border: 1px solid transparent;
@@ -1714,8 +1682,6 @@ body {
   font: inherit;
   text-align: left;
   cursor: pointer;
-  /* impede que o item quebre em múltiplas colunas */
-  white-space: normal;
 }
 
 .metrics-guide__nav-item:hover {
@@ -1730,22 +1696,10 @@ body {
 }
 
 .metrics-guide__nav-number {
-  flex: 0 0 auto;
   color: var(--metric-color);
   font-family: var(--font-mono);
   font-size: 0.68rem;
   font-weight: 700;
-}
-
-/* Texto (nome + subtítulo) ocupa o espaço disponível */
-.metrics-guide__nav-item > span:not(.metrics-guide__nav-number) {
-  flex: 1;
-  min-width: 0;
-}
-
-.metrics-guide__nav-item > svg {
-  flex: 0 0 auto;
-  opacity: 0.4;
 }
 
 .metrics-guide__nav-item strong,
@@ -1754,41 +1708,31 @@ body {
 }
 
 .metrics-guide__nav-item strong {
-  font-size: 0.78rem;
-  line-height: 1.3;
+  font-size: 0.76rem;
 }
 
 .metrics-guide__nav-item small {
   margin-top: 2px;
   color: var(--text-muted);
   font-size: 0.61rem;
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-/*
-  Painel de detalhes: ÚNICO scroll da tela.
-  overflow-y: auto aqui + overflow: hidden no grid pai
-  garantem que só este painel role.
-*/
 .metric-guide__detail {
-  padding: 20px 24px;
+  min-width: 0;
+  padding: var(--space-5);
   overflow-y: auto;
-  overflow-x: hidden;
 }
 
 .metric-guide__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
   border-bottom: 1px solid var(--border);
   border-top: 3px solid var(--metric-color);
-  padding-top: 12px;
+  padding-top: var(--space-3);
 }
 
 .metric-guide__eyebrow {
@@ -1800,47 +1744,43 @@ body {
 }
 
 .metric-guide__header h4 {
-  margin: 4px 0 2px;
+  margin: 3px 0;
   color: var(--text-primary);
-  font-size: 1.35rem;
-  line-height: 1.3;
-  white-space: nowrap;
+  font-size: 1.25rem;
 }
 
 .metric-guide__header p {
   margin: 0;
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
 }
 
 .metric-guide__tags {
   display: flex;
   gap: 6px;
-  flex-wrap: nowrap;
-  flex-shrink: 0;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .metric-guide__tags span {
-  padding: 4px 10px;
+  padding: 4px 8px;
   color: var(--metric-color);
   background: color-mix(in srgb, var(--metric-color) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--metric-color) 32%, transparent);
   border-radius: var(--radius-full);
-  font-size: 0.66rem;
+  font-size: 0.64rem;
   font-weight: 700;
-  white-space: nowrap;
 }
 
 .metric-guide__columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .metric-guide__block {
-  padding: 12px 16px;
-  margin-bottom: 12px;
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
   background: rgba(255, 255, 255, 0.022);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
@@ -1855,7 +1795,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: var(--text-primary);
   font-size: 0.68rem;
   font-weight: 700;
@@ -1865,28 +1805,24 @@ body {
 
 .metric-guide__block-title svg {
   color: var(--metric-color);
-  flex: 0 0 auto;
 }
 
 .metric-guide__block-content {
   color: var(--text-secondary);
-  font-size: 0.8rem;
-  line-height: 1.6;
+  font-size: 0.76rem;
+  line-height: 1.55;
 }
 
 .metric-guide__block-content code {
-  display: block;
   color: var(--accent-amber);
   font-family: var(--font-mono);
-  font-size: 0.81rem;
-  white-space: pre-wrap;
-  word-break: break-word;
+  white-space: pre-line;
 }
 
 .metric-status-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 10px 18px;
 }
 
 .metric-status-rule {
@@ -1900,75 +1836,30 @@ body {
 }
 
 .metric-status-dot {
-  width: 10px;
-  height: 10px;
-  flex: 0 0 10px;
+  width: 11px;
+  height: 11px;
+  flex: 0 0 11px;
   border-radius: 50%;
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
 }
 
-.metric-status-dot--green  { background: #00b050; }
+.metric-status-dot--green { background: #00b050; }
 .metric-status-dot--yellow { background: #ffd900; }
-.metric-status-dot--red    { background: #f20d0d; }
+.metric-status-dot--red { background: #f20d0d; }
 .metric-status-dot--neutral { background: var(--text-muted); }
 
 .metric-status-rule--neutral {
   color: var(--text-muted);
 }
 
-/* ── Responsivo: telas < 860px ───────────────────────────
-   Nav vira barra horizontal scrollável no topo do painel  */
-@media (max-width: 860px) {
-  .metrics-modal {
-    width: calc(100vw - 24px);
-    max-width: none;
-    height: calc(100vh - 24px);
-    max-height: none;
-  }
-
-  .metrics-guide {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-  }
-
-  .metrics-guide__nav {
-    display: flex;
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    padding: 8px;
-    gap: 4px;
-  }
-
+@media (max-width: 760px) {
+  .metrics-modal__body { overflow-y: auto; }
+  .metrics-guide { grid-template-columns: 1fr; height: auto; overflow: visible; }
+  .metrics-guide__nav { display: flex; border-right: 0; border-bottom: 1px solid var(--border); overflow-x: auto; }
   .metrics-guide__nav-label { display: none; }
-
-  .metrics-guide__nav-item {
-    flex: 0 0 auto;
-    width: auto;
-    min-width: 140px;
-    padding: 8px 10px;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-  }
-
-  .metrics-guide__nav-item .metrics-guide__nav-number { margin-bottom: 2px; }
-  .metrics-guide__nav-item > svg { display: none; }
-  .metrics-guide__nav-item small { white-space: normal; }
-
+  .metrics-guide__nav-item { min-width: 190px; }
+  .metric-guide__detail { overflow: visible; }
   .metric-guide__columns { grid-template-columns: 1fr; }
-
-  .metric-guide__header h4 { white-space: normal; }
-  .metric-guide__tags { flex-wrap: wrap; }
-}
-
-/* ── Mobile muito pequeno ── */
-@media (max-width: 480px) {
-  .metrics-modal__body  { padding: 12px; gap: 8px; }
-  .metric-guide__detail { padding: 16px; }
-  .metric-guide__header h4 { font-size: 1.1rem; }
 }
 
 .modal-footer {

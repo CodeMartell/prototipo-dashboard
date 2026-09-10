@@ -1615,19 +1615,30 @@ body {
 }
 
 /* Metric dictionary: compact navigation + focused reading panel */
-.metrics-modal {
+.modal-content.metrics-modal {
+  padding: 0;
+  max-height: calc(100dvh - 32px);
   width: min(1040px, calc(100vw - 32px));
   max-width: 1040px;
   height: min(760px, calc(100vh - 32px));
 }
 
+.metrics-modal > .modal-header,
+.metrics-modal > .modal-footer {
+  flex-shrink: 0;
+}
+
 .metrics-modal__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   min-height: 0;
   padding: var(--space-5);
   overflow: hidden;
 }
 
 .metrics-modal .metrics-intro-card {
+  flex-shrink: 0;
   margin-bottom: var(--space-4);
   align-items: flex-start;
 }
@@ -1644,7 +1655,8 @@ body {
 .metrics-guide {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
-  height: calc(100% - 76px);
+  flex: 1;
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -1774,7 +1786,7 @@ body {
 
 .metric-guide__columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: var(--space-3);
 }
 
@@ -1808,6 +1820,7 @@ body {
 }
 
 .metric-guide__block-content {
+  overflow-wrap: anywhere;
   color: var(--text-secondary);
   font-size: 0.76rem;
   line-height: 1.55;
@@ -1855,7 +1868,7 @@ body {
 /* Avoid squeezing the detail panel on notebooks and displays using OS scaling. */
 @media (max-width: 1180px) {
   .metrics-modal__body { overflow-y: auto; }
-  .metrics-guide { grid-template-columns: 1fr; height: auto; overflow: visible; }
+  .metrics-guide { grid-template-columns: 1fr; flex: none; height: auto; overflow: visible; }
   .metrics-guide__nav { display: flex; border-right: 0; border-bottom: 1px solid var(--border); overflow-x: auto; }
   .metrics-guide__nav-label { display: none; }
   .metrics-guide__nav-item { min-width: 190px; }

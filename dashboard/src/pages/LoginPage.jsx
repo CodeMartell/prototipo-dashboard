@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { login } from '../services/api';
+import AxAcademyLogo from '../components/AxAcademyLogo';
 import './LoginPage.css';
 
 /* ══════════════════════════════════════════════
@@ -404,8 +405,17 @@ export default function LoginPage() {
         </form>
 
         <footer className="login-card__footer">
-          <ShieldCheck size={11} aria-hidden="true" />
-          <span>Restricted access to authorized employees.</span>
+          <div className="login-card__security">
+            <ShieldCheck size={11} aria-hidden="true" />
+            <span>Restricted access to authorized employees.</span>
+          </div>
+
+          <div className="login-card__dev-credit">
+            <span className="login-card__dev-label">Developed by</span>
+            <div className="login-card__dev-logo-wrap">
+              <AxAcademyLogo className="login-card__dev-vector" />
+            </div>
+          </div>
         </footer>
       </div>
     </div>

@@ -91,7 +91,7 @@ const KPI_CATALOG = [
     unit: '%',
     aggregate: 'avg',
     valueKey: 'result',
-    lowerIsBetter: false,
+    lowerIsBetter: true,
     color: '#38BDF8',
     icon: Plane,
   },
@@ -482,16 +482,20 @@ function App() {
 
     const variation = calculateVariation(currDisp, prevDisp);
     const variationAbs = calculateDeviation(currDisp, prevDisp);
-    const achievement = current.achievement !== null && current.achievement !== undefined
-      ? (typeof current.achievement === 'number' && current.achievement <= 2 && current.achievement > 0
-          ? current.achievement * 100
-          : current.achievement)
-      : calculateTargetAchievement(currDisp, targetDisp, lowerIsBetter);
-    const prevAchievement = previous.achievement !== null && previous.achievement !== undefined
-      ? (typeof previous.achievement === 'number' && previous.achievement <= 2 && previous.achievement > 0
-          ? previous.achievement * 100
-          : previous.achievement)
-      : calculateTargetAchievement(prevDisp, prevTargetDisp, lowerIsBetter);
+    const achievement = (currDisp !== null && targetDisp !== null)
+      ? calculateTargetAchievement(currDisp, targetDisp, lowerIsBetter)
+      : (current.achievement !== null && current.achievement !== undefined
+          ? (typeof current.achievement === 'number' && current.achievement <= 2 && current.achievement > 0
+              ? current.achievement * 100
+              : current.achievement)
+          : null);
+    const prevAchievement = (prevDisp !== null && prevTargetDisp !== null)
+      ? calculateTargetAchievement(prevDisp, prevTargetDisp, lowerIsBetter)
+      : (previous.achievement !== null && previous.achievement !== undefined
+          ? (typeof previous.achievement === 'number' && previous.achievement <= 2 && previous.achievement > 0
+              ? previous.achievement * 100
+              : previous.achievement)
+          : null);
 
     // Sparkline com série mensal do ano selecionado
     const sparkline = monthlyArr

@@ -214,11 +214,12 @@ export function buildConsolidatedRows({
         resultFormatted = resultVal != null ? formatMetricValue(resultVal, kpi.unit) : '—';
         targetFormatted = d.target != null ? formatMetricValue(d.target, kpi.unit) : '—';
 
-        if (d.achievement != null && !kpi.noTrafficLight) {
-          const num = Number(d.achievement);
-          const pct = num <= 2 && num > 0 ? num * 100 : num;
-          achievementFormatted = `${pct.toFixed(2)}%`;
-          statusLabel = buildStatusLabel(kpi, pct, d.target, resultVal);
+        if (d.target != null && resultVal != null && !kpi.noTrafficLight) {
+          const pct = calculateTargetAchievement(resultVal, d.target, kpi.lowerIsBetter);
+          if (pct != null) {
+            achievementFormatted = `${pct.toFixed(2)}%`;
+            statusLabel = buildStatusLabel(kpi, pct, d.target, resultVal);
+          }
         }
       }
 

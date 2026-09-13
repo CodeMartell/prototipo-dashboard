@@ -3,7 +3,7 @@ import ComparisonChart from './ComparisonChart';
 import DetailTable from './DetailTable';
 import ActionPlanPanel from './ActionPlanPanel';
 import EvidencePanel from './EvidencePanel';
-import { MONTHS, QUARTER_MONTHS, SEMESTER_MONTHS, aggregateRatio } from '../utils/kpiData';
+import { MONTHS, QUARTER_MONTHS, SEMESTER_MONTHS, aggregateRatio, calculateTargetAchievement } from '../utils/kpiData';
 import { Table, BarChart3, PencilLine, Download, RotateCcw } from 'lucide-react';
 import { downloadKpiCsv } from '../utils/exportCsv';
 
@@ -74,19 +74,25 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
         currentResult: currentData[0]?.[resultField] ?? null,
         previousResult: isPrevAnnualOnly ? prevData[0]?.[resultField] ?? null : null,
         target: hasTargetData ? currentData[0]?.target ?? null : null,
-        currentAchievement: hasTargetData ? currentData[0]?.achievement ?? null : null,
+        currentAchievement: hasTargetData && currentData[0]?.target != null && currentData[0]?.[resultField] != null
+          ? calculateTargetAchievement(currentData[0][resultField], currentData[0].target)
+          : null,
         annualOnly: true,
       }];
     }
     return MONTHS.map((month) => {
       const cur  = currentData.find((d) => d.month === month);
       const prev = prevData.find((d) => d.month === month);
+      const curResult = cur ? cur[resultField] : null;
+      const curTarget = cur && hasTargetData ? cur.target : null;
       return {
         period: month,
-        currentResult:      cur ? cur[resultField] : null,
+        currentResult:      curResult,
         previousResult:     prev ? prev[resultField] : null,
-        target:             cur && hasTargetData ? cur.target : null,
-        currentAchievement: cur && hasTargetData ? cur.achievement : null,
+        target:             curTarget,
+        currentAchievement: hasTargetData && curTarget != null && curResult != null
+          ? calculateTargetAchievement(curResult, curTarget)
+          : null,
       };
     });
   }
@@ -101,12 +107,16 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
     return quarters.map(({ q, months }) => {
       const curMonths  = currentData.filter((d) => months.includes(d.month));
       const prevMonths = prevData.filter((d) => months.includes(d.month));
+      const curRes = resultValue(curMonths, 3);
+      const curTgt = hasTargetData ? avg(curMonths, 'target', 3) : null;
       return {
         period: q,
-        currentResult:      resultValue(curMonths, 3),
+        currentResult:      curRes,
         previousResult:     resultValue(prevMonths, 3),
-        target:             hasTargetData ? avg(curMonths, 'target', 3) : null,
-        currentAchievement: hasTargetData ? avg(curMonths, 'achievement', 3) : null,
+        target:             curTgt,
+        currentAchievement: hasTargetData && curTgt != null && curRes != null
+          ? calculateTargetAchievement(curRes, curTgt)
+          : null,
       };
     });
   }
@@ -119,12 +129,16 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
     return halves.map(({ h, months }) => {
       const curMonths  = currentData.filter((d) => months.includes(d.month));
       const prevMonths = prevData.filter((d) => months.includes(d.month));
+      const curRes = resultValue(curMonths, 6);
+      const curTgt = hasTargetData ? avg(curMonths, 'target', 6) : null;
       return {
         period: h,
-        currentResult:      resultValue(curMonths, 6),
+        currentResult:      curRes,
         previousResult:     resultValue(prevMonths, 6),
-        target:             hasTargetData ? avg(curMonths, 'target', 6) : null,
-        currentAchievement: hasTargetData ? avg(curMonths, 'achievement', 6) : null,
+        target:             curTgt,
+        currentAchievement: hasTargetData && curTgt != null && curRes != null
+          ? calculateTargetAchievement(curRes, curTgt)
+          : null,
       };
     });
   }
@@ -136,12 +150,16 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
     .sort()
     .map((yr) => {
       const yrData = monthlyData.filter((d) => d.year === yr);
+      const curRes = resultValue(yrData, 12);
+      const curTgt = hasTargetData ? avg(yrData, 'target', 12) : null;
       return {
         period: `20${yr.substring(1)}`,
-        currentResult:      resultValue(yrData, 12),
+        currentResult:      curRes,
         previousResult:     null,
-        target:             hasTargetData ? avg(yrData, 'target', 12) : null,
-        currentAchievement: hasTargetData ? avg(yrData, 'achievement', 12) : null,
+        target:             curTgt,
+        currentAchievement: hasTargetData && curTgt != null && curRes != null
+          ? calculateTargetAchievement(curRes, curTgt)
+          : null,
       };
     });
 }

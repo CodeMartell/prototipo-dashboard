@@ -82,13 +82,13 @@ test('calculateDeviation and formatDeviation correctly format percentage and non
 });
 
 test('calculateTargetAchievement and getAchievementStatusClass follow the color rules', () => {
-  // Para custo (lowerIsBetter = true): meta 6.48, resultado 5.38 -> bateu meta (120.45% -> good/verde)
-  const achCostGood = calculateTargetAchievement(5.38, 6.48, true);
-  assert.ok(Math.abs(achCostGood - 120.4459) < 0.01);
-  assert.equal(formatTargetAchievement(achCostGood), '120.45%');
-  assert.equal(getAchievementStatusClass(achCostGood, true), 'good');
+  // Atingimento é resultado / meta * 100: 5.38 / 6.48 = 83.02%
+  const achCost = calculateTargetAchievement(5.38, 6.48, true);
+  assert.ok(Math.abs(achCost - 83.02469) < 0.001);
+  assert.equal(formatTargetAchievement(achCost), '83.02%');
+  // Regra do guide: < 90% -> critical (Vermelho)
+  assert.equal(getAchievementStatusClass(achCost), 'critical');
 
-  // Para indicador normal (higher is better): 5.38 / 6.48 = 83.02% -> critical/vermelho
   const ach = calculateTargetAchievement(5.38, 6.48, false);
   assert.ok(Math.abs(ach - 83.02469) < 0.001);
   assert.equal(formatTargetAchievement(ach), '83.02%');
@@ -96,13 +96,15 @@ test('calculateTargetAchievement and getAchievementStatusClass follow the color 
 
   const achGood = calculateTargetAchievement(6.50, 6.48, false);
   assert.equal(formatTargetAchievement(achGood), '100.31%');
+  // Regra do guide: >= 100% -> good (Verde)
   assert.equal(getAchievementStatusClass(achGood), 'good');
 
   const achWarning = calculateTargetAchievement(6.00, 6.48, false);
   assert.equal(formatTargetAchievement(achWarning), '92.59%');
+  // Regra do guide: >= 90% e < 100% -> alert (Amarelo)
   assert.equal(getAchievementStatusClass(achWarning), 'alert');
 
-  // Semáforo: >= 100 verde, >= 90 amarelo, < 90 vermelho
+  // Semáforo do guide: >= 100 verde, >= 90 e < 100 amarelo, < 90 vermelho
   assert.equal(getAchievementStatusClass(100.0), 'good');
   assert.equal(getAchievementStatusClass(120.0), 'good');
   assert.equal(getAchievementStatusClass(99.99), 'alert');
@@ -142,13 +144,14 @@ test('War Room Jan/26 Benchmark card metrics validation', () => {
 
   const variation = calculateVariation(currDisp, prevDisp);
   const deviation = calculateDeviation(currDisp, prevDisp);
-  // War Room é custo (lowerIsBetter = true): target / result = 6.48 / 5.38 = 120.45%
+  // Atingimento é resultado / meta: 5.38 / 6.48 = 83.02%
   const achievement = calculateTargetAchievement(currDisp, targetDisp, true);
 
   assert.equal(formatVariation(variation), '+0.75%');
   assert.equal(formatDeviation(deviation, unit), '+0.04 p.p.');
-  assert.equal(formatTargetAchievement(achievement), '120.45%');
-  assert.equal(getAchievementStatusClass(achievement, true), 'good');
+  assert.equal(formatTargetAchievement(achievement), '83.02%');
+  // 83.02% < 90% -> critical (Vermelho)
+  assert.equal(getAchievementStatusClass(achievement), 'critical');
 });
 
 test('Incidental Cost aggregates cost and production before calculating the ratio', () => {

@@ -1,0 +1,59 @@
+/* ================================================
+   BRAND BADGE — AX Academy | Digital Transformation
+   Alta definição, fidelidade visual e suporte a temas
+   ================================================ */
+
+.ax-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: var(--text-muted);
+  cursor: default;
+  transition: color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+  user-select: none;
+}
+
+.ax-brand-badge:hover {
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+/* Bloco Esquerdo: Logo oficial AX ACADEMY */
+.ax-brand-logo-img {
+  height: 38px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.85;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+  display: block;
+}
+
+.ax-brand-badge:hover .ax-brand-logo-img {
+  opacity: 1;
+}
+
+[data-theme="light"] .ax-brand-logo-img {
+  filter: invert(0.85);
+}
+
+/* Linha divisória vertical */
+.ax-brand-divider {
+  width: 1.5px;
+  height: 38px;
+  background-color: currentColor;
+  opacity: 0.35;
+  border-radius: 1px;
+}
+
+/* Bloco Direito: Digital Transformation */
+.ax-text-digital {
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: currentColor;
+  white-space: nowrap;
+  line-height: 1.2;
+  font-family: var(--font, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

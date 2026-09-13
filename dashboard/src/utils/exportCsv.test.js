@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import { toCsvString, escapeCsvCell, buildConsolidatedRows } from './exportCsv.js';
 
@@ -48,15 +48,15 @@ test('buildConsolidatedRows filters and structures multi-indicator rows', () => 
   });
 
   assert.equal(rows.length, 3); // 2 from logisticCost Y26 + 1 from demurrage Y26
-  assert.equal(rows[0].Indicador, 'War Room Report');
-  assert.equal(rows[0].Ano, '2026');
-  assert.equal(rows[0].Periodo, 'Jan');
-  assert.equal(rows[0].Atingimento, '120.45%');
-  assert.equal(rows[0].Status, 'Meta Atingida');
+  assert.equal(rows[0].Indicator, 'War Room Report');
+  assert.equal(rows[0].Year, '2026');
+  assert.equal(rows[0].Period, 'Jan');
+  assert.equal(rows[0].Achievement, '83.02%');
+  assert.equal(rows[0].Status, 'Off Target');
 
-  // Demurrage 0 should also be Meta Atingida
-  const demurrageRow = rows.find(r => r.Indicador === 'Demurrage Cost');
+  // Demurrage 0 should also be Target Met
+  const demurrageRow = rows.find(r => r.Indicator === 'Demurrage Cost');
   assert.ok(demurrageRow);
-  assert.equal(demurrageRow.Status, 'Meta Atingida');
-  assert.equal(demurrageRow.Atingimento, '100.00%');
+  assert.equal(demurrageRow.Status, 'Target Met');
+  assert.equal(demurrageRow.Achievement, '100.00%');
 });

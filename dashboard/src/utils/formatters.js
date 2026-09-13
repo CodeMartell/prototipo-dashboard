@@ -134,7 +134,8 @@ export const getAchievementStatusClass = (
   }
   if (achievementPct === null || achievementPct === undefined || Number.isNaN(achievementPct)) return 'neutral';
   const num = Number(achievementPct);
-  // Regra padrão de atingimento (inclusive War Room e demais):
+
+  // Regra do semáforo estabelecida no guide:
   // >= 100% -> 'good' (Verde)
   // >= 90% e < 100% -> 'alert' (Amarelo)
   // < 90% -> 'critical' (Vermelho)
@@ -143,21 +144,21 @@ export const getAchievementStatusClass = (
   return 'critical';
 };
 
-export const getStatusColor = (achievement, _lowerIsBetter = true) => {
+export const getStatusColor = (achievement) => {
   if (achievement === null || achievement === undefined) return 'text-gray-400';
   const num = Number(achievement);
   const pct = num <= 1 && num > 0 ? num * 100 : num;
   if (pct >= 100) return 'text-green-500';
-  if (pct >= 90) return 'text-yellow-500';
+  if (pct >= 90)  return 'text-yellow-500';
   return 'text-red-500';
 };
 
-export const getStatusIcon = (achievement, _lowerIsBetter = true) => {
+export const getStatusIcon = (achievement) => {
   if (achievement === null || achievement === undefined) return 'Minus';
   const num = Number(achievement);
   const pct = num <= 1 && num > 0 ? num * 100 : num;
   if (pct >= 100) return 'CheckCircle';
-  if (pct >= 90) return 'AlertTriangle';
+  if (pct >= 90)  return 'AlertTriangle';
   return 'XCircle';
 };
 

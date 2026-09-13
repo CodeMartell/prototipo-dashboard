@@ -51,11 +51,13 @@ export default function KPICard({
     ? variationAbsolute
     : calculateDeviation(currDisp, prevDisp);
 
-  const calcAchievement = achievement !== undefined && achievement !== null
-    ? (typeof achievement === 'number' && achievement <= 2 && achievement > 0
-        ? achievement * 100
-        : Number(achievement))
-    : calculateTargetAchievement(currDisp, targetDisp, lowerIsBetter);
+  const calcAchievement = (currDisp !== null && currDisp !== undefined && targetDisp !== null && targetDisp !== undefined)
+    ? calculateTargetAchievement(currDisp, targetDisp, lowerIsBetter)
+    : (achievement !== undefined && achievement !== null
+        ? (typeof achievement === 'number' && achievement <= 2 && achievement > 0
+            ? achievement * 100
+            : Number(achievement))
+        : null);
 
   const formattedVariation  = formatVariation(calcVariation);
   const formattedDeviation  = formatDeviation(calcDeviation, unit);

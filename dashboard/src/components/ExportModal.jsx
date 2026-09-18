@@ -10,6 +10,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { buildConsolidatedRows, downloadConsolidatedCsv } from '../utils/exportCsv.js';
+import { buildIndicatorReport, downloadIndicatorReport, resolveReportScope } from '../utils/exportReport.js';
 import './ExportModal.css';
 
 const MONTHS_LIST = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -19,9 +20,9 @@ const SEMESTERS_LIST = ['H1', 'H2'];
 // Rule 3.3.1 generalized: each indicator aggregates by sum or average,
 // following its own official documentation — never the same for all.
 const AGGREGATED_SCOPE_HINT = {
-  quarterly: "One row per indicator with the quarter already summed/averaged, following each indicator's own rule.",
-  semiannual: "One row per indicator with the half-year already summed/averaged, following each indicator's own rule.",
-  annual: "One row per indicator with the full year already summed/averaged, following each indicator's own rule.",
+  quarterly: "One column for the selected quarter, using each indicator's sum, average or weighted ratio.",
+  semiannual: "One column for the selected half-year, using each indicator's sum, average or weighted ratio.",
+  annual: "One consolidated column per year, using each indicator's sum, average or weighted ratio.",
 };
 
 export default function ExportModal({
@@ -43,6 +44,9 @@ export default function ExportModal({
   const [yearsDropdownOpen, setYearsDropdownOpen] = useState(false);
   const yearsDropdownRef = useRef(null);
   const [delimiter, setDelimiter] = useState(';');
+  const [fileFormat, setFileFormat] = useState('xlsx');
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
   const [exportSuccess, setExportSuccess] = useState(false);
 
   // Reset selection to all indicators whenever the modal opens
@@ -52,6 +56,7 @@ export default function ExportModal({
       setExportYears([selectedYear]);
       setSpecificMonth(selectedSubPeriod && MONTHS_LIST.includes(selectedSubPeriod) ? selectedSubPeriod : 'Jan');
       setExportSuccess(false);
+      setExportError('');
       setYearsDropdownOpen(false);
     }
   }, [isOpen, kpiCatalog, selectedYear, selectedSubPeriod]);
@@ -59,7 +64,7 @@ export default function ExportModal({
   // Close modal on ESC key
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape' && isOpen && !exporting) {
         if (yearsDropdownOpen) {
           setYearsDropdownOpen(false);
         } else {
@@ -69,7 +74,7 @@ export default function ExportModal({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, yearsDropdownOpen]);
+  }, [isOpen, onClose, yearsDropdownOpen, exporting]);
 
   // Close the years dropdown when clicking outside of it
   useEffect(() => {
@@ -90,20 +95,13 @@ export default function ExportModal({
     [kpiCatalog, selectedKpiKeys]
   );
 
-  // Preview of the rows that will be generated
-  const previewRows = useMemo(() => {
-    if (!isOpen || selectedKpiObjects.length === 0 || exportYears.length === 0) return [];
-    return buildConsolidatedRows({
-      selectedKpis: selectedKpiObjects,
-      datasets,
-      years: exportYears,
-      scope: exportScope,
-      selectedSubPeriod,
-      specificMonth,
-      specificQuarter,
-      specificSemester,
-    });
-  }, [isOpen, selectedKpiObjects, datasets, exportYears, exportScope, selectedSubPeriod, specificMonth, specificQuarter, specificSemester]);
+  const exportOptions = useMemo(() => ({
+    selectedKpis: selectedKpiObjects, datasets, years: exportYears,
+    scope: exportScope, period, selectedSubPeriod, specificMonth, specificQuarter, specificSemester,
+  }), [selectedKpiObjects, datasets, exportYears, exportScope, period, selectedSubPeriod, specificMonth, specificQuarter, specificSemester]);
+  const report = useMemo(() => buildIndicatorReport(exportOptions), [exportOptions]);
+  const previewRows = useMemo(() => buildConsolidatedRows(resolveReportScope(exportOptions)), [exportOptions]);
+  const hasData = fileFormat === 'xlsx' ? report.sectionCount > 0 : previewRows.length > 0;
 
   if (!isOpen) return null;
 
@@ -148,30 +146,28 @@ export default function ExportModal({
     setExportYears([]);
   };
 
-  const handleExport = () => {
-    if (previewRows.length === 0) return;
-
-    const yearsLabel =
-      isAllYearsSelected ? 'all_years' : exportYears.length ? exportYears.join('-') : 'no_year';
-    let scopeLabel = exportScope;
-    if (exportScope === 'quarterly') scopeLabel = `quarterly_${specificQuarter}`;
-    else if (exportScope === 'semiannual') scopeLabel = `semiannual_${specificSemester}`;
-    const filename = `export_report_${yearsLabel}_${scopeLabel}.csv`;
-
-    downloadConsolidatedCsv({
-      rows: previewRows,
-      delimiter,
-      filename,
-    });
-
-    setExportSuccess(true);
-    setTimeout(() => {
-      onClose();
-    }, 1200);
+  const handleExport = async () => {
+    if (!hasData || exporting) return;
+    setExporting(true);
+    setExportError('');
+    const effective = resolveReportScope(exportOptions);
+    const detail = effective.scope === 'specific_month' ? effective.specificMonth
+      : effective.scope === 'quarterly' ? effective.specificQuarter
+      : effective.scope === 'semiannual' ? effective.specificSemester : '';
+    const filename = `export_report_${exportYears.slice().sort().join('-')}_${effective.scope}${detail ? `_${detail}` : ''}.${fileFormat}`;
+    try {
+      if (fileFormat === 'xlsx') await downloadIndicatorReport(report, filename);
+      else downloadConsolidatedCsv({ rows: previewRows, delimiter, filename });
+      setExportSuccess(true);
+    } catch (error) {
+      setExportError(error.message || 'Export failed. Please try again.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
+    <div className="modal-overlay" onClick={exporting ? undefined : onClose} role="dialog" aria-modal="true">
       <div className="modal-content export-modal animate-scale-up" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-header">
@@ -179,16 +175,16 @@ export default function ExportModal({
             <FileSpreadsheet size={22} className="modal-title-icon" />
             <div>
               <h3>Export Consolidated Report</h3>
-              <p>Configure the indicators and period to generate the spreadsheet (.csv)</p>
+              <p>Choose indicators and periods. Excel organizes each indicator in a compact report block.</p>
             </div>
           </div>
-          <button className="btn-close" onClick={onClose} aria-label="Close">
+          <button className="btn-close" onClick={onClose} disabled={exporting} aria-label="Close">
             <X size={18} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="export-modal__body">
+        <fieldset className="export-modal__body" disabled={exporting} style={{ border: 0, margin: 0, minWidth: 0 }}>
           {/* Section 1: KPI Selection */}
           <div className="export-section">
             <div className="export-section__header">
@@ -317,17 +313,19 @@ export default function ExportModal({
                 </div>
               </div>
 
-              {/* Delimiter */}
               <div className="export-field-group">
-                <label className="export-label">Format / CSV Delimiter:</label>
-                <select
-                  className="export-select"
-                  value={delimiter}
-                  onChange={(e) => setDelimiter(e.target.value)}
-                >
-                  <option value=";">Semicolon ( ; ) — Excel Brazil (Recommended)</option>
-                  <option value=",">Comma ( , ) — International Standard</option>
+                <label className="export-label" htmlFor="export-file-format">File format:</label>
+                <select id="export-file-format" className="export-select" value={fileFormat} onChange={(e) => { setFileFormat(e.target.value); setExportSuccess(false); }}>
+                  <option value="xlsx">Excel (.xlsx) - Indicator report (Recommended)</option>
+                  <option value="csv">CSV (.csv) - Data table</option>
                 </select>
+                {fileFormat === 'csv' && <>
+                  <label className="export-label" htmlFor="export-delimiter">CSV delimiter:</label>
+                  <select id="export-delimiter" className="export-select" value={delimiter} onChange={(e) => setDelimiter(e.target.value)}>
+                    <option value=";">Semicolon ( ; )</option>
+                    <option value=",">Comma ( , )</option>
+                  </select>
+                </>}
               </div>
             </div>
 
@@ -453,34 +451,38 @@ export default function ExportModal({
               <div className="export-summary-banner" style={{ borderColor: 'var(--success, #22c55e)', color: 'var(--success, #22c55e)' }}>
                 <CheckCircle2 size={18} />
                 <span className="export-summary-banner__text" style={{ color: 'var(--success, #22c55e)' }}>
-                  Download started successfully! The CSV file is ready to use in Excel.
+                  Download started successfully. Open the file to view your report.
                 </span>
               </div>
             ) : (
               <div className="export-summary-banner">
                 <FileSpreadsheet size={18} style={{ color: 'var(--brand-500)' }} />
                 <span className="export-summary-banner__text">
-                  The spreadsheet will contain <span className="export-summary-banner__count">{previewRows.length} records</span> consolidated with columns for result, target, achievement, status, and unit.
+                  {fileFormat === 'xlsx'
+                    ? <>The workbook will contain <span className="export-summary-banner__count">{report.sectionCount} indicator blocks</span> across {report.sheets.length} year sheet(s), with periods in columns and results in rows. The full monthly series includes a year consolidation. Empty months remain blank.</>
+                    : <>The CSV data table will contain <span className="export-summary-banner__count">{previewRows.length} records</span>.</>}
+                  {!hasData && <strong> No data available for this selection.</strong>}
                 </span>
               </div>
             )}
           </div>
-        </div>
+        </fieldset>
 
+        {exportError && <p role="alert" className="export-summary-banner export-summary-banner--warning">{exportError}</p>}
         {/* Footer Actions */}
         <div className="export-modal__actions">
-          <button type="button" className="btn btn--ghost" onClick={onClose}>
+          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={exporting}>
             Cancel
           </button>
           <button
             type="button"
             className="btn btn--primary"
             onClick={handleExport}
-            disabled={selectedKpiKeys.length === 0 || exportYears.length === 0 || previewRows.length === 0 || exportSuccess}
+            disabled={!hasData || exporting}
           >
             <Download size={16} />
-            {exportSuccess
-              ? 'Exported Successfully!'
+            {exporting
+              ? 'Generating file…' : exportSuccess ? 'Download Again'
               : `Export Spreadsheet (${selectedKpiKeys.length} indicator${selectedKpiKeys.length === 1 ? '' : 's'})`}
           </button>
         </div>

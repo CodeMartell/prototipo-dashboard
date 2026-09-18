@@ -29,8 +29,8 @@ export default function KPIComparisonMatrix({
   const renderAchievement = (value, metric, actualValue) => {
     // Incidental Cost não tem semáforo (noTrafficLight)
     if (metric?.noTrafficLight) return '—';
-    // Resin Consolidation e Task Cost Reduction não têm target definido
-    if (metric?.name === 'Resin Consolidation' || metric?.name === 'Task Cost Reduction') return '—';
+    // Resin Consolidation não utiliza meta/atingimento no painel.
+    if (metric?.name === 'Resin Consolidation') return '—';
 
     if (value === null || value === undefined) return '—';
     const num = Number(value);

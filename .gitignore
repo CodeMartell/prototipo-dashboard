@@ -65,3 +65,6 @@ resina/
 # As planilhas .xlsb aqui pesavam ~44MB e estouravam o limite de push do GitLab.
 scratch/
 deploy/
+
+# Aplicacao Desktop complementar (desenvolvimento local / standalone)
+desktop_app/

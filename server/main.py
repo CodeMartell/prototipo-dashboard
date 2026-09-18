@@ -15,6 +15,7 @@ from app.controllers import (
     profile_controller,
     user_controller,
 )
+from app.controllers import audit_controller, action_plan_controller
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import logger
@@ -32,7 +33,7 @@ except Exception as e:
 
 app = FastAPI(
     title="Dashboard KPI Logístico — API",
-    version="1.0.0",
+    version="2.0.0",
 )
 
 app.add_middleware(
@@ -70,6 +71,8 @@ app.include_router(dashboard_controller.router)
 app.include_router(analysis_controller.router)
 app.include_router(ingestion_controller.router)
 app.include_router(profile_controller.router)
+app.include_router(audit_controller.router)
+app.include_router(action_plan_controller.router)
 
 
 @app.get("/api/health", tags=["health"])
@@ -82,3 +85,4 @@ if __name__ == "__main__":
 
     logger.info("Iniciando servidor na porta %d...", settings.API_PORT)
     uvicorn.run("main:app", host="0.0.0.0", port=settings.API_PORT, reload=True)
+

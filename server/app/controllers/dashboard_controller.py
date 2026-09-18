@@ -5,7 +5,7 @@ Endpoints de KPI.
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user, get_db, require_role
+from app.core.dependencies import get_current_user, get_db, require_permission
 from app.repositories.dashboard_repository import DashboardRepository
 from app.schemas.dashboard_schema import (
     KpiRecordIn,
@@ -75,9 +75,9 @@ def upsert_logistics_vs_prod(
     month: str,
     payload: LogisticsVsProdIn,
     service: DashboardService = Depends(_get_service),
-    _current_user: dict = Depends(require_role("ADMIN")),
+    current_user: dict = Depends(require_permission("kpi:write_manual")),
 ):
-    return service.save_logistics_vs_prod(year=year, month=month, payload=payload, user=_current_user)
+    return service.save_logistics_vs_prod(year=year, month=month, payload=payload, user=current_user)
 
 
 @router.put("/{kpi_type}/{year}/{month}", response_model=KpiRecordOut)
@@ -87,10 +87,10 @@ def upsert_kpi_record(
     month: str,
     payload: KpiRecordIn,
     service: DashboardService = Depends(_get_service),
-    _current_user: dict = Depends(require_role("ADMIN")),
+    current_user: dict = Depends(require_permission("kpi:write_manual")),
 ):
     """Cria ou atualiza o lançamento de um indicador num mês específico."""
-    return service.save_kpi_record(kpi_type, year=year, month=month, payload=payload, user=_current_user)
+    return service.save_kpi_record(kpi_type, year=year, month=month, payload=payload, user=current_user)
 
 
 @router.delete("/{kpi_type}/{year}/{month}")
@@ -99,6 +99,7 @@ def delete_kpi_record(
     year: str,
     month: str,
     service: DashboardService = Depends(_get_service),
-    _current_user: dict = Depends(require_role("ADMIN")),
+    current_user: dict = Depends(require_permission("kpi:delete")),
 ):
-    return service.delete_kpi_record(kpi_type, year=year, month=month, user=_current_user)
+    return service.delete_kpi_record(kpi_type, year=year, month=month, user=current_user)
+

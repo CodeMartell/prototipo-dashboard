@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user, get_db, require_role
+from app.core.dependencies import get_current_user, get_db, require_permission
 from app.models.activity_log import ActivityLog
 from app.models.email_ingest_queue import EmailIngestQueue
 from app.models.kpi_change_log import KpiChangeLog
@@ -19,6 +19,7 @@ from app.services.activity_log_service import ActivityLogService
 from app.services.ingestion_apply_service import IngestionApplyService
 
 router = APIRouter(prefix="/api/profile", tags=["profile"], dependencies=[Depends(get_current_user)])
+
 
 
 class RejectRequest(BaseModel):
@@ -164,7 +165,7 @@ def get_pending_ingestions(db: Session = Depends(get_db)):
 def accept_ingestion(
     queue_id: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_role("ADMIN")),
+    current_user: dict = Depends(require_permission("kpi:write_manual")),
 ):
     service = IngestionApplyService(db, DashboardRepository(db), ProcessedEmailRepository(db))
     return service.accept_ingestion(queue_id, current_user)
@@ -175,7 +176,7 @@ def accept_partial_ingestion(
     queue_id: str,
     payload: PartialAcceptRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_role("ADMIN")),
+    current_user: dict = Depends(require_permission("kpi:write_manual")),
 ):
     service = IngestionApplyService(db, DashboardRepository(db), ProcessedEmailRepository(db))
     selected_items = [item.model_dump() for item in payload.items]
@@ -187,7 +188,7 @@ def reject_ingestion(
     queue_id: str,
     payload: RejectRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_role("ADMIN")),
+    current_user: dict = Depends(require_permission("kpi:write_manual")),
 ):
     service = IngestionApplyService(db, DashboardRepository(db), ProcessedEmailRepository(db))
     return service.reject_ingestion(queue_id, payload.reason, current_user)
@@ -197,7 +198,8 @@ def reject_ingestion(
 def rollback_ingestion(
     queue_id: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_role("ADMIN")),
+    current_user: dict = Depends(require_permission("kpi:write_manual")),
 ):
     service = IngestionApplyService(db, DashboardRepository(db), ProcessedEmailRepository(db))
     return service.rollback_ingestion(queue_id, current_user)
+

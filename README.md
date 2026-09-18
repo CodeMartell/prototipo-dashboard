@@ -13,6 +13,7 @@ Sistema integrado de ponta a ponta para consolidação, monitoramento e análise
 - [Configuração de Variáveis de Ambiente (`.env`)](#-configuração-de-variáveis-de-ambiente-env)
 - [Limpeza Total de Dados (Reset para Estado Zero)](#-limpeza-total-de-dados-reset-para-estado-zero)
 - [Executando os Testes Automatizados](#-executando-os-testes-automatizados)
+- [Divisão de Privilégios (RBAC) e Auditoria](#-divisão-de-privilégios-rbac-e-auditoria)
 - [Como Testar a Aplicação Ponta a Ponta](#-como-testar-a-aplicação-ponta-a-ponta)
   - [Método 1: Execução Direta / Local (Sem Docker — Recomendado)](#método-1-execução-direta--local-sem-docker--recomendado)
   - [Método 2: Execução com Docker Compose](#método-2-execução-com-docker-compose)
@@ -21,6 +22,7 @@ Sistema integrado de ponta a ponta para consolidação, monitoramento e análise
 - [Resolução de Problemas Comuns (Troubleshooting)](#-resolução-de-problemas-comuns-troubleshooting)
 
 ---
+
 
 ## 🏛 Visão Geral e Arquitetura
 
@@ -187,24 +189,97 @@ python -m pytest rpa_email/tests -q
 ```
 *Resultado esperado:* `56 passed`.
 
-### 2. Testes do Backend FastAPI (53 testes)
+### 2. Testes do Backend FastAPI (117 testes)
 ```powershell
 python -m pytest server/tests -q
 ```
-*Resultado esperado:* `53 passed`.
+*Resultado esperado:* `117 passed` (cobrindo segurança, matriz RBAC, ownership check, append-only e serviços).
 
-### 3. Testes e Build do Frontend React (26 testes)
+### 3. Testes e Build do Frontend React (41 testes)
 ```powershell
 cd dashboard
 npm test
 npm run build
 cd ..
 ```
-*Resultado esperado:* `26 pass, 0 fail` e pasta `dashboard/dist` gerada com sucesso.
+*Resultado esperado:* `41 pass, 0 fail` e bundle `dashboard/dist` gerado com sucesso pelo Vite.
 
 ---
 
+## 🛡️ Divisão de Privilégios (RBAC) e Auditoria
+
+O DataLens adota um sistema robusto de controle de acesso baseado em papéis (RBAC) com permissões granulares e trilha de auditoria contínua *append-only*.
+
+### 1. Papéis do Sistema (5 Roles)
+- **ADMIN**: Acesso total ao sistema. Único perfil autorizado a atribuir o papel `ADMIN` a outros usuários.
+- **GESTOR**: Edita e insere indicadores manualmente (via web ou desktop) e gerencia planos de ação (com checagem de autoria).
+- **TI_SUPORTE**: Gerencia o ciclo de vida de usuários (CRUD e atribuição de papéis, exceto `ADMIN`) e consulta o histórico de atividade de qualquer usuário.
+- **AUDITORIA**: Consulta irrestrita da trilha de auditoria (`audit_log`) de todos os usuários com filtro temporal.
+- **VIEWER**: Visualização padrão do dashboard e leitura de planos de ação (acesso de consulta).
+
+### 2. Matriz Oficial de Permissões (11 Códigos)
+
+| Permissão | ADMIN | GESTOR | TI_SUPORTE | AUDITORIA | VIEWER |
+|---|:---:|:---:|:---:|:---:|:---:|
+| `dashboard:read` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `kpi:write_manual` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `kpi:delete` | ✅ | ✅ *(próprio)* | ❌ | ❌ | ❌ |
+| `action_plans:read` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `action_plans:write` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `action_plans:delete` | ✅ | ✅ *(próprio)* | ❌ | ❌ | ❌ |
+| `users:read` | ✅ | ❌ | ✅ | ❌ | ❌ |
+| `users:write` | ✅ | ❌ | ✅ | ❌ | ❌ |
+| `users:assign_role` | ✅ *(qualquer)* | ❌ | ✅ *(exceto ADMIN)* | ❌ | ❌ |
+| `audit:read_all` | ✅ | ❌ | ❌ | ✅ | ❌ |
+| `audit:read_scoped` | ✅ | ❌ | ✅ *(requer user_id)* | *(redundante)* | ❌ |
+
+### 3. Regras de Segurança Implementadas
+
+#### A. Regra de Anti-Escalação de Privilégios
+- **Enforcement no Service Layer (`UserService.update_user_role`)**: Se um usuário com o papel `TI_SUPORTE` tentar atribuir o papel `ADMIN` a qualquer usuário, o sistema rejeita imediatamente com código `HTTP 403 Forbidden`.
+- **Enforcement na UI (`UserManagementPage`)**: O seletor de papéis omite dinamicamente a opção `ADMIN` caso o usuário autenticado não seja um Administrador.
+
+#### B. Checagem de Autoria (Ownership Check)
+- Para o papel `GESTOR`, as ações de exclusão (`kpi:delete` e `action_plans:delete`) verificam obrigatoriamente se `submitted_by == current_user.id`.
+- Se o registro pertencer a outro gestor ou tiver sido ingerido automaticamente pelo robô (`rpa_email`), a exclusão é rejeitada com `HTTP 403 Forbidden`.
+- Usuários `ADMIN` possuem bypass dessa regra e podem excluir qualquer registro.
+
+#### C. Trilha de Auditoria Append-Only (`audit_log`)
+- A tabela `audit_log` é estritamente **append-only** (somente `INSERT` e `SELECT` — o repositório não expõe métodos de `UPDATE` ou `DELETE`).
+- Cada evento registra: `occurred_at`, `actor_user_id`, `actor_role_snapshot` (papel imutável no momento da ação), `action`, `target_type`, `target_id`, `metadata` (JSON) e `ip_address`.
+- **Consulta Segura**: Exige obrigatoriamente o filtro de data inicial (`date_from`) ou data final (`date_to`).
+- Para `audit:read_scoped` (usado pelo `TI_SUPORTE`), é obrigatório informar o parâmetro `actor_user_id`.
+
+### 4. Como Inicializar e Aplicar o RBAC
+
+Para aplicar a estrutura no banco de dados e popular os perfis, permissões e usuários de teste:
+
+```powershell
+# 1. Aplicar a migration Alembic com as novas tabelas e colunas
+cd server
+alembic upgrade head
+
+# 2. Executar o seed idempotente de roles, permissions e usuários de teste
+python scripts/seed_rbac.py
+```
+
+### 5. Usuários Padrão para Testes e Homologação (5 Papéis)
+
+O script de seed (`seed_rbac.py`) e o script de reset (`reset_local_data.py`) provisionam automaticamente os seguintes acessos para validação de cada perfil:
+
+| Papel | E-mail | Senha | Nome do Usuário | Capacidades Principais |
+|---|---|---|---|---|
+| **ADMIN** | `admin@lge.com` | `admin123` | Administrador Geral | Acesso irrestrito a todos os módulos, usuários e atribuição de ADMIN |
+| **GESTOR** | `gestor@lge.com` | `gestor123` | Gestor de Indicadores | Edição manual de KPIs e gestão de planos de ação (com ownership check) |
+| **TI_SUPORTE** | `suporte@lge.com` | `suporte123` | Suporte TI | Gestão de usuários (sem atribuir ADMIN) e consulta de atividade individual |
+| **AUDITORIA** | `auditoria@lge.com` | `auditoria123` | Auditor de Processos | Leitura global irrestrita da trilha de auditoria (`audit_log`) |
+| **VIEWER** | `viewer@lge.com` | `viewer123` | Visualizador Básico | Consulta do dashboard e leitura de planos de ação |
+
+---
+
+
 ## 🚀 Como Testar a Aplicação Ponta a Ponta
+
 
 Você pode testar a aplicação de duas maneiras:
 - **Método 1 (Recomendado):** Execução Direta / Local (muito mais rápida, utiliza SQLite e não depende do Docker).

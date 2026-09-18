@@ -87,15 +87,16 @@ def reset():
         return False
     print("  [OK] Migrations aplicadas com sucesso!")
 
-    # 6. Criar Roles (ADMIN)
-    print("\nCriando perfis de usuario...")
-    cmd_roles = [sys.executable, "scripts/seed_roles.py"]
+    # 6. Criar Roles e Permissões (RBAC)
+    print("\nCriando perfis de usuario e permissoes (RBAC)...")
+    cmd_roles = [sys.executable, "scripts/seed_rbac.py"]
     result = subprocess.run(cmd_roles, cwd=str(SERVER_DIR), capture_output=True, text=True)
     if result.returncode != 0:
-        print("  [ERRO] Falha ao criar perfis:")
+        print("  [ERRO] Falha ao criar perfis e permissoes RBAC:")
         print(result.stderr)
         return False
-    print("  [OK] Perfil ADMIN garantido!")
+    print("  [OK] Perfis e permissoes RBAC garantidos!")
+
 
     # 7. Criar usuario Admin inicial
     admin_email = os.getenv("ADMIN_EMAIL", "admin@lge.com")

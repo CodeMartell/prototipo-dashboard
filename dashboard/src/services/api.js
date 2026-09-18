@@ -232,4 +232,90 @@ export async function rollbackIngestion(queueId) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Gestão de usuários (ADMIN e TI_SUPORTE)
+// ---------------------------------------------------------------------------
+
+export async function fetchUsers() {
+  return authFetch('/api/users');
+}
+
+export async function fetchUser(userId) {
+  return authFetch(`/api/users/${userId}`);
+}
+
+export async function createUser(data) {
+  return authFetch('/api/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateUser(userId, data) {
+  return authFetch(`/api/users/${userId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateUserRole(userId, roleName) {
+  return authFetch(`/api/users/${userId}/role`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role_name: roleName }),
+  });
+}
+
+export async function deleteUser(userId) {
+  return authFetch(`/api/users/${userId}`, { method: 'DELETE' });
+}
+
+// ---------------------------------------------------------------------------
+// Audit log
+// ---------------------------------------------------------------------------
+
+export async function fetchAuditLogs({ dateFrom, dateTo, actorUserId, action, page = 1, pageSize = 50 } = {}) {
+  const params = new URLSearchParams();
+  if (dateFrom) params.set('date_from', dateFrom.toISOString ? dateFrom.toISOString() : dateFrom);
+  if (dateTo) params.set('date_to', dateTo.toISOString ? dateTo.toISOString() : dateTo);
+  if (actorUserId) params.set('actor_user_id', actorUserId);
+  if (action) params.set('action', action);
+  params.set('page', String(page));
+  params.set('page_size', String(pageSize));
+  return authFetch(`/api/audit-logs?${params.toString()}`);
+}
+
+// ---------------------------------------------------------------------------
+// Planos de ação
+// ---------------------------------------------------------------------------
+
+export async function fetchActionPlans({ kpiType, status } = {}) {
+  const params = new URLSearchParams();
+  if (kpiType) params.set('kpi_type', kpiType);
+  if (status) params.set('status', status);
+  return authFetch(`/api/action-plans?${params.toString()}`);
+}
+
+export async function createActionPlan(data) {
+  return authFetch('/api/action-plans', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateActionPlan(planId, data) {
+  return authFetch(`/api/action-plans/${planId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteActionPlan(planId) {
+  return authFetch(`/api/action-plans/${planId}`, { method: 'DELETE' });
+}
+
 export { UnauthorizedError };

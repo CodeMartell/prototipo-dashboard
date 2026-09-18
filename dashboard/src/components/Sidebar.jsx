@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   DollarSign,
@@ -9,8 +10,12 @@ import {
   TrendingDown,
   Anchor,
   Layers,
-  Lock
+  Lock,
+  Users,
+  Shield,
 } from 'lucide-react';
+import { getCurrentUser } from '../services/api';
+import { canReadUsers, canReadAuditLog } from '../services/permissions';
 
 // Os badges acompanham a unidade real de cada indicador no banco.
 const NAV_ITEMS = [
@@ -32,6 +37,11 @@ export default function Sidebar({
   kpisWithAlerts = [],
   canAccessAnalytics = false,
 }) {
+  const navigate = useNavigate();
+  const user = getCurrentUser();
+  const showUsersLink = canReadUsers(user);
+  const showAuditLink = canReadAuditLog(user);
+
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
@@ -80,6 +90,38 @@ export default function Sidebar({
             </button>
           );
         })}
+
+        {(showUsersLink || showAuditLink) && (
+          <>
+            <div className="sidebar__section-label" style={{ marginTop: '1.25rem' }}>
+              GOVERNANCE &amp; ADMIN
+            </div>
+
+            {showUsersLink && (
+              <button
+                type="button"
+                className="sidebar__item"
+                onClick={() => navigate('/usuarios')}
+                title="Gestão de Usuários e Permissões"
+              >
+                <Users size={16} />
+                <span className="sidebar__item-label">Usuários</span>
+              </button>
+            )}
+
+            {showAuditLink && (
+              <button
+                type="button"
+                className="sidebar__item"
+                onClick={() => navigate('/auditoria')}
+                title="Trilha de Auditoria (Audit Log)"
+              >
+                <Shield size={16} />
+                <span className="sidebar__item-label">Audit Log</span>
+              </button>
+            )}
+          </>
+        )}
       </nav>
 
       <div className="sidebar__help-box" onClick={onOpenHelp}>
@@ -96,3 +138,4 @@ export default function Sidebar({
     </aside>
   );
 }
+

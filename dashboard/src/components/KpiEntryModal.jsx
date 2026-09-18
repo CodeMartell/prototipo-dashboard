@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { X, Save, AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { MONTHS } from '../utils/kpiData';
 import { saveKpiRecord, saveLogisticsVsProd, deleteKpiRecord } from '../services/api';
+import { canDeleteKpiData } from '../services/permissions';
 
 /**
  * Lançamento manual dos valores de um indicador num mês.
@@ -46,8 +47,10 @@ export default function KpiEntryModal({
   years = [],
   defaultYear,
   defaultMonth,
+  currentUser,
   onSaved,
 }) {
+
   const isRatioKpi = kpi?.valueKey === 'ratio';
 
   const [year, setYear] = useState(defaultYear);
@@ -278,8 +281,8 @@ export default function KpiEntryModal({
           )}
 
           <div className="kpi-entry-form__actions">
-            {/* Delete zone — only shown for an existing record */}
-            {existingRecord && (
+            {/* Delete zone — only shown for an existing record if user has permission to delete it */}
+            {existingRecord && canDeleteKpiData(currentUser, existingRecord) && (
               <div className="kpi-entry-form__delete-zone">
                 {deleteConfirm ? (
                   <>
@@ -317,6 +320,7 @@ export default function KpiEntryModal({
                 )}
               </div>
             )}
+
 
             <div className="kpi-entry-form__save-zone">
               <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isSaving || isDeleting}>

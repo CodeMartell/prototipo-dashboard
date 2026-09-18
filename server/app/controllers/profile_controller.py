@@ -43,6 +43,7 @@ def get_activity_log(
     limit: int = Query(default=100, le=500),
     offset: int = Query(default=0),
     db: Session = Depends(get_db),
+    _: dict = Depends(require_permission("audit:read_all")),
 ):
     service = ActivityLogService(db)
     activities = service.list_activities(action_type=action_type, user_id=user_id, limit=limit, offset=offset)
@@ -69,6 +70,7 @@ def get_kpi_changes(
     limit: int = Query(default=100, le=500),
     offset: int = Query(default=0),
     db: Session = Depends(get_db),
+    _: dict = Depends(require_permission("kpi:write_manual", "audit:read_all")),
 ):
     stmt = select(KpiChangeLog).order_by(KpiChangeLog.changed_at.desc())
     if kpi_type:
@@ -103,6 +105,7 @@ def get_email_ingestions(
     limit: int = Query(default=50, le=200),
     offset: int = Query(default=0),
     db: Session = Depends(get_db),
+    _: dict = Depends(require_permission("kpi:write_manual")),
 ):
     stmt = select(EmailIngestQueue).order_by(EmailIngestQueue.created_at.desc())
     if status:
@@ -136,7 +139,10 @@ def get_email_ingestions(
 
 
 @router.get("/pending-ingestions")
-def get_pending_ingestions(db: Session = Depends(get_db)):
+def get_pending_ingestions(
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_permission("kpi:write_manual")),
+):
     stmt = select(EmailIngestQueue).where(EmailIngestQueue.status == "PENDING").order_by(EmailIngestQueue.created_at.desc())
     items = list(db.scalars(stmt))
 
@@ -159,6 +165,7 @@ def get_pending_ingestions(db: Session = Depends(get_db)):
         }
         for item in items
     ]
+
 
 
 @router.post("/ingestions/{queue_id}/accept")

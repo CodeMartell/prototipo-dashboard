@@ -34,6 +34,7 @@ test('ADMIN has access to all permissions by role or explicit permission', () =>
 
 test('GESTOR has kpi and action_plans permissions but no users or audit permissions', () => {
   const gestor = {
+    id: 'gestor-1',
     role: 'GESTOR',
     permissions: [
       'dashboard:read',
@@ -46,7 +47,10 @@ test('GESTOR has kpi and action_plans permissions but no users or audit permissi
   };
 
   assert.equal(canEditKpiData(gestor), true);
-  assert.equal(canDeleteKpiData(gestor), true);
+  assert.equal(canDeleteKpiData(gestor, { submitted_by: 'gestor-1' }), true);
+  assert.equal(canDeleteKpiData(gestor, { submitted_by: 'other-user' }), false);
+  assert.equal(canDeleteKpiData(gestor, { submitted_by: null }), false);
+  assert.equal(canDeleteKpiData(gestor, null), false);
   assert.equal(canManageActionPlans(gestor), true);
   assert.equal(canReadUsers(gestor), false);
   assert.equal(canManageUsers(gestor), false);
@@ -54,6 +58,7 @@ test('GESTOR has kpi and action_plans permissions but no users or audit permissi
   assert.equal(canReadAuditLog(gestor), false);
   assert.equal(canReadAllAuditLog(gestor), false);
 });
+
 
 test('TI_SUPORTE has users management and scoped audit permissions', () => {
   const ti = {

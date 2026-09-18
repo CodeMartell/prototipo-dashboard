@@ -195,12 +195,13 @@ function App() {
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && canEditKpiData(currentUser)) {
       fetchPendingIngestions()
         .then((items) => setPendingCount(items?.length || 0))
         .catch(() => {});
     }
   }, [currentUser]);
+
 
   // --- LOADING API DATA ---
   const loadFromApi = useCallback(() => {
@@ -808,8 +809,10 @@ function App() {
         defaultYear={selectedYear}
         defaultMonth={entryMonth}
         onClose={() => setEntryModalKpiKey(null)}
+        currentUser={currentUser}
         onSaved={loadFromApi}
       />
+
     </div>
   );
 }

@@ -1,11 +1,10 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   CheckCircle2,
   AlertTriangle,
   RefreshCw,
-  Activity,
   Edit3,
   Mail,
   ShieldCheck,
@@ -18,21 +17,29 @@ import {
   getCurrentUser,
   fetchPendingIngestions,
   fetchEmailIngestions,
-  fetchActivityLog,
   fetchKpiChanges,
   acceptIngestion,
   acceptPartialIngestion,
   rejectIngestion,
   rollbackIngestion,
 } from '../services/api';
+import { hasPermission } from '../services/permissions';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const user = getCurrentUser();
-  const isAdmin = user?.role === 'ADMIN';
 
-  const [activeTab, setActiveTab] = useState('staging'); // 'staging' | 'activity' | 'changes' | 'emails'
+  const canManageIngestion = hasPermission(user, 'kpi:write_manual');
+  const canSeeChanges = hasPermission(user, 'kpi:write_manual') || hasPermission(user, 'audit:read_all');
+
+  const initialTab = useMemo(() => {
+    if (canManageIngestion) return 'staging';
+    if (canSeeChanges) return 'changes';
+    return null;
+  }, [canManageIngestion, canSeeChanges]);
+
+  const [activeTab, setActiveTab] = useState(initialTab); // 'staging' | 'changes' | 'emails' | null
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -40,14 +47,10 @@ export default function ProfilePage() {
   // Tab 1: Staging Queue
   const [pendingIngestions, setPendingIngestions] = useState([]);
   
-  // Tab 2: Activity Log
-  const [activityLogs, setActivityLogs] = useState([]);
-  const [activityFilter, setActivityFilter] = useState('');
-
-  // Tab 3: KPI Changes Log
+  // Tab 2: KPI Changes Log
   const [kpiChanges, setKpiChanges] = useState([]);
 
-  // Tab 4: Email Ingestions History
+  // Tab 3: Email Ingestions History
   const [emailHistory, setEmailHistory] = useState([]);
 
   // Modals
@@ -57,19 +60,17 @@ export default function ProfilePage() {
   const [selectedPartialKeys, setSelectedPartialKeys] = useState({});
 
   const loadData = useCallback(async () => {
+    if (!activeTab) return;
     setLoading(true);
     setError(null);
     try {
-      if (activeTab === 'staging') {
+      if (activeTab === 'staging' && canManageIngestion) {
         const data = await fetchPendingIngestions();
         setPendingIngestions(data || []);
-      } else if (activeTab === 'activity') {
-        const data = await fetchActivityLog({ actionType: activityFilter });
-        setActivityLogs(data || []);
-      } else if (activeTab === 'changes') {
+      } else if (activeTab === 'changes' && canSeeChanges) {
         const data = await fetchKpiChanges({});
         setKpiChanges(data || []);
-      } else if (activeTab === 'emails') {
+      } else if (activeTab === 'emails' && canManageIngestion) {
         const data = await fetchEmailIngestions({});
         setEmailHistory(data || []);
       }
@@ -78,7 +79,7 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, activityFilter]);
+  }, [activeTab, canManageIngestion, canSeeChanges]);
 
   useEffect(() => {
     loadData();
@@ -86,7 +87,7 @@ export default function ProfilePage() {
 
   // Actions
   const handleAccept = async (id) => {
-    if (!isAdmin) return;
+    if (!canManageIngestion) return;
     setLoading(true);
     try {
       await acceptIngestion(id);
@@ -106,7 +107,7 @@ export default function ProfilePage() {
   };
 
   const handleConfirmReject = async () => {
-    if (!rejectModalItem || !isAdmin) return;
+    if (!rejectModalItem || !canManageIngestion) return;
     setLoading(true);
     try {
       await rejectIngestion(rejectModalItem.id, rejectReason);
@@ -120,6 +121,7 @@ export default function ProfilePage() {
       setLoading(false);
     }
   };
+
 
   const handleOpenPartialModal = (item) => {
     setPartialModalItem(item);
@@ -245,43 +247,44 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Navigation Tabs */}
-      <div className="profile-tabs">
-        <button
-          className={`profile-tab-btn ${activeTab === 'staging' ? 'active' : ''}`}
-          onClick={() => setActiveTab('staging')}
-        >
-          <ShieldCheck size={16} />
-          Fila de Aprovação (Staging)
-          {pendingIngestions.length > 0 && (
-            <span className="tab-badge">{pendingIngestions.length}</span>
+      {/* Navigation Tabs — apenas abas permitidas são exibidas */}
+      {(canManageIngestion || canSeeChanges) && (
+        <div className="profile-tabs">
+          {canManageIngestion && (
+            <button
+              className={`profile-tab-btn ${activeTab === 'staging' ? 'active' : ''}`}
+              onClick={() => setActiveTab('staging')}
+            >
+              <ShieldCheck size={16} />
+              Fila de Aprovação (Staging)
+              {pendingIngestions.length > 0 && (
+                <span className="tab-badge">{pendingIngestions.length}</span>
+              )}
+            </button>
           )}
-        </button>
 
-        <button
-          className={`profile-tab-btn ${activeTab === 'activity' ? 'active' : ''}`}
-          onClick={() => setActiveTab('activity')}
-        >
-          <Activity size={16} />
-          Histórico de Atividade
-        </button>
+          {canSeeChanges && (
+            <button
+              className={`profile-tab-btn ${activeTab === 'changes' ? 'active' : ''}`}
+              onClick={() => setActiveTab('changes')}
+            >
+              <Edit3 size={16} />
+              Alterações Manuais
+            </button>
+          )}
 
-        <button
-          className={`profile-tab-btn ${activeTab === 'changes' ? 'active' : ''}`}
-          onClick={() => setActiveTab('changes')}
-        >
-          <Edit3 size={16} />
-          Alterações Manuais
-        </button>
+          {canManageIngestion && (
+            <button
+              className={`profile-tab-btn ${activeTab === 'emails' ? 'active' : ''}`}
+              onClick={() => setActiveTab('emails')}
+            >
+              <Mail size={16} />
+              Dados Recebidos por Email
+            </button>
+          )}
+        </div>
+      )}
 
-        <button
-          className={`profile-tab-btn ${activeTab === 'emails' ? 'active' : ''}`}
-          onClick={() => setActiveTab('emails')}
-        >
-          <Mail size={16} />
-          Dados Recebidos por Email
-        </button>
-      </div>
 
       {/* Main Content Area */}
       <div className="profile-content">
@@ -373,92 +376,28 @@ export default function ProfilePage() {
                     </tbody>
                   </table>
 
-                  <div className="queue-card__actions">
-                    {isAdmin ? (
-                      <>
-                        <button className="btn-reject" onClick={() => handleOpenRejectModal(item)}>
-                          <X size={16} />
-                          Rejeitar
-                        </button>
-                        <button className="btn-partial" onClick={() => handleOpenPartialModal(item)}>
-                          <Check size={16} />
-                          Aceitar Parcial...
-                        </button>
-                        <button className="btn-accept" onClick={() => handleAccept(item.id)}>
-                          <CheckCircle2 size={16} />
-                          Aceitar Tudo
-                        </button>
-                      </>
-                    ) : (
-                      <span className="not-admin-note">
-                        Apenas Administradores podem aprovar/rejeitar planilhas.
-                      </span>
-                    )}
-                  </div>
+                  {canManageIngestion && (
+                    <div className="queue-card__actions">
+                      <button className="btn-reject" onClick={() => handleOpenRejectModal(item)}>
+                        <X size={16} />
+                        Rejeitar
+                      </button>
+                      <button className="btn-partial" onClick={() => handleOpenPartialModal(item)}>
+                        <Check size={16} />
+                        Aceitar Parcial...
+                      </button>
+                      <button className="btn-accept" onClick={() => handleAccept(item.id)}>
+                        <CheckCircle2 size={16} />
+                        Aceitar Tudo
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))
             )}
           </div>
         )}
 
-        {/* TAB 2: AUDIT ACTIVITY LOG */}
-        {activeTab === 'activity' && (
-          <div>
-            <div className="profile-filter-row">
-              <p className="profile-tab-description" style={{ margin: 0 }}>
-                Trilha auditável completa de acessos, logins, alterações manuais e ações de governança.
-              </p>
-              <select
-                className="profile-filter-select"
-                value={activityFilter}
-                onChange={(e) => setActivityFilter(e.target.value)}
-              >
-                <option value="">Todas as Ações</option>
-                <option value="LOGIN">Logins</option>
-                <option value="MANUAL_EDIT">Edições Manuais</option>
-                <option value="EMAIL_INGEST_PENDING">Recebimento por Email</option>
-                <option value="EMAIL_INGEST_ACCEPTED">Aceites de Planilha</option>
-                <option value="EMAIL_INGEST_REJECTED">Rejeições de Planilha</option>
-                <option value="ROLLBACK">Rollbacks</option>
-              </select>
-            </div>
-
-            <table className="diff-table diff-table--card">
-              <thead>
-                <tr>
-                  <th>Data/Hora</th>
-                  <th>Usuário</th>
-                  <th>Ação</th>
-                  <th>Entidade / KPI</th>
-                  <th>Detalhes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activityLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>Nenhum log encontrado.</td>
-                  </tr>
-                ) : (
-                  activityLogs.map((log) => (
-                    <tr key={log.id}>
-                      <td className="val-old">
-                        {log.created_at ? new Date(log.created_at).toLocaleString('pt-BR') : '—'}
-                      </td>
-                      <td>{log.user_email || log.user_id || 'SISTEMA (RPA)'}</td>
-                      <td>
-                        <span className="action-tag">{log.action_type}</span>
-                      </td>
-                      <td>{log.entity_type ? `${log.entity_type} (${log.entity_id || ''})` : '—'}</td>
-                      <td className="val-old" style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
-                        {log.detail ? JSON.stringify(log.detail) : '—'}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
 
         {/* TAB 3: MANUAL CHANGES LOG */}
         {activeTab === 'changes' && (
@@ -561,7 +500,7 @@ export default function ProfilePage() {
                         {item.reviewer_email || '—'}
                       </td>
                       <td>
-                        {item.status === 'ACCEPTED' && isAdmin && (
+                        {item.status === 'ACCEPTED' && canManageIngestion && (
                           <button className="btn-rollback" onClick={() => handleRollback(item.id)}>
                             <RotateCcw size={12} />
                             Rollback
@@ -575,7 +514,16 @@ export default function ProfilePage() {
             </table>
           </div>
         )}
+
+        {!canManageIngestion && !canSeeChanges && (
+          <div className="profile-empty-state">
+            <CheckCircle2 size={40} className="profile-empty-state__icon" />
+            <h3>Acesso Restrito a Governança</h3>
+            <p>Seu perfil de acesso não possui módulos de aprovação de planilhas ou governança associados.</p>
+          </div>
+        )}
       </div>
+
 
       {/* Reject Modal */}
       {rejectModalItem && (

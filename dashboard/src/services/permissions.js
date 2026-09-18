@@ -46,9 +46,14 @@ export function canEditKpiData(user) {
   return hasPermission(user, 'kpi:write_manual');
 }
 
-export function canDeleteKpiData(user) {
-  return hasPermission(user, 'kpi:delete');
+export function canDeleteKpiData(user, record) {
+  if (!hasPermission(user, 'kpi:delete')) return false;
+  if (user?.role === 'ADMIN') return true;
+  // GESTOR só pode excluir o que ele mesmo lançou manualmente —
+  // mesma regra já aplicada em dashboard_service.py::delete_kpi_record
+  return record?.submitted_by === user?.id;
 }
+
 
 export function canManageUsers(user) {
   return hasPermission(user, 'users:write');

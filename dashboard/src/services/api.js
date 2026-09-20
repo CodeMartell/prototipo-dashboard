@@ -319,3 +319,87 @@ export async function deleteActionPlan(planId) {
 }
 
 export { UnauthorizedError };
+
+/* ────────────────────────────────
+   Evidências (Upload e Anexos)
+   ──────────────────────────────── */
+
+export async function fetchEvidences({ kpiType, year, month } = {}) {
+  const params = new URLSearchParams();
+  if (kpiType) params.append('kpi_type', kpiType);
+  if (year) params.append('year', year);
+  if (month) params.append('month', month);
+  return authFetch(`/api/evidences?${params.toString()}`);
+}
+
+export async function uploadEvidence({ file, kpiType, year, month }) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('kpi_type', kpiType);
+  formData.append('year', year);
+  formData.append('month', month);
+
+  const token = getToken();
+  const response = await fetch('/api/evidences', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (response.status === 401) {
+    logout();
+    throw new UnauthorizedError('Sessão expirada, faça login novamente.');
+  }
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || body.error || `Erro ao fazer upload da evidência (status ${response.status})`);
+  }
+
+  return response.json();
+}
+
+export async function downloadEvidence(evidenceId) {
+  const token = getToken();
+  const response = await fetch(`/api/evidences/${evidenceId}/download`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (response.status === 401) {
+    logout();
+    throw new UnauthorizedError('Sessão expirada, faça login novamente.');
+  }
+
+  if (!response.ok) {
+    throw new Error('Não foi possível baixar a evidência.');
+  }
+
+  const blob = await response.blob();
+  const contentDisposition = response.headers.get('Content-Disposition');
+  let filename = 'evidencia.pptx';
+  if (contentDisposition) {
+    const match = contentDisposition.match(/filename="?([^";]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+export async function deleteEvidence(evidenceId) {
+  return authFetch(`/api/evidences/${evidenceId}`, {
+    method: 'DELETE',
+  });
+}

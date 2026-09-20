@@ -203,10 +203,7 @@ class DashboardService:
             target=payload.target,
             result=payload.result,
             achievement=achievement,
-            source="manual",
-            submitted_by=user_id,
         )
-
 
     def save_logistics_vs_prod(
         self,
@@ -296,10 +293,7 @@ class DashboardService:
             logistics_cost=payload.logistics_cost,
             production_amount=payload.production_amount,
             ratio=ratio,
-            source="manual",
-            submitted_by=user_id,
         )
-
 
     def delete_kpi_record(self, kpi_type: str, year: str, month: str, user: dict | None = None) -> dict:
         self._ensure_valid_kpi_type(kpi_type)
@@ -310,17 +304,6 @@ class DashboardService:
 
         user_id = user.get("id") if user else None
         user_email = user.get("email") if user else None
-        actor_role = user.get("role", "") if user else ""
-
-        # OWNERSHIP CHECK: GESTOR só pode excluir registros que ele mesmo criou.
-        # ADMIN ignora essa checagem.
-        if existing and actor_role == "GESTOR":
-            record_owner = getattr(existing, "submitted_by", None)
-            if record_owner != user_id:
-                from app.core.exceptions import ForbiddenError
-                raise ForbiddenError(
-                    "GESTOR só pode excluir registros de KPI que ele mesmo lançou manualmente."
-                )
 
         deleted = self.repository.delete_kpi_record(kpi_type, month=month, year=year)
         if not deleted:
@@ -361,19 +344,6 @@ class DashboardService:
                 entity_id=f"{kpi_type}:{month}:{year}",
                 detail={"kpi_type": kpi_type, "month": month, "year": year},
             )
-            # Registra no audit_log
-            try:
-                from app.services.audit_log_service import AuditLogService
-                AuditLogService(db).log(
-                    action="kpi.deleted",
-                    actor_user_id=user_id,
-                    actor_role_snapshot=actor_role,
-                    target_type="kpi_report",
-                    target_id=f"{kpi_type}:{month}:{year}",
-                    metadata={"kpi_type": kpi_type, "month": month, "year": year},
-                )
-            except Exception:
-                pass
 
         return {"status": "deleted", "kpi_type": kpi_type, "month": month, "year": year}
 

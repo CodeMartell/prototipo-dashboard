@@ -17,8 +17,6 @@ class KpiRecordOut(BaseModel):
     target: float
     result: float
     achievement: float | None = None
-    source: str = "rpa_email"
-    submitted_by: str | None = None
 
     model_config = {"from_attributes": True}  # permite montar direto do model SQLAlchemy
 
@@ -29,11 +27,8 @@ class LogisticsVsProdOut(BaseModel):
     logistics_cost: float
     production_amount: float
     ratio: float | None = None
-    source: str = "rpa_email"
-    submitted_by: str | None = None
 
     model_config = {"from_attributes": True}
-
 
 
 class KpiFilterParams(BaseModel):

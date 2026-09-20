@@ -21,11 +21,9 @@ def get_current_user(authorization: str | None = Header(default=None)) -> dict:
     """
     Extrai e valida o JWT do header Authorization: Bearer <token>.
 
-    Retorna dict com: id, email, role, permissions (list[str]).
-
     TODO(Épico 1): se o time optar por login corporativo (Microsoft/Google),
     trocar a validação de JWT próprio por verificação do token OAuth2 do
-    provedor — o contrato de retorno (dict com id/email/role/permissions) permanece igual.
+    provedor — o contrato de retorno (dict com id/email/role) permanece igual.
     """
     if not authorization or not authorization.startswith("Bearer "):
         raise UnauthorizedError()
@@ -36,36 +34,13 @@ def get_current_user(authorization: str | None = Header(default=None)) -> dict:
     except jwt.PyJWTError:
         raise UnauthorizedError("Token inválido ou expirado")
 
-    return {
-        "id": payload.get("sub"),
-        "email": payload.get("email"),
-        "role": payload.get("role"),
-        "permissions": payload.get("permissions", []),
-    }
-
-
-def require_permission(*required_permissions: str):
-    """
-    Factory de dependência baseada em permissões granulares.
-    Uso em rota: Depends(require_permission("kpi:write_manual"))
-
-    O usuário precisa ter QUALQUER UMA das permissões listadas (OR lógico).
-    Para AND lógico, encadeie múltiplos Depends.
-    """
-
-    def _check(current_user: dict = Depends(get_current_user)) -> dict:
-        user_perms: list[str] = current_user.get("permissions", [])
-        if required_permissions and not any(p in user_perms for p in required_permissions):
-            raise ForbiddenError()
-        return current_user
-
-    return _check
+    return {"id": payload.get("sub"), "email": payload.get("email"), "role": payload.get("role")}
 
 
 def require_role(*allowed_roles: str):
     """
-    Factory de dependência legada baseada em role name.
-    Mantida para retrocompatibilidade — novos endpoints devem usar require_permission.
+    Factory de dependência: uso em rota -> Depends(require_role("ADMIN")).
+    Fecha o item "Implementar permissões por perfil" do Épico 1.
     """
 
     def _check(current_user: dict = Depends(get_current_user)) -> dict:
@@ -74,4 +49,3 @@ def require_role(*allowed_roles: str):
         return current_user
 
     return _check
-

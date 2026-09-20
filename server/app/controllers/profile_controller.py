@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user, get_db, require_permission
+from app.core.dependencies import get_current_user, get_db, require_role
 from app.models.activity_log import ActivityLog
 from app.models.email_ingest_queue import EmailIngestQueue
 from app.models.kpi_change_log import KpiChangeLog
@@ -19,7 +19,6 @@ from app.services.activity_log_service import ActivityLogService
 from app.services.ingestion_apply_service import IngestionApplyService
 
 router = APIRouter(prefix="/api/profile", tags=["profile"], dependencies=[Depends(get_current_user)])
-
 
 
 class RejectRequest(BaseModel):
@@ -43,7 +42,6 @@ def get_activity_log(
     limit: int = Query(default=100, le=500),
     offset: int = Query(default=0),
     db: Session = Depends(get_db),
-    _: dict = Depends(require_permission("audit:read_all")),
 ):
     service = ActivityLogService(db)
     activities = service.list_activities(action_type=action_type, user_id=user_id, limit=limit, offset=offset)
@@ -70,7 +68,6 @@ def get_kpi_changes(
     limit: int = Query(default=100, le=500),
     offset: int = Query(default=0),
     db: Session = Depends(get_db),
-    _: dict = Depends(require_permission("kpi:write_manual", "audit:read_all")),
 ):
     stmt = select(KpiChangeLog).order_by(KpiChangeLog.changed_at.desc())
     if kpi_type:
@@ -105,7 +102,6 @@ def get_email_ingestions(
     limit: int = Query(default=50, le=200),
     offset: int = Query(default=0),
     db: Session = Depends(get_db),
-    _: dict = Depends(require_permission("kpi:write_manual")),
 ):
     stmt = select(EmailIngestQueue).order_by(EmailIngestQueue.created_at.desc())
     if status:
@@ -139,10 +135,7 @@ def get_email_ingestions(
 
 
 @router.get("/pending-ingestions")
-def get_pending_ingestions(
-    db: Session = Depends(get_db),
-    _: dict = Depends(require_permission("kpi:write_manual")),
-):
+def get_pending_ingestions(db: Session = Depends(get_db)):
     stmt = select(EmailIngestQueue).where(EmailIngestQueue.status == "PENDING").order_by(EmailIngestQueue.created_at.desc())
     items = list(db.scalars(stmt))
 
@@ -167,12 +160,11 @@ def get_pending_ingestions(
     ]
 
 
-
 @router.post("/ingestions/{queue_id}/accept")
 def accept_ingestion(
     queue_id: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_permission("kpi:write_manual")),
+    current_user: dict = Depends(require_role("ADMIN")),
 ):
     service = IngestionApplyService(db, DashboardRepository(db), ProcessedEmailRepository(db))
     return service.accept_ingestion(queue_id, current_user)
@@ -183,7 +175,7 @@ def accept_partial_ingestion(
     queue_id: str,
     payload: PartialAcceptRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_permission("kpi:write_manual")),
+    current_user: dict = Depends(require_role("ADMIN")),
 ):
     service = IngestionApplyService(db, DashboardRepository(db), ProcessedEmailRepository(db))
     selected_items = [item.model_dump() for item in payload.items]
@@ -195,7 +187,7 @@ def reject_ingestion(
     queue_id: str,
     payload: RejectRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_permission("kpi:write_manual")),
+    current_user: dict = Depends(require_role("ADMIN")),
 ):
     service = IngestionApplyService(db, DashboardRepository(db), ProcessedEmailRepository(db))
     return service.reject_ingestion(queue_id, payload.reason, current_user)
@@ -205,8 +197,7 @@ def reject_ingestion(
 def rollback_ingestion(
     queue_id: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_permission("kpi:write_manual")),
+    current_user: dict = Depends(require_role("ADMIN")),
 ):
     service = IngestionApplyService(db, DashboardRepository(db), ProcessedEmailRepository(db))
     return service.rollback_ingestion(queue_id, current_user)
-

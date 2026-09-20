@@ -1,120 +1,278 @@
-import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  CheckCircle2,
+  Clock,
+  Download,
+  FileSliders,
+  LoaderCircle,
+  Trash2,
+  Upload,
+} from 'lucide-react';
+import {
+  deleteEvidence,
+  downloadEvidence,
+  fetchEvidences,
+  UnauthorizedError,
+  uploadEvidence,
+} from '../services/api';
 
-/**
- * Evidências anexadas a um indicador/período.
- *
- * Não existe endpoint de upload no backend ainda, então aqui só ficam
- * registrados os metadados do arquivo escolhido (nome, tamanho, horário),
- * no localStorage. O nome vem do arquivo que o usuário realmente
- * selecionou — nada é gerado artificialmente.
- */
-export default function EvidencePanel({
-  kpiKey,
-  kpiName,
-  selectedYear,
-  periodLabel,
-}) {
-  const storageKey = `ev_${kpiKey || 'kpi'}_${selectedYear || 'Y26'}_${periodLabel || 'Jan'}`;
+const MAX_SIZE = 25 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = ['ppt', 'pptx'];
+
+const formatSize = (bytes) =>
+  bytes < 1024 * 1024
+    ? `${Math.ceil(bytes / 1024)} KB`
+    : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLabel }) {
   const inputRef = useRef(null);
+  const [files, setFiles] = useState([]);
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
-  // Read files from localStorage on initialization
-  const [files, setFiles] = useState(() => {
-    const saved = localStorage.getItem(storageKey);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const fullYear = selectedYear?.startsWith('Y')
+    ? `20${selectedYear.substring(1)}`
+    : selectedYear;
 
-  // Load files when storageKey changes
+  const loadFiles = useCallback(async () => {
+    try {
+      const data = await fetchEvidences(kpiKey, fullYear, periodLabel);
+      setFiles(data || []);
+      setError('');
+    } catch (err) {
+      if (err instanceof UnauthorizedError) return;
+      setError('Could not load saved evidences.');
+    }
+  }, [kpiKey, fullYear, periodLabel]);
+
   useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    setFiles(saved ? JSON.parse(saved) : []);
-  }, [storageKey]);
+    loadFiles();
+  }, [loadFiles]);
 
-  const persist = (next) => {
-    setFiles(next);
-    localStorage.setItem(storageKey, JSON.stringify(next));
+  const handleSelectFiles = (incomingFiles) => {
+    const candidates = Array.from(incomingFiles || []);
+    if (!candidates.length) return;
+
+    setMessage('');
+    setError('');
+
+    const validated = [];
+    for (const file of candidates) {
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      if (!ALLOWED_EXTENSIONS.includes(extension)) {
+        setError('Please upload only PowerPoint presentations (.ppt or .pptx).');
+        continue;
+      }
+      if (file.size > MAX_SIZE) {
+        setError(`${file.name} exceeds the 25 MB limit.`);
+        continue;
+      }
+      validated.push(file);
+    }
+
+    if (validated.length > 0) {
+      setPendingFiles(validated);
+    }
+
+    if (inputRef.current) inputRef.current.value = '';
   };
 
-  const formatSize = (bytes) => {
-    if (!Number.isFinite(bytes)) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  const handleSavePending = async () => {
+    if (!pendingFiles.length) return;
+
+    setIsSaving(true);
+    setMessage('');
+    setError('');
+
+    try {
+      for (const file of pendingFiles) {
+        await uploadEvidence(kpiKey, fullYear, periodLabel, file);
+      }
+      setMessage(
+        pendingFiles.length === 1
+          ? `${pendingFiles[0].name} saved successfully to the platform.`
+          : `${pendingFiles.length} files saved successfully to the platform.`
+      );
+      setPendingFiles([]);
+      await loadFiles();
+    } catch (err) {
+      if (!(err instanceof UnauthorizedError)) {
+        setError(err.message || 'Could not save file to the platform.');
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleFilesSelected = (event) => {
-    const selected = Array.from(event.target.files || []);
-    if (!selected.length) return;
-
-    const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    const added = selected.map((file, index) => ({
-      id: `${Date.now()}-${index}`,
-      name: file.name,
-      size: formatSize(file.size),
-      addedAt: timestamp,
-    }));
-
-    persist([...files, ...added]);
-    event.target.value = ''; // permite escolher o mesmo arquivo de novo
+  const handleDownload = async (file) => {
+    try {
+      await downloadEvidence(file.id, file.name);
+    } catch (err) {
+      if (!(err instanceof UnauthorizedError)) setError(err.message || 'Could not download the file.');
+    }
   };
 
-  const handleRemoveFile = (id) => {
-    persist(files.filter((f) => f.id !== id));
+  const handleDelete = async (file) => {
+    try {
+      await deleteEvidence(file.id);
+      setFiles((prev) => prev.filter((item) => item.id !== file.id));
+      setMessage(`${file.name} deleted successfully.`);
+    } catch (err) {
+      if (!(err instanceof UnauthorizedError)) setError(err.message || 'Could not delete the file.');
+    }
   };
-
-  const openPicker = () => inputRef.current?.click();
 
   return (
-    <div>
-      <div className="evidence-panel__title">Evidences — {kpiName} ({periodLabel})</div>
+    <div className="evidence-wrapper">
+      <div className="evidence-panel__title">
+        <span>Evidence</span>
+        <span className="evidence-panel__title-sep"> - </span>
+        <small>
+          {kpiName} · {periodLabel}/{selectedYear?.substring(1)}
+        </small>
+      </div>
 
       <input
         ref={inputRef}
         type="file"
+        accept=".ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
         multiple
-        onChange={handleFilesSelected}
-        style={{ display: 'none' }}
-        aria-hidden="true"
-        tabIndex={-1}
+        hidden
+        onChange={(e) => handleSelectFiles(e.target.files)}
       />
 
-      <button type="button" className="evidence-panel" onClick={openPicker}>
-        <div className="evidence-panel__dropzone">
-          <div className="evidence-panel__dropzone-icon">
-            <Upload size={28} />
-          </div>
-          <div className="evidence-panel__dropzone-text">
-            Click to attach files
-          </div>
-          <div className="evidence-panel__dropzone-hint">
-            Only the file reference is saved locally — there is no upload to the server yet.
-          </div>
+      <div
+        className={`evidence-panel ${isDragging ? 'evidence-panel--dragging' : ''}`}
+        role="button"
+        tabIndex={0}
+        onClick={() => inputRef.current?.click()}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+          handleSelectFiles(e.dataTransfer.files);
+        }}
+      >
+        <div className="evidence-panel__dropzone-icon">
+          <Upload size={27} />
         </div>
-      </button>
+        <strong>Upload PowerPoint</strong>
+        <span>Drag file here or click to select</span>
+        <small>.PPT or .PPTX · 25 MB maximum per file</small>
+      </div>
 
-      {files.length > 0 && (
-        <div className="evidence-panel__file-list">
-          {files.map((file) => (
-            <div key={file.id} className="evidence-panel__file">
+      {/* Selected file pending upload (No 'X' button) */}
+      {pendingFiles.length > 0 && (
+        <div className="evidence-panel__pending-container">
+          <div className="evidence-panel__section-header">
+            <span>Selected file</span>
+          </div>
+
+          {pendingFiles.map((file, index) => (
+            <div key={`${file.name}-${index}`} className="evidence-panel__file evidence-panel__file--pending">
+              <div className="evidence-panel__file-icon">
+                <FileSliders size={18} />
+              </div>
               <div className="evidence-panel__file-info">
-                <FileText size={14} />
-                <span>{file.name}</span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                  {[file.size, file.addedAt].filter(Boolean).join(' · ')}
+                <strong title={file.name}>{file.name}</strong>
+                <span>{formatSize(file.size)}</span>
+                <span className="evidence-panel__badge evidence-panel__badge--pending">
+                  <Clock size={12} />
+                  Pending upload
                 </span>
               </div>
-              <button
-                type="button"
-                className="evidence-panel__file-remove"
-                onClick={handleRemoveFile.bind(null, file.id)}
-                aria-label={`Remove ${file.name}`}
-              >
-                <X size={14} />
-              </button>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            className="evidence-panel__btn-save"
+            disabled={isSaving}
+            onClick={handleSavePending}
+          >
+            {isSaving ? (
+              <>
+                <LoaderCircle size={15} className="evidence-panel__spinner" />
+                <span>Saving to platform...</span>
+              </>
+            ) : (
+              <>
+                <Upload size={15} />
+                <span>Save to platform</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Message feedback */}
+      {message && (
+        <div className="evidence-panel__success" role="status">
+          <CheckCircle2 size={15} /> {message}
+        </div>
+      )}
+      {error && (
+        <div className="evidence-panel__message" role="alert">
+          {error}
+        </div>
+      )}
+
+      {/* Saved files list — strictly Download and Delete */}
+      {files.length > 0 && (
+        <div className="evidence-panel__file-list">
+          <div className="evidence-panel__section-header">
+            <span>Saved records ({files.length})</span>
+          </div>
+          {files.map((file) => (
+            <div key={file.id} className="evidence-panel__file">
+              <div className="evidence-panel__file-icon">
+                <FileSliders size={18} />
+              </div>
+              <div className="evidence-panel__file-info">
+                <strong title={file.name}>{file.name}</strong>
+                <span>
+                  {formatSize(file.size)} ·{' '}
+                  {file.createdAt ? new Date(file.createdAt).toLocaleString('en-US') : ''}
+                </span>
+                <span className="evidence-panel__badge evidence-panel__badge--saved">
+                  <CheckCircle2 size={12} />
+                  Saved successfully
+                </span>
+              </div>
+              <div className="evidence-panel__file-actions">
+                <button
+                  type="button"
+                  title="Download file"
+                  aria-label={`Download ${file.name}`}
+                  className="evidence-panel__action-btn evidence-panel__action-btn--download"
+                  onClick={() => handleDownload(file)}
+                >
+                  <Download size={15} />
+                </button>
+                <button
+                  type="button"
+                  title="Delete evidence"
+                  aria-label={`Delete ${file.name}`}
+                  className="evidence-panel__action-btn evidence-panel__action-btn--delete"
+                  onClick={() => handleDelete(file)}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
+
+     
     </div>
   );
 }

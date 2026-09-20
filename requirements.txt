@@ -7,3 +7,5 @@ pytest==8.4.1
 
 # Leitura dos relatórios brutos .xlsb anexados ao e-mail.
 pyxlsb==1.0.10
+
+python-multipart==0.0.20

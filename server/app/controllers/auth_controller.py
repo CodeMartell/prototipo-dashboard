@@ -10,7 +10,6 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, get_db
-from app.repositories.permission_repository import PermissionRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth_schema import LoginRequest, TokenResponse, UserOut
 from app.services.auth_service import AuthService
@@ -20,9 +19,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 @router.post("/login", response_model=TokenResponse)
 def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
-    user_repo = UserRepository(db)
-    perm_repo = PermissionRepository(db)
-    service = AuthService(user_repo, perm_repo)
+    service = AuthService(UserRepository(db))
     client_ip = request.client.host if request.client else "unknown"
     return service.login(payload.email, payload.password, client_ip)
 
@@ -30,4 +27,3 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
 @router.get("/me", response_model=UserOut)
 def get_me(current_user: dict = Depends(get_current_user)):
     return current_user
-

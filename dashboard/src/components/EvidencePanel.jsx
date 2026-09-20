@@ -44,7 +44,6 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
       setError('');
     } catch (err) {
       if (err instanceof UnauthorizedError) return;
-      setError('Could not load saved evidences.');
     }
   }, [kpiKey, fullYear, periodLabel]);
 

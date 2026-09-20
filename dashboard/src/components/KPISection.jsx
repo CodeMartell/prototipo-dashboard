@@ -34,7 +34,7 @@ function defaultSubFor(periodType, selectedYear) {
   return selectedYear;
 }
 
-function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, noTrafficLight) {
+function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, noTrafficLight, lowerIsBetter) {
   const isRatioKPI = kpiKey === 'logisticsVsProd';
   const hasTargetData = !isRatioKPI && kpiKey !== 'incidentialCost' && !noTrafficLight;
   const resultField = isRatioKPI ? 'ratio' : 'result';
@@ -55,7 +55,7 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
 
   // Demurrage usa soma acumulada
   const aggregateFn = (rows, field, fixedDivisor = null) =>
-    kpiKey === 'demurrage' ? sum(rows, field) : avg(rows, field, fixedDivisor);
+    ['demurrage', 'totalCost', 'incidentialCost'].includes(kpiKey) ? sum(rows, field) : avg(rows, field, fixedDivisor);
 
   const currentData = monthlyData.filter((d) => d.year === selectedYear);
   const prevData    = monthlyData.filter((d) => d.year === prevYearStr);
@@ -75,7 +75,7 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
         previousResult: isPrevAnnualOnly ? prevData[0]?.[resultField] ?? null : null,
         target: hasTargetData ? currentData[0]?.target ?? null : null,
         currentAchievement: hasTargetData && currentData[0]?.target != null && currentData[0]?.[resultField] != null
-          ? calculateTargetAchievement(currentData[0][resultField], currentData[0].target)
+          ? calculateTargetAchievement(currentData[0][resultField], currentData[0].target, lowerIsBetter)
           : null,
         annualOnly: true,
       }];
@@ -91,7 +91,7 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
         previousResult:     prev ? prev[resultField] : null,
         target:             curTarget,
         currentAchievement: hasTargetData && curTarget != null && curResult != null
-          ? calculateTargetAchievement(curResult, curTarget)
+          ? calculateTargetAchievement(curResult, curTarget, lowerIsBetter)
           : null,
       };
     });
@@ -115,7 +115,7 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
         previousResult:     resultValue(prevMonths, 3),
         target:             curTgt,
         currentAchievement: hasTargetData && curTgt != null && curRes != null
-          ? calculateTargetAchievement(curRes, curTgt)
+          ? calculateTargetAchievement(curRes, curTgt, lowerIsBetter)
           : null,
       };
     });
@@ -137,7 +137,7 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
         previousResult:     resultValue(prevMonths, 6),
         target:             curTgt,
         currentAchievement: hasTargetData && curTgt != null && curRes != null
-          ? calculateTargetAchievement(curRes, curTgt)
+          ? calculateTargetAchievement(curRes, curTgt, lowerIsBetter)
           : null,
       };
     });
@@ -158,7 +158,7 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
         previousResult:     null,
         target:             curTgt,
         currentAchievement: hasTargetData && curTgt != null && curRes != null
-          ? calculateTargetAchievement(curRes, curTgt)
+          ? calculateTargetAchievement(curRes, curTgt, lowerIsBetter)
           : null,
       };
     });
@@ -215,7 +215,7 @@ export default function KPISection({
   };
 
   const chartData = useMemo(() => {
-    const raw = buildChartData(monthlyData, effectivePeriod, effectiveYear, availableYears, kpiKey, noTrafficLight);
+    const raw = buildChartData(monthlyData, effectivePeriod, effectiveYear, availableYears, kpiKey, noTrafficLight, lowerIsBetter);
     const withResults = raw.filter((d) => d.currentResult !== null);
     let bestPeriod = null, worstPeriod = null;
     if (withResults.length > 0) {

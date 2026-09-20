@@ -120,12 +120,16 @@ export async function createIndicatorWorkbook(report) {
               cell.value = { formula: `${col}${rowIds.cost}/${col}${rowIds.production}`, result: values.result };
             } else {
               const mode = ['cost', 'production'].includes(item.key) || section.kpi.aggregate === 'sum' ? 'SUM' : 'AVERAGE';
-              cell.value = { formula: `${mode}(B${row}:${ws.getCell(row, width - 1).address})`, result: values[item.key] };
+              const result = values[item.key] === 0 ? '0' : values[item.key];
+              cell.value = { formula: `${mode}(B${row}:${ws.getCell(row, width - 1).address})`, result };
             }
           }
           if (item.key === 'achievement' && values.achievement !== null) {
             const target = `${col}${rowIds.target}`, actual = `${col}${rowIds.result}`;
-            cell.value = { formula: `IF(${target}=0,IF(${actual}=0,1,0),${actual}/${target})`, result: values.achievement };
+            const formula = section.kpi.lowerIsBetter
+              ? `IF(${actual}=0,IF(${target}=0,1,0),${target}/${actual})`
+              : `IF(${target}=0,IF(${actual}=0,1,0),${actual}/${target})`;
+            cell.value = { formula, result: values.achievement };
           }
           if (item.key === 'achievement') cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fills[values.status] } };
         });

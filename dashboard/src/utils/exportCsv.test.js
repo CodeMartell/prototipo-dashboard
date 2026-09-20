@@ -51,8 +51,8 @@ test('buildConsolidatedRows filters and structures multi-indicator rows', () => 
   assert.equal(rows[0].Indicator, 'War Room Report');
   assert.equal(rows[0].Year, '2026');
   assert.equal(rows[0].Period, 'Jan');
-  assert.equal(rows[0].Achievement, '83.02%');
-  assert.equal(rows[0].Status, 'Off Target');
+  assert.equal(rows[0].Achievement, '120.45%');
+  assert.equal(rows[0].Status, 'Target Met');
 
   // Demurrage 0 should also be Target Met
   const demurrageRow = rows.find(r => r.Indicator === 'Demurrage Cost');
@@ -65,7 +65,7 @@ import { buildIndicatorReport, createIndicatorWorkbook, resolveReportScope } fro
 
 const reportKpis = [
   { key: 'totalCost', dataKey: 'total_cost', name: 'Task Cost Reduction', unit: 'KBRL', aggregate: 'sum' },
-  { key: 'airFreight', dataKey: 'air_freight', name: 'Air Freight', unit: '%', aggregate: 'avg' },
+  { key: 'airFreight', dataKey: 'air_freight', name: 'Air Freight', unit: '%', aggregate: 'avg', lowerIsBetter: true },
   { key: 'demurrage', dataKey: 'demurrage', name: 'Demurrage Cost', unit: 'CTNR', aggregate: 'sum' },
   { key: 'resin', dataKey: 'incidental_cost', name: 'Resin Consolidation', unit: 'KUSD', aggregate: 'sum', noTrafficLight: true },
   { key: 'ratio', dataKey: 'logistics_vs_prod', valueKey: 'ratio', name: 'Incidental Cost', unit: 'Ratio', noTrafficLight: true },
@@ -98,6 +98,7 @@ test('report follows the reference: periods across columns and one block per ind
   assert.deepEqual(report.sheets[0].sections[0].rows.map((r) => r.label), ['Target', 'Result', 'Achievement (%)']);
   assert.deepEqual(report.sheets[0].sections[3].rows.map((r) => r.label), ['Result']);
   assert.equal(report.sheets[0].sections[0].values[0].achievement, 0.96);
+  assert.equal(report.sheets[0].sections[1].values[0].achievement, 2);
   assert.equal(report.sheets[0].sections[0].values[1].result, null);
   assert.equal(report.sheets[0].sections[2].values[0].achievement, 1);
   assert.equal(report.sheets[0].sections[2].values[1].achievement, 0);
@@ -155,8 +156,9 @@ test('xlsx round trip preserves numeric values, formulas, blank cells and compac
   assert.equal(sheet.getCell('N7').result, 1020);
   assert.equal(sheet.getCell('B8').result, 0.96);
   assert.equal(sheet.getCell('B8').numFmt, '0.00%');
-  assert.equal(sheet.getCell('B14').value, 0.02);
-  assert.equal(sheet.getCell('B14').numFmt, '0.00%');
+  assert.equal(sheet.getCell('B15').result, 2);
+  assert.equal(sheet.getCell('B15').formula, 'IF(B14=0,IF(B13=0,1,0),B13/B14)');
+  assert.equal(sheet.getCell('B15').numFmt, '0.00%');
   assert.ok(sheet.views[0].showGridLines === false);
   const allValues = [];sheet.eachRow((r) => r.eachCell((c) => { if (!c.isMerged || c.master.address === c.address) allValues.push(c.value); }));
   assert.equal(allValues.filter((v) => v === 'Task Cost Reduction (KBRL)').length, 1);

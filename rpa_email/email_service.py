@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import imaplib
 import logging
+import ssl
 import tempfile
 from pathlib import Path
 from datetime import timezone
@@ -236,6 +237,25 @@ class EmailProcessingService:
 
         self.repository.save(record)
 
+    def _fetch_with_reconnect(
+        self,
+        client: imaplib.IMAP4_SSL,
+        uid: bytes,
+    ) -> tuple[imaplib.IMAP4_SSL, Message]:
+        """Busca uma mensagem e recupera uma sessão IMAP encerrada pelo servidor."""
+
+        try:
+            return client, self.handler.fetch(client, uid)
+        except (imaplib.IMAP4.abort, imaplib.IMAP4.error, ssl.SSLError, OSError):
+            LOGGER.warning("Conexão IMAP encerrada durante a leitura; reconectando")
+            try:
+                client.logout()
+            except (imaplib.IMAP4.error, OSError):
+                pass
+
+            refreshed_client = self.handler.connect()
+            return refreshed_client, self.handler.fetch(refreshed_client, uid)
+
     def execute(
         self,
     ) -> ExecutionSummary:
@@ -268,7 +288,9 @@ class EmailProcessingService:
 
             summary.found = len(uids)
 
-            for raw_uid in uids:
+            # Prioriza os e-mails mais recentes: uma conexão instável não deve
+            # impedir que o relatório recém-recebido seja processado.
+            for raw_uid in reversed(uids):
                 uid = raw_uid.decode()
                 message = None
 
@@ -279,10 +301,7 @@ class EmailProcessingService:
                 )
 
                 try:
-                    message = self.handler.fetch(
-                        client,
-                        raw_uid,
-                    )
+                    client, message = self._fetch_with_reconnect(client, raw_uid)
 
                     key = self._key(
                         message,
@@ -410,7 +429,7 @@ class EmailProcessingService:
             try:
                 client.logout()
 
-            except imaplib.IMAP4.error:
+            except (imaplib.IMAP4.error, OSError):
                 LOGGER.warning(
                     "A conexão IMAP já estava encerrada"
                 )

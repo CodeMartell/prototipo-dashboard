@@ -24,6 +24,24 @@ const formatSize = (bytes) =>
     ? `${Math.ceil(bytes / 1024)} KB`
     : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
+const extractErrorMessage = (err) => {
+  if (!err) return 'An unexpected error occurred.';
+  if (typeof err === 'string') return err;
+
+  if (Array.isArray(err)) {
+    return err.map((item) => item.msg || JSON.stringify(item)).join(' | ');
+  }
+
+  if (err.detail) {
+    if (typeof err.detail === 'string') return err.detail;
+    if (Array.isArray(err.detail)) {
+      return err.detail.map((item) => item.msg || JSON.stringify(item)).join(' | ');
+    }
+  }
+
+  return err.message || 'Could not complete the operation.';
+};
+
 export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLabel }) {
   const inputRef = useRef(null);
   const [files, setFiles] = useState([]);
@@ -39,11 +57,12 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
 
   const loadFiles = useCallback(async () => {
     try {
-      const data = await fetchEvidences(kpiKey, fullYear, periodLabel);
-      setFiles(data || []);
+      const data = await fetchEvidences({ kpiType: kpiKey, year: fullYear, month: periodLabel });
+      setFiles(Array.isArray(data) ? data : []);
       setError('');
     } catch (err) {
       if (err instanceof UnauthorizedError) return;
+      setFiles([]);
     }
   }, [kpiKey, fullYear, periodLabel]);
 
@@ -88,18 +107,23 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
 
     try {
       for (const file of pendingFiles) {
-        await uploadEvidence(kpiKey, fullYear, periodLabel, file);
+        await uploadEvidence({
+          file,
+          kpiType: kpiKey,
+          year: fullYear,
+          month: periodLabel,
+        });
       }
       setMessage(
         pendingFiles.length === 1
-          ? `${pendingFiles[0].name} saved successfully to the platform.`
-          : `${pendingFiles.length} files saved successfully to the platform.`
+          ? `${pendingFiles[0].name} was saved to the platform.`
+          : `${pendingFiles.length} files were saved to the platform.`
       );
       setPendingFiles([]);
       await loadFiles();
     } catch (err) {
       if (!(err instanceof UnauthorizedError)) {
-        setError(err.message || 'Could not save file to the platform.');
+        setError(extractErrorMessage(err));
       }
     } finally {
       setIsSaving(false);
@@ -108,9 +132,11 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
 
   const handleDownload = async (file) => {
     try {
-      await downloadEvidence(file.id, file.name);
+      await downloadEvidence(file.id);
     } catch (err) {
-      if (!(err instanceof UnauthorizedError)) setError(err.message || 'Could not download the file.');
+      if (!(err instanceof UnauthorizedError)) {
+        setError(extractErrorMessage(err));
+      }
     }
   };
 
@@ -118,9 +144,11 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
     try {
       await deleteEvidence(file.id);
       setFiles((prev) => prev.filter((item) => item.id !== file.id));
-      setMessage(`${file.name} deleted successfully.`);
+      setMessage(`${file.name} was deleted.`);
     } catch (err) {
-      if (!(err instanceof UnauthorizedError)) setError(err.message || 'Could not delete the file.');
+      if (!(err instanceof UnauthorizedError)) {
+        setError(extractErrorMessage(err));
+      }
     }
   };
 
@@ -164,15 +192,14 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
           <Upload size={27} />
         </div>
         <strong>Upload PowerPoint</strong>
-        <span>Drag file here or click to select</span>
+        <span>Drag a file here or click to select</span>
         <small>.PPT or .PPTX · 25 MB maximum per file</small>
       </div>
 
-      {/* Selected file pending upload (No 'X' button) */}
       {pendingFiles.length > 0 && (
         <div className="evidence-panel__pending-container">
           <div className="evidence-panel__section-header">
-            <span>Selected file</span>
+            <span>Selected files</span>
           </div>
 
           {pendingFiles.map((file, index) => (
@@ -212,7 +239,6 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
         </div>
       )}
 
-      {/* Message feedback */}
       {message && (
         <div className="evidence-panel__success" role="status">
           <CheckCircle2 size={15} /> {message}
@@ -224,7 +250,6 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
         </div>
       )}
 
-      {/* Saved files list — strictly Download and Delete */}
       {files.length > 0 && (
         <div className="evidence-panel__file-list">
           <div className="evidence-panel__section-header">
@@ -270,8 +295,6 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
           ))}
         </div>
       )}
-
-     
     </div>
   );
 }

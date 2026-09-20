@@ -98,6 +98,8 @@ async function authFetch(path, options = {}) {
     throw new Error(body.detail || body.error || `Erro na API (status ${response.status})`);
   }
 
+  if (response.status === 204) return undefined;
+
   return response.json();
 }
 
@@ -326,21 +328,23 @@ export { UnauthorizedError };
 
 export async function fetchEvidences({ kpiType, year, month } = {}) {
   const params = new URLSearchParams();
-  if (kpiType) params.append('kpi_type', kpiType);
+  if (kpiType) params.append('kpi_key', kpiType);
   if (year) params.append('year', year);
-  if (month) params.append('month', month);
+  if (month) params.append('period', month);
   return authFetch(`/api/evidences?${params.toString()}`);
 }
 
 export async function uploadEvidence({ file, kpiType, year, month }) {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('kpi_type', kpiType);
-  formData.append('year', year);
-  formData.append('month', month);
+  const params = new URLSearchParams({
+    kpi_key: kpiType,
+    year: String(year),
+    period: month,
+  });
 
   const token = getToken();
-  const response = await fetch('/api/evidences', {
+  const response = await fetch(`/api/evidences?${params.toString()}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

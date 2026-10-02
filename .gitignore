@@ -65,6 +65,11 @@ resina/
 # As planilhas .xlsb aqui pesavam ~44MB e estouravam o limite de push do GitLab.
 scratch/
 deploy/
+fluxo/
+scratch_extractor.py
+generate_pdd_docs.py
+generate_pdf.py
+test.png
 
 # Aplicacao Desktop complementar (desenvolvimento local / standalone)
 desktop_app/

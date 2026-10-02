@@ -1,0 +1,66 @@
+{
+  "diretorios": {
+    "caixa_de_entrada": "caixa_de_entrada",
+    "dados_processados": "dados_processados",
+    "logs": "logs"
+  },
+  "filtros_email": {
+    "termos_assunto_obrigatorios": [
+      "fechamento",
+      "logistico",
+      "logístico",
+      "war room",
+      "custos logisticos",
+      "custos logísticos",
+      "relatório semanal",
+      "relatorio semanal",
+      "kpi"
+    ],
+    "remetentes_autorizados": [],
+
+    "extensoes_anexos_permitidas": [
+      ".xlsx",
+      ".xls"
+    ],
+    "limite_tamanho_mb": 25
+  },
+  "regras_kpi": {
+    "logisticCost": {
+      "nome": "Logistic Cost KPI TV (War Room Report)",
+      "descricao": "Custo Logístico sobre Faturamento %",
+      "abas_compativeis": [
+        "Logistic Cost",
+        "LogisticCost",
+        "Custo Logistico",
+        "Custo Logístico",
+        "KPI TV"
+      ]
+    },
+    "airFreight": {
+      "nome": "Air Freight KPI TV",
+      "descricao": "Frete Aéreo sobre Faturamento %",
+      "abas_compativeis": [
+        "Air Freight",
+        "AirFreight",
+        "Frete Aereo",
+        "Frete Aéreo"
+      ]
+    },
+    "logisticsVsProd": {
+      "nome": "Logistics Cost x Product Amount",
+      "descricao": "Razão Custo Logístico / Volume de Produção (MUSD)",
+      "abas_compativeis": [
+        "Logistics vs Prod",
+        "LogisticsVsProd",
+        "Cost x Prod",
+        "Custo vs Producao",
+        "Custo vs Produção"
+      ]
+    }
+  },
+  "exportacao": {
+    "salvar_json": true,
+    "salvar_csv": true,
+    "prefixo_saida": "kpi_consolidado"
+  }
+}

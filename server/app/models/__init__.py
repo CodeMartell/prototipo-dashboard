@@ -10,6 +10,7 @@ from app.models.kpi import (
     LogisticsVsProd,
 )
 from app.models.processed_email import ProcessedEmail
+from app.models.evidence import Evidence
 from app.models.dashboard_data import KpiRecord, LogisticsVsProdRecord
 from app.models.activity_log import ActivityLog
 from app.models.audit_log import AuditLog
@@ -29,6 +30,7 @@ __all__ = [
     "Demurrage",
     "LogisticsVsProd",
     "ProcessedEmail",
+    "Evidence",
     "KpiRecord",
     "LogisticsVsProdRecord",
     "ActivityLog",
@@ -36,4 +38,4 @@ __all__ = [
     "KpiChangeLog",
     "EmailIngestQueue",
     "ActionPlan",
-]
+]

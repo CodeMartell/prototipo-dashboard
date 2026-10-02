@@ -11,6 +11,7 @@ from app.controllers import (
     analysis_controller,
     auth_controller,
     dashboard_controller,
+    evidence_controller,
     ingestion_controller,
     profile_controller,
     user_controller,
@@ -25,7 +26,7 @@ import app.models  # noqa: F401
 
 settings = get_settings()
 
-# Garantir criação automática das tabelas (activity_logs, kpi_change_logs, email_ingest_queue)
+# Garantir criação automática das tabelas (activity_logs, kpi_change_logs, email_ingest_queue, evidences)
 try:
     Base.metadata.create_all(bind=engine)
 except Exception as e:
@@ -68,6 +69,7 @@ register_exception_handlers(app)
 app.include_router(auth_controller.router)
 app.include_router(user_controller.router)
 app.include_router(dashboard_controller.router)
+app.include_router(evidence_controller.router)
 app.include_router(analysis_controller.router)
 app.include_router(ingestion_controller.router)
 app.include_router(profile_controller.router)
@@ -85,4 +87,3 @@ if __name__ == "__main__":
 
     logger.info("Iniciando servidor na porta %d...", settings.API_PORT)
     uvicorn.run("main:app", host="0.0.0.0", port=settings.API_PORT, reload=True)
-

@@ -1,3 +1,5 @@
+from app.models import evidence, kpi, processed_email, role, user  # noqa: F401
+
 """
 alembic/env.py
 Conecta o Alembic aos models SQLAlchemy do projeto e à DATABASE_URL do .env.

@@ -3,12 +3,14 @@ import assert from 'node:assert/strict';
 import {
   deleteKpiRecord,
   fetchDashboardData,
+  fetchEvidences,
   getCurrentUser,
   getToken,
   login,
   logout,
   saveKpiRecord,
   saveLogisticsVsProd,
+  uploadEvidence,
   UnauthorizedError,
 } from './api.js';
 import { canAccessAnalytics, canEditKpiData } from './permissions.js';
@@ -148,6 +150,29 @@ test('manual entry writes to the period route and keeps percent values as fracti
   await deleteKpiRecord('demurrage', { year: 'Y25', month: 'Jan' });
   assert.equal(calls[2].path, '/api/kpis/demurrage/Y25/Jan');
   assert.equal(calls[2].method, 'DELETE');
+});
+
+test('evidence upload and listing use the backend query contract', async () => {
+  localStorage.setItem('datalens_token', 'test-token');
+  const calls = [];
+  globalThis.fetch = async (path, options = {}) => {
+    calls.push({ path, options });
+    return Response.json([]);
+  };
+
+  await fetchEvidences({ kpiType: 'logistic_cost', year: '2026', month: 'Sep' });
+  await uploadEvidence({
+    file: new Blob(['presentation'], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }),
+    kpiType: 'logistic_cost',
+    year: '2026',
+    month: 'Sep',
+  });
+
+  assert.equal(calls[0].path, '/api/evidences?kpi_key=logistic_cost&year=2026&period=Sep');
+  assert.equal(calls[1].path, '/api/evidences?kpi_key=logistic_cost&year=2026&period=Sep');
+  assert.equal(calls[1].options.method, 'POST');
+  assert.equal(calls[1].options.headers.Authorization, 'Bearer test-token');
+  assert.ok(calls[1].options.body instanceof FormData);
 });
 
 test('expired session clears storage', async () => {

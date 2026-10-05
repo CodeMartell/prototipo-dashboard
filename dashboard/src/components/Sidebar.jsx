@@ -14,6 +14,7 @@ import {
   Lock,
   Users,
   Shield,
+  X
 } from 'lucide-react';
 import { getCurrentUser } from '../services/api';
 import { canReadUsers, canReadAuditLog } from '../services/permissions';
@@ -30,7 +31,9 @@ const NAV_ITEMS = [
   { id: 'analytics', icon: BarChart2, badge: 'New' },
 ];
 
-export default function Sidebar({ 
+export default function Sidebar({
+  isOpen = false,
+  onClose, 
   activeItem = 'dashboard', 
   onNavigate, 
   onOpenHelp,
@@ -45,7 +48,13 @@ export default function Sidebar({
   const showAuditLink = canReadAuditLog(user);
 
   return (
-    <aside className="sidebar">
+    
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div className="sidebar-backdrop" onClick={onClose} />
+      )}
+      <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`}>
       <div className="sidebar__brand">
         <div className="sidebar__brand-icon">LC</div>
         <div className="sidebar__brand-text">
@@ -138,6 +147,7 @@ export default function Sidebar({
         {t('sidebar.footer')}
       </div>
     </aside>
+    </>
   );
 }
 

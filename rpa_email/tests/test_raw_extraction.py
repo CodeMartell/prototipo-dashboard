@@ -78,13 +78,9 @@ def test_raw_xlsx_files_are_routed_to_domain_extractors(tmp_path):
     assert result.demurrage[0].achievement == 1.0
     assert result.logistics_vs_prod[0].ratio == 0.2
     assert result.logistics_vs_prod[1].ratio == 0.25
-    assert result.replace_kpis == {
-        "logistic_cost",
-        "air_freight",
-        "incidental_cost",
-        "total_cost",
-        "demurrage",
-    }
+    # Planilhas recebidas pelo robô são incrementais: dados de meses que
+    # não vieram no arquivo não podem ser removidos da base.
+    assert result.replace_kpis == set()
     assert [(row.year, row.month) for row in result.logistic_cost] == [
         ("Y24", "Jan"),
         ("Y25", "Jan"),

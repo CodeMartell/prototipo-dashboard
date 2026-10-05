@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import ComparisonChart from './ComparisonChart';
 import DetailTable from './DetailTable';
 import ActionPlanPanel from './ActionPlanPanel';
@@ -8,10 +9,10 @@ import { Table, BarChart3, PencilLine, Download, RotateCcw } from 'lucide-react'
 import { downloadKpiCsv } from '../utils/exportCsv';
 
 const PERIOD_LABELS = {
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  semiannual: 'Semiannual',
-  annual: 'Annual',
+  monthly: 'kpi.monthly',
+  quarterly: 'kpi.quarterly',
+  semiannual: 'kpi.semiannual',
+  annual: 'kpi.annual',
 };
 
 const MONTH_OPTIONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -172,10 +173,12 @@ function filterBySubPeriod(chartData, subPeriod, periodType) {
 }
 
 export default function KPISection({
+
   kpiKey, title, icon: Icon, monthlyData, quarterlyData,
   accentColor, lowerIsBetter, alwaysGoodStatus = false, targetIsZero = false, noTrafficLight = false, unit, selectedYear, period, activePeriodLabel,
   onEditData,
 }) {
+  const { t } = useTranslation();
   const [showTable, setShowTable] = useState(false);
 
   // Período local — permite mudar tipo e sub dentro da seção sem afetar o topo
@@ -308,7 +311,7 @@ export default function KPISection({
           </div>
           <button className={`btn ${showTable ? 'btn--active' : ''}`} onClick={() => setShowTable(!showTable)}>
             {showTable ? <BarChart3 size={14} /> : <Table size={14} />}
-            {showTable ? 'Chart' : 'Table'}
+            {showTable ? t('kpi.chart') : t('kpi.table')}
           </button>
           {onEditData && (
             <button
@@ -317,7 +320,7 @@ export default function KPISection({
               title="Enter or correct this indicator's values for a month"
             >
               <PencilLine size={14} />
-              Enter values
+              {t('kpi.enter_values')}
             </button>
           )}
         </div>
@@ -327,7 +330,7 @@ export default function KPISection({
       {isAnnualOnlyData && (
         <div className="kpi-section__annual-only-notice">
           <span>
-            ⚠️ Data for <strong>{currentYearLabel}</strong> is available as an <strong>annual cumulative total only</strong> — no monthly breakdown exists for this year.
+            ⚠️ {t('kpi.annual_only_warn').replace('{year}', currentYearLabel)}
           </span>
         </div>
       )}
@@ -336,7 +339,7 @@ export default function KPISection({
         {/* Mini seletor de período inline — independente do filtro do topo */}
         <div className="chart-panel__inline-filter">
           <div className="chart-panel__inline-filter-left">
-            <span className="chart-panel__inline-filter-label">View as:</span>
+            <span className="chart-panel__inline-filter-label">{t('kpi.view_as')}</span>
             <div className="chart-panel__period-pills">
               {Object.entries(PERIOD_LABELS).map(([key, label]) => (
                 <button
@@ -346,7 +349,7 @@ export default function KPISection({
                   disabled={isAnnualOnlyData && key !== 'annual' && key !== 'monthly'}
                   title={isAnnualOnlyData && key !== 'annual' && key !== 'monthly' ? 'Annual-only data' : undefined}
                 >
-                  {label}
+                  {t(label)}
                 </button>
               ))}
             </div>
@@ -402,7 +405,7 @@ export default function KPISection({
                 title={`Reset to global period (${activePeriodLabel})`}
               >
                 <RotateCcw size={12} />
-                Reset
+                {t('kpi.reset_to')} {activePeriodLabel}
               </button>
             )}
             <button
@@ -411,7 +414,7 @@ export default function KPISection({
               title={`Export ${clickedPeriod ? clickedPeriod : 'all visible'} data as CSV`}
             >
               <Download size={13} />
-              Export CSV
+              {t('kpi.export_csv')}
             </button>
           </div>
         </div>
@@ -449,16 +452,16 @@ export default function KPISection({
       {/* Dynamic Focus Period Header */}
       <div className="kpi-section__period-focus">
         <div className="kpi-section__period-focus-badge" style={{ borderLeft: `3px solid ${accentColor}` }}>
-          Focused Period: <strong>{activePeriod} / {effectiveYear.substring(1)}</strong>
-          {hasLocalOverride && <span className="kpi-section__local-badge"> · local view</span>}
+          {t('kpi.focused_period')} <strong>{['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(activePeriod) ? t('months.' + activePeriod) : activePeriod} / {effectiveYear.substring(1)}</strong>
+          {hasLocalOverride && <span className="kpi-section__local-badge"> · {t('kpi.local_view')}</span>}
         </div>
         <div className="kpi-section__period-focus-hint">
           {clickedPeriod ? (
             <button className="kpi-section__period-reset-btn" onClick={() => setClickedPeriod(null)}>
-              Reset to {effectiveSubPeriod}
+              {t('kpi.reset_to')} {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(effectiveSubPeriod) ? t('months.' + effectiveSubPeriod) : effectiveSubPeriod}
             </button>
           ) : (
-            <span>Click on a chart column or table row to focus a period — then export that slice</span>
+            <span>{t('kpi.focus_hint')}</span>
           )}
         </div>
       </div>

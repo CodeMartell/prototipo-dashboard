@@ -4,12 +4,13 @@
  * Usado em AuditPage e em qualquer tela que precise filtrar por intervalo de datas.
  */
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
-const SHORTCUTS = [
-  { label: 'Hoje', get: () => [startOfDay(new Date()), new Date()] },
-  { label: 'Últimos 7d', get: () => [daysAgo(7), new Date()] },
-  { label: 'Este mês', get: () => [startOfMonth(new Date()), new Date()] },
-  { label: 'Últimos 90d', get: () => [daysAgo(90), new Date()] },
+const SHORTCUTS = (t) => [
+  { label: t('date_filter.today'), get: () => [startOfDay(new Date()), new Date()] },
+  { label: t('date_filter.last_7d'), get: () => [daysAgo(7), new Date()] },
+  { label: t('date_filter.this_month'), get: () => [startOfMonth(new Date()), new Date()] },
+  { label: t('date_filter.last_90d'), get: () => [daysAgo(90), new Date()] },
 ];
 
 function startOfDay(d) {
@@ -42,6 +43,7 @@ function toInputValue(date) {
  * @param {string} [props.className]
  */
 export default function DateRangeFilter({ dateFrom, dateTo, onChange, loading = false, className = '' }) {
+  const { t } = useTranslation();
   const [activeShortcut, setActiveShortcut] = useState(null);
 
   const handleShortcut = useCallback((shortcut, idx) => {
@@ -64,7 +66,7 @@ export default function DateRangeFilter({ dateFrom, dateTo, onChange, loading = 
     <div className={`drf-container ${className}`}>
       {/* Atalhos */}
       <div className="drf-shortcuts">
-        {SHORTCUTS.map((s, idx) => (
+        {SHORTCUTS(t).map((s, idx) => (
           <button
             key={s.label}
             type="button"
@@ -77,12 +79,12 @@ export default function DateRangeFilter({ dateFrom, dateTo, onChange, loading = 
         ))}
       </div>
 
-      <span className="drf-separator">ou</span>
+      <span className="drf-separator">{t('date_filter.or')}</span>
 
       {/* Intervalo manual — estilo airplane ticket */}
       <div className="drf-ticket-box">
         <div className="drf-ticket-cell">
-          <label className="drf-ticket-label">De</label>
+          <label className="drf-ticket-label">{t('date_filter.from')}</label>
           <input
             type="date"
             value={toInputValue(dateFrom)}
@@ -92,7 +94,7 @@ export default function DateRangeFilter({ dateFrom, dateTo, onChange, loading = 
           />
         </div>
         <div className="drf-ticket-cell">
-          <label className="drf-ticket-label">Até</label>
+          <label className="drf-ticket-label">{t('date_filter.to')}</label>
           <input
             type="date"
             value={toInputValue(dateTo)}

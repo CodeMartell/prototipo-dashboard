@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   ComposedChart,
   Bar,
@@ -15,7 +16,7 @@ import { calculateVariation } from '../utils/kpiData';
 
 const formatValue = (val, unit) => formatMetricValue(val, unit);
 
-function CustomTooltip({ active, payload, label, unit, currentYearLabel = '2026', prevYearLabel = '2025' }) {
+function CustomTooltip({ active, payload, label, unit, currentYearLabel = '2026', prevYearLabel = '2025', t }) {
   if (!active || !payload || !payload.length) return null;
   
   const data = payload[0]?.payload;
@@ -25,7 +26,7 @@ function CustomTooltip({ active, payload, label, unit, currentYearLabel = '2026'
 
   return (
     <div className="custom-tooltip">
-      <div className="custom-tooltip__title">{label}</div>
+      <div className="custom-tooltip__title">{t(`months.${label}`, label)}</div>
       
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
@@ -111,6 +112,7 @@ export default function ComparisonChart({
   currentYearLabel = '2026',
   prevYearLabel = '2025',
 }) {
+  const { t } = useTranslation();
   // Rótulos do eixo Y ficam curtos de propósito: o valor completo aparece
   // no tooltip, aqui só precisa dar a escala.
   const formatYAxis = (val) => {
@@ -132,8 +134,8 @@ export default function ComparisonChart({
       <div className="comparison-chart-wrapper">
         <div className="chart-empty-state" role="status">
           <BarChart3 size={28} aria-hidden="true" />
-          <strong>No data at the moment</strong>
-          <span>There is no record for this indicator in the selected period.</span>
+          <strong>{t('kpi.no_data')}</strong>
+          <span>{t('kpi.no_record')}</span>
         </div>
       </div>
     );
@@ -163,6 +165,7 @@ export default function ComparisonChart({
               tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
               axisLine={false}
               tickLine={false}
+              tickFormatter={(val) => t(`months.${val}`, val)}
             />
             <YAxis
               stroke="var(--text-muted)"
@@ -178,6 +181,7 @@ export default function ComparisonChart({
                   unit={unit} 
                   currentYearLabel={currentYearLabel}
                   prevYearLabel={prevYearLabel}
+                  t={t}
                 />
               }
               cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}

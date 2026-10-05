@@ -13,6 +13,7 @@ import {
   calculateDeviation,
   calculateTargetAchievement,
 } from '../utils/kpiData';
+import { useTranslation } from 'react-i18next';
 
 export default function KPICard({
   title,
@@ -33,6 +34,7 @@ export default function KPICard({
   previousValue,
   onClick,
 }) {
+  const { t } = useTranslation();
   const gradientId = `sparkGrad-${title.replace(/\s+/g, '-').toLowerCase()}`;
 
   const formatValue = (val) => formatMetricValue(val, unit);
@@ -125,16 +127,16 @@ export default function KPICard({
 
       <div className="kpi-card__value-row">
         <div className="kpi-card__value">
-          {hasCurrentData ? formatValue(currentValue) : 'No data'}
+          {hasCurrentData ? formatValue(currentValue) : t('kpi.no_data')}
         </div>
         {hasCurrentData && targetValue !== null && targetValue !== undefined && Number(targetValue) > 0 && !targetIsZero && title !== 'Resin Consolidation' && (
           <div className="kpi-card__target-badge" title="Target for selected period">
-            Target: {formatValue(targetValue)}
+            {t('kpi.target')} {formatValue(targetValue)}
           </div>
         )}
         {targetIsZero && hasCurrentData && (
           <div className="kpi-card__target-badge" title="Target: zero occurrences">
-            Target: 0 ctnr
+            {t('kpi.target')} 0 ctnr
           </div>
         )}
       </div>
@@ -142,7 +144,7 @@ export default function KPICard({
       <div className="kpi-card__badges">
         {!hasCurrentData ? (
           <span className="kpi-card__variation neutral">
-            <Minus size={12} /> No data for selected period
+            <Minus size={12} /> {t('kpi.no_data_period')}
           </span>
         ) : formattedVariation !== null ? (
           <span className={`kpi-card__variation ${variationClass}`}>
@@ -151,7 +153,7 @@ export default function KPICard({
           </span>
         ) : (
           <span className="kpi-card__variation neutral">
-            <Minus size={12} /> No variation
+            <Minus size={12} /> {t('kpi.no_variation')}
           </span>
         )}
         {showAchievementPill && (
@@ -186,15 +188,15 @@ export default function KPICard({
 
       {hasCurrentData && previousLabel && (
         <div className="kpi-card__prev">
-          <span>Previous period ({previousLabel}):</span>{' '}
+          <span>{t('kpi.previous_period')} ({previousLabel}):</span>{' '}
           <strong>
             {previousValue !== null && previousValue !== undefined
               ? formatValue(previousValue)
-              : 'No data'}
+              : t('kpi.no_data')}
           </strong>
           {formattedDeviation !== null && (
             <span className="kpi-card__diff">
-              {' '}· Deviation {formattedDeviation}
+              {' '}· {t('kpi.deviation')} {formattedDeviation}
             </span>
           )}
         </div>

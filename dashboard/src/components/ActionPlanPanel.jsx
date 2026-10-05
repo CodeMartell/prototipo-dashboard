@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, FileText, Save, Trash2 } from 'lucide-react';
 import { addActionPlan, getActionPlans, removeActionPlan } from '../utils/actionPlanStorage';
+import { useTranslation } from 'react-i18next';
 
 export default function ActionPlanPanel({
   kpiKey,
@@ -9,6 +10,7 @@ export default function ActionPlanPanel({
   selectedYear,
   periodLabel,
 }) {
+  const { t, i18n } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(true); // Default to expanded to show context
   
   const [notes, setNotes] = useState('');
@@ -21,7 +23,7 @@ export default function ActionPlanPanel({
   const persistNotes = useCallback(() => {
     const trimmedNotes = notes.trim();
     if (!trimmedNotes) return;
-    addActionPlan(kpiKey, selectedYear, periodLabel || 'Jan', trimmedNotes);
+    addActionPlan(kpiKey, selectedYear, (periodLabel ? (['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(periodLabel) ? t('months.' + periodLabel) : periodLabel) : t('months.Jan')), trimmedNotes);
     setNotes('');
     setSavedPlans(getActionPlans(kpiKey, selectedYear));
     setSaveStatus('saved');
@@ -48,10 +50,10 @@ export default function ActionPlanPanel({
   };
 
   const formatUpdatedAt = (value) => {
-    if (!value) return 'Saved previously';
+    if (!value) return t('action_plan.saved_prev');
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'Saved previously';
-    return `Updated ${date.toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}`;
+    if (Number.isNaN(date.getTime())) return t('action_plan.saved_prev');
+    return `${t('action_plan.updated')} ${date.toLocaleString(i18n.language === 'pt' ? 'pt-BR' : i18n.language === 'ko' ? 'ko-KR' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}`;
   };
 
   const groupedPlans = useMemo(() => {
@@ -83,7 +85,7 @@ export default function ActionPlanPanel({
       <div className="action-plan-panel__header" onClick={() => setIsExpanded(!isExpanded)}>
         <h3>
           <FileText size={16} style={{ color: 'var(--highlight-accent)' }} />
-          Action Plan — {kpiName} ({periodLabel})
+          {t('action_plan.title')} — {kpiName} ({['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(periodLabel) ? t('months.' + periodLabel) : periodLabel})
         </h3>
         {isExpanded ? (
           <ChevronUp size={18} style={{ color: 'var(--text-muted)' }} />
@@ -94,7 +96,7 @@ export default function ActionPlanPanel({
 
       <div className="action-plan-panel__body">
         <div>
-          <label className="small-label">Notes / Next Steps</label>
+          <label className="small-label">{t('action_plan.notes_label')}</label>
           <textarea
             className="action-plan-panel__textarea"
             value={notes}
@@ -102,16 +104,16 @@ export default function ActionPlanPanel({
               setNotes(e.target.value);
               setSaveStatus('saving');
             }}
-            placeholder={`Describe actions to be taken for the period of ${periodLabel}...`}
+            placeholder={t('action_plan.notes_placeholder').replace('{period}', periodLabel)}
           />
           
           <div className="action-plan-panel__footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--space-2)' }}>
             <p className="action-plan-panel__note">
-              Linked to: {periodLabel} / {selectedYear ? selectedYear.substring(1) : ''}
+              {t('action_plan.linked_to')} {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(periodLabel) ? t('months.' + periodLabel) : periodLabel} / {selectedYear ? selectedYear.substring(1) : ''}
             </p>
             <div className="action-plan-panel__save-controls">
               <span className={`action-plan-panel__status action-plan-panel__status--${saveStatus}`}>
-                {saveStatus === 'saving' ? 'Unsaved changes' : '✓ Saved locally'}
+                {saveStatus === 'saving' ? t('action_plan.unsaved') : t('action_plan.saved')}
               </span>
               <button
                 type="button"
@@ -120,7 +122,7 @@ export default function ActionPlanPanel({
                 disabled={!notes.trim()}
               >
                 <Save size={14} />
-                Save action plan
+                {t('action_plan.btn_save')}
               </button>
             </div>
           </div>
@@ -129,9 +131,9 @@ export default function ActionPlanPanel({
             <section className="action-plan-history" aria-label="Saved action plans">
               <div className="action-plan-history__heading">
                 <div>
-                  <h4>Saved action plans</h4>
+                  <h4>{t('action_plan.history_title')}</h4>
                   <span>
-                    {selectedPeriodCount} {selectedPeriodCount === 1 ? 'plan' : 'plans'} for {periodLabel}/{selectedYear ? selectedYear.substring(1) : ''}
+                    {t('action_plan.plans_count').replace('{count}', selectedPeriodCount).replace('{noun}', selectedPeriodCount === 1 ? t('action_plan.plan_noun_s') : t('action_plan.plan_noun_p')).replace('{period}', periodLabel).replace('{year}', selectedYear ? selectedYear.substring(1) : '')}
                   </span>
                 </div>
                 {hasOtherPeriods && (
@@ -140,12 +142,12 @@ export default function ActionPlanPanel({
                     className="action-plan-history__toggle-all"
                     onClick={() => setShowAllPeriods((current) => !current)}
                   >
-                    {showAllPeriods ? `Show only ${periodLabel}` : 'View all periods'}
+                    {showAllPeriods ? t('action_plan.show_only').replace('{period}', periodLabel) : t('action_plan.show_all')}
                   </button>
                 )}
               </div>
               {visibleGroups.length === 0 ? (
-                <p className="action-plan-history__empty">No action plans saved for this period.</p>
+                <p className="action-plan-history__empty">{t('action_plan.empty')}</p>
               ) : visibleGroups.map((group) => {
                 const isOpen = expandedPeriods.has(group.period);
                 return (
@@ -157,7 +159,7 @@ export default function ActionPlanPanel({
                       aria-expanded={isOpen}
                     >
                       <span>{group.period}/{selectedYear ? selectedYear.substring(1) : ''}</span>
-                      <span>{group.plans.length} {group.plans.length === 1 ? 'plan' : 'plans'}</span>
+                      <span>{group.plans.length} {group.plans.length === 1 ? t('action_plan.plan_noun_s') : t('action_plan.plan_noun_p')}</span>
                       {isOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </button>
                     {isOpen && (
@@ -168,12 +170,12 @@ export default function ActionPlanPanel({
                             key={plan.id}
                           >
                             <div className="action-plan-card__header">
-                              <span className="action-plan-card__period">Plan {index + 1}</span>
+                              <span className="action-plan-card__period">{t('action_plan.plan_title').replace('{idx}', index + 1)}</span>
                               <button
                                 type="button"
                                 className="action-plan-card__remove"
-                                title={`Remove action plan for ${plan.period}`}
-                                aria-label={`Remove action plan ${index + 1} for ${plan.period}`}
+                                title={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
+                                aria-label={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
                                 onClick={() => removePlan(plan)}
                               >
                                 <Trash2 size={14} />

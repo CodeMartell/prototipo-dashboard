@@ -10,6 +10,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  Menu,
 } from 'lucide-react';
 
 const FONT_SIZES = [
@@ -118,6 +119,7 @@ export default function Header({
   canAccessAnalytics = false,
   pendingCount = 0,
   onOpenExport,
+  onMenuToggle
 }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -151,6 +153,14 @@ export default function Header({
   return (
     <header className="header">
       <div className="header__left">
+        <button 
+          className="btn btn--icon mobile-menu-btn" 
+          onClick={onMenuToggle}
+          title="Menu"
+        >
+          <Menu size={20} />
+        </button>
+
         <div className="header__title">{t('header.title')}</div>
         <div className="header__subtitle">{t('header.subtitle')}</div>
       </div>
@@ -316,7 +326,7 @@ export default function Header({
         <div className="header__actions">
           <button className="btn btn--primary" onClick={onOpenExport} title="Export">
             <Download size={14} />
-            {t('header.export')}
+            <span className="hide-mobile">{t('header.export')}</span>
           </button>
           <button className="btn btn--icon" onClick={onLogout} title={t('header.logout')}>
             <LogOut size={14} />

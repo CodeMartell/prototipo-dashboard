@@ -389,7 +389,7 @@ export default function KPISection({
                       setClickedPeriod(null);
                     }}
                   >
-                    {typeof opt === 'string' && opt.startsWith('Y') ? `20${opt.substring(1)}` : opt}
+                    {typeof opt === 'string' && opt.startsWith('Y') ? `20${opt.substring(1)}` : t(`months.${opt}`, opt)}
                   </button>
                 ))}
               </div>

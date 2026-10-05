@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   Download, 
   Bell, 
@@ -16,6 +17,92 @@ const FONT_SIZES = [
   { key: 'medium', title: 'Medium text size' },
   { key: 'large',  title: 'Large text size'  },
 ];
+
+
+const LanguageSelector = () => {
+  const { t, i18n } = useTranslation();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const langs = [
+    { code: 'pt', src: 'https://flagcdn.com/w20/br.png', alt: 'BR' },
+    { code: 'en', src: 'https://flagcdn.com/w20/us.png', alt: 'US' },
+    { code: 'ko', src: 'https://flagcdn.com/w20/kr.png', alt: 'KR' }
+  ];
+  
+  const currentLang = langs.find(l => l.code === i18n.language) || langs[0];
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block', marginLeft: '8px' }}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        title={t('header?.language') || 'Language'}
+        style={{
+          background: 'transparent',
+          color: 'inherit',
+          border: '1px solid var(--border, rgba(255,255,255,0.2))',
+          borderRadius: '4px',
+          padding: '6px 8px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <img src={currentLang.src} alt={currentLang.alt} style={{ width: '18px', height: '13px', objectFit: 'cover', borderRadius: '2px' }} />
+      </button>
+
+      {isOpen && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          right: 0,
+          marginTop: '4px',
+          background: 'var(--bg-card, #1e293b)',
+          border: '1px solid var(--border, rgba(255,255,255,0.1))',
+          borderRadius: '6px',
+          padding: '4px',
+          zIndex: 50,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+        }}>
+          {langs.map(lang => (
+            <button
+              key={lang.code}
+              onClick={() => { i18n.changeLanguage(lang.code); setIsOpen(false); }}
+              style={{
+                background: i18n.language === lang.code ? 'var(--highlight, rgba(124, 58, 237, 0.2))' : 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '6px 12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'background 0.2s',
+                minWidth: '50px',
+                justifyContent: 'center'
+              }}
+            >
+              <img src={lang.src} alt={lang.alt} style={{ width: '18px', height: '13px', objectFit: 'cover', borderRadius: '2px' }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function Header({ 
   alerts = [], 
@@ -35,6 +122,7 @@ export default function Header({
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -63,8 +151,8 @@ export default function Header({
   return (
     <header className="header">
       <div className="header__left">
-        <div className="header__title">Logistics Cost Dashboard</div>
-        <div className="header__subtitle">Financial Analytics Platform</div>
+        <div className="header__title">{t('header.title')}</div>
+        <div className="header__subtitle">{t('header.subtitle')}</div>
       </div>
 
       <div className="header__right">
@@ -85,8 +173,8 @@ export default function Header({
             <div className="notifications-dropdown animate-fade-in">
               <div className="notifications-dropdown__header">
                 <div>
-                  <strong>Data Notifications ({alerts.length})</strong>
-                  <span>Active alerts detected</span>
+                  <strong>{t('notifications.title')} ({alerts.length})</strong>
+                  <span>{t('notifications.subtitle')}</span>
                 </div>
                 <button 
                   className="btn-close-dropdown" 
@@ -100,7 +188,7 @@ export default function Header({
                 {alerts.length === 0 ? (
                   <div className="notifications-empty">
                     <CheckCircle2 size={24} className="text-success" />
-                    <span>No active inconsistencies found.</span>
+                    <span>{t('notifications.empty')}</span>
                   </div>
                 ) : (
                   <div className="notifications-list">
@@ -119,7 +207,7 @@ export default function Header({
                               onVerifyAlert?.(alert.id);
                             }}
                           >
-                            Verify
+                            {t('notifications.verify')}
                           </button>
                           <button 
                             className="btn-action-text text-muted" 
@@ -127,14 +215,14 @@ export default function Header({
                               onDismissAlert?.(alert.id);
                             }}
                           >
-                            Dismiss
+                            {t('notifications.dismiss')}
                           </button>
                         </div>
                       </div>
                     ))}
                     {alerts.length > 4 && (
                       <div className="notifications-more">
-                        And {alerts.length - 4} more alert{alerts.length - 4 > 1 ? 's' : ''}...
+                        {t('notifications.more').replace('{count}', alerts.length - 4)}
                       </div>
                     )}
                   </div>
@@ -149,7 +237,7 @@ export default function Header({
                     onNavigate?.('analytics');
                   }}
                 >
-                  View all details in Analytics
+                  {t('notifications.view_all')}
                 </button>
               </div>
             </div>
@@ -175,7 +263,6 @@ export default function Header({
           </div>
         )}
 
-        {/* Theme Toggle Button */}
         <button
           className="btn btn--icon"
           onClick={onToggleTheme}
@@ -183,6 +270,8 @@ export default function Header({
         >
           {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
         </button>
+
+        <LanguageSelector />
 
         {/* Link para a Página de Perfil (/perfil) */}
         <div 
@@ -225,11 +314,11 @@ export default function Header({
         </div>
 
         <div className="header__actions">
-          <button className="btn btn--primary" onClick={onOpenExport} title="Exportar indicadores em planilha">
+          <button className="btn btn--primary" onClick={onOpenExport} title="Export">
             <Download size={14} />
-            Export
+            {t('header.export')}
           </button>
-          <button className="btn btn--icon" onClick={onLogout} title="Logout">
+          <button className="btn btn--icon" onClick={onLogout} title={t('header.logout')}>
             <LogOut size={14} />
           </button>
         </div>

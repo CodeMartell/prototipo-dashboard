@@ -2353,7 +2353,7 @@ body {
   scrollbar-width: none;
 }
 
-.sidebar { display: none; }
+
   .main-wrapper { margin-left: 0; }
   .kpi-cards-grid { grid-template-columns: 1fr; }
   .period-section { flex-direction: column; }
@@ -2361,7 +2361,7 @@ body {
   .dashboard-main { padding: var(--space-4); }
   .kpi-section__header { flex-direction: column; align-items: flex-start; }
   .kpi-section__actions { grid-template-columns: 1fr; }
-  .header__right { display: none; }
+  
   .comparison-card { width: 100%; min-width: auto; }
   .sub-period-pills-scroll { overflow-x: auto; width: 100%; }
 }
@@ -4119,4 +4119,69 @@ select:focus-visible {
 /* Separador visual entre label e botões */
 .font-size-control__label::after {
   display: none; /* sem pseudo-separador — gap é suficiente */
+}
+
+/* --- MOBILE RESPONSIVE STYLES --- */
+.mobile-menu-btn {
+  display: none;
+}
+.sidebar-backdrop {
+  display: none;
+}
+.sidebar-close-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: flex;
+    margin-right: var(--space-4);
+  }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 45;
+  }
+  .sidebar {
+    display: flex !important;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 50;
+    width: 280px;
+    background: var(--bg-sidebar);
+  }
+  .sidebar--open {
+    transform: translateX(0);
+  }
+  .sidebar-close-btn {
+    display: flex;
+    margin-left: auto;
+  }
+  .sidebar__brand {
+    justify-content: flex-start;
+  }
+
+  .hide-mobile,
+  .header__subtitle,
+  .header__user-info,
+  .font-size-control {
+    display: none !important;
+  }
+  
+  .comparison-card,
+  .chart-panel-content,
+  .kpi-matrix-content {
+    overflow-x: auto;
+  }
+  
+  /* Make sure charts don't shrink too much */
+  .recharts-wrapper {
+    min-width: 500px;
+  }
+
 }

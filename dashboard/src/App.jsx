@@ -183,6 +183,7 @@ function App() {
   const [period, setPeriod] = useState('monthly'); // 'monthly' | 'quarterly' | 'semiannual' | 'annual'
   const [selectedSubPeriod, setSelectedSubPeriod] = useState(CURRENT_MONTH); // 'Jan'..'Dec', 'Q1'..'Q4', 'H1'..'H2', 'Y26'
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [entryModalKpiKey, setEntryModalKpiKey] = useState(null);
@@ -599,6 +600,8 @@ function App() {
   return (
     <div className="app-layout">
       <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
         activeItem={activeTab}
         onNavigate={handleSidebarNavigate}
         onOpenHelp={() => setIsMetricsModalOpen(true)}
@@ -609,6 +612,7 @@ function App() {
 
       <div className="main-wrapper">
         <Header
+          onMenuToggle={() => setIsSidebarOpen(true)}
           alerts={activeAlerts}
           onNavigate={handleSidebarNavigate}
           onVerifyAlert={handleVerifyAlert}

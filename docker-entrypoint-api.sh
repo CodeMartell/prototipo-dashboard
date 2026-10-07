@@ -20,8 +20,8 @@ if ! migration_output=$(alembic upgrade head 2>&1); then
   fi
 fi
 
-echo "[api] Garantindo perfil ADMIN..."
-python scripts/seed_roles.py
+echo "[api] Garantindo perfis e permissoes RBAC..."
+python scripts/seed_rbac.py
 
 if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
   echo "[api] Garantindo usuário admin inicial..."

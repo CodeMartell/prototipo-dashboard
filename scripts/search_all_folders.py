@@ -1,42 +1,30 @@
-﻿import imaplib, os, email
+import imaplib, os, email, sys
 from email.header import decode_header, make_header
 from dotenv import load_dotenv
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-load_dotenv(ROOT / ".env")
-load_dotenv(ROOT / "rpa_email" / ".env")
+sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+load_dotenv('.env')
 
-user = os.getenv("EMAIL_USER", "")
-pwd = os.getenv("EMAIL_PASSWORD", "")
-host = os.getenv("IMAP_HOST", "imap.gmail.com")
+c = imaplib.IMAP4_SSL('imap.gmail.com', 993)
+c.login(os.getenv('EMAIL_USER'), os.getenv('EMAIL_PASSWORD'))
 
-client = imaplib.IMAP4_SSL(host, 993)
-client.login(user, pwd)
-
-# Listar todas as caixas postais / pastas do Gmail
-status, mailboxes = client.list()
-print("Mailboxes disponiveis no Gmail:")
+_, mailboxes = c.list()
+print("Verificando pastas:")
 for mb in mailboxes:
-    print(" ", mb.decode())
-
-# Buscar em [Gmail]/Todos os e-mails ou [Gmail]/Spam ou INBOX
-for box in ['INBOX', '[Gmail]/Todos os e-mails', '[Gmail]/All Mail', '[Gmail]/Spam', '[Gmail]/Enviados', '[Gmail]/Sent Mail']:
+    box_str = mb.decode()
+    box_name = box_str.split(' "/" ')[-1].strip('"')
     try:
-        st, _ = client.select(f'\"{box}\"', readonly=True)
+        st, _ = c.select(f'"{box_name}"', readonly=True)
         if st == 'OK':
-            # Busca mensagens de hoje
-            st, data = client.uid('search', None, 'ALL')
+            _, data = c.uid('search', None, 'ALL')
             uids = data[0].split() if data and data[0] else []
-            print(f"\nPasta '{box}': {len(uids)} e-mails")
-            for uid in uids[-5:]:
-                st, pl = client.uid('fetch', uid, '(RFC822.HEADER)')
-                msg = email.message_from_bytes(pl[0][1])
-                subj = str(make_header(decode_header(msg.get('Subject', ''))))
-                frm = msg.get('From', '')
-                dt = msg.get('Date', '')
-                print(f"  UID {uid.decode()} | {dt} | De: {frm} | Assunto: {subj}")
+            print(f"\n📂 Pasta: '{box_name}' ({len(uids)} msgs)")
+            for uid in uids[-3:]:
+                _, pl = c.uid('fetch', uid, '(RFC822.HEADER)')
+                m = email.message_from_bytes(pl[0][1])
+                s = str(make_header(decode_header(m.get('Subject', ''))))
+                print(f"   UID {uid.decode()} | Date: {m.get('Date')} | De: {m.get('From')} | Assunto: {s}")
     except Exception as e:
-        pass
+        print(f"Erro ao acessar {box_name}: {e}")
 
-client.logout()
+c.logout()

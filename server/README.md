@@ -31,11 +31,42 @@ alembic upgrade head
 python scripts/seed_roles.py
 python scripts/create_admin.py teste@gmail.com senha123
 
-# 6. Subir a API
+# 6. Carga dos dados reais de KPI (fonte: history_and_data.txt)
+python scripts/seed_history_data.py
+
+# 7. Subir a API
 python main.py
 ```
 
-API em `http://localhost:5001` — docs em `/docs`. 
+API em `http://localhost:5001` — docs em `/docs`.
+
+### Carga inicial dos KPIs
+
+`scripts/seed_history_data.py` grava a série histórica de todos os indicadores
+(2025 e 2026 até onde a fonte tem dado). É idempotente — upsert por
+(month, year) — e **não** roda no entrypoint do container: se rodasse a cada
+start, sobrescreveria os lançamentos manuais feitos na tela.
+
+Via Docker:
+
+```bash
+docker compose exec api python scripts/seed_history_data.py
+```
+
+### Lançamento manual de valores
+
+O dashboard grava direto nestas rotas (exigem perfil ADMIN):
+
+| Rota | Uso |
+| --- | --- |
+| `GET /api/kpis/dashboard` | Série completa de todos os indicadores numa chamada |
+| `PUT /api/kpis/{kpi_type}/{year}/{month}` | Cria/atualiza meta e resultado de um mês |
+| `PUT /api/kpis/extra/logistics-vs-prod/{year}/{month}` | Cria/atualiza custo x produção |
+| `DELETE /api/kpis/{kpi_type}/{year}/{month}` | Remove o lançamento do mês |
+
+`achievement` e `ratio` são calculados pelo backend quando não vêm no corpo.
+A direção de cada indicador (quanto maior é melhor ou quanto menor é melhor)
+está em `app/core/kpi_meta.py`. 
 
 ## Estrutura
 

@@ -1,14 +1,21 @@
+# DataLens — banco + API + frontend.
+#   docker compose up -d --build              (base)
+#   docker compose --profile rpa up -d --build  (inclui o robô de e-mail)
+#
+# Portas no host:
+#   Frontend  http://localhost:5173
+#   API       http://localhost:9192
+#   Postgres  localhost:5434
 services:
-  postgres:
+  db:
     image: postgres:17-alpine
-    container_name: datalens-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-dashboard}
       POSTGRES_USER: ${POSTGRES_USER:-dashboard}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dashboard}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "5434:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,39 +28,42 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
-    container_name: datalens-api
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-dashboard}:${POSTGRES_PASSWORD:-dashboard}@postgres:5432/${POSTGRES_DB:-dashboard}
-      API_PORT: 5001
-      PYTHONUNBUFFERED: "1"
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-dashboard}:${POSTGRES_PASSWORD:-dashboard}@db:5432/${POSTGRES_DB:-dashboard}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      FRONTEND_ORIGIN_REGEX: ${FRONTEND_ORIGIN_REGEX:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
     ports:
-      - "${API_PORT:-5001}:5001"
+      - "9192:5001"
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
-    volumes:
-      - ./dados_dashboard.xlsx:/app/dados_dashboard.xlsx:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   frontend:
-    build:
-      context: ./dashboard
-      dockerfile: Dockerfile
-    container_name: datalens-frontend
+    build: ./dashboard
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-80}:80"
       - "5173:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
   rpa-bot:
     build:
       context: .
       dockerfile: Dockerfile.email-rpa
-    container_name: datalens-rpa
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-dashboard}:${POSTGRES_PASSWORD:-dashboard}@postgres:5432/${POSTGRES_DB:-dashboard}
       EMAIL_USER: ${EMAIL_USER:-}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
       IMAP_HOST: ${IMAP_HOST:-imap.gmail.com}
@@ -63,17 +73,21 @@ services:
       EMAIL_SENDER_FILTER: ${EMAIL_SENDER_FILTER:-}
       EMAIL_DATE_FROM: ${EMAIL_DATE_FROM:-2026-01-01}
       EMAIL_DATE_TO: ${EMAIL_DATE_TO:-2026-12-31}
+      RPA_API_URL: http://api:5001
+      RPA_API_EMAIL: ${RPA_API_EMAIL:?defina RPA_API_EMAIL no .env}
+      RPA_API_PASSWORD: ${RPA_API_PASSWORD:?defina RPA_API_PASSWORD no .env}
+      RPA_API_TIMEOUT: ${RPA_API_TIMEOUT:-20}
+      RPA_HISTORY_PATH: /app/rpa_email/resources/history/email_history.db
     depends_on:
-      postgres:
+      api:
         condition: service_healthy
     volumes:
       - email_attachments:/app/rpa_email/resources/attachments
+      - email_history:/app/rpa_email/resources/history
     profiles:
-      - full
       - rpa
 
 volumes:
   pg_data:
-    name: datalens_pg_data
   email_attachments:
-    name: datalens_email_attachments
+  email_history:

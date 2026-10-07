@@ -84,7 +84,7 @@ def upgrade() -> None:
     sa.Column('subject', sa.String(), nullable=False),
     sa.Column('sender', sa.String(), nullable=False),
     sa.Column('status', sa.String(), nullable=False),
-    sa.Column('processed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('processed_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_processed_emails_message_id'), 'processed_emails', ['message_id'], unique=True)
@@ -100,7 +100,7 @@ def upgrade() -> None:
     sa.Column('name', sa.String(), nullable=True),
     sa.Column('password_hash', sa.String(), nullable=False),
     sa.Column('role_id', sa.String(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

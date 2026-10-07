@@ -1,0 +1,5 @@
+* text=auto
+
+# Scripts shell executados dentro de containers Linux precisam de LF,
+# senao o shebang quebra ("exec ...: no such file or directory").
+*.sh text eol=lf

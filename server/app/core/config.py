@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     EXCEL_FALLBACK_PATH: str = "dados_dashboard.xlsx"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=["../.env", ".env"],
         env_file_encoding="utf-8",
         extra="ignore",
     )

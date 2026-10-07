@@ -1,24 +1,54 @@
-import { Trophy, AlertTriangle } from 'lucide-react';
-import { formatPercent, formatCurrency } from '../utils/formatters';
+import { Trophy, AlertTriangle, Table as TableIcon } from 'lucide-react';
+import {
+  formatPercent,
+  formatCurrency,
+  formatMetricValue,
+  formatTargetAchievement,
+  getAchievementStatusClass,
+} from '../utils/formatters';
 
-const formatCell = (value, format) => {
-  if (value === null || value === undefined) return '—';
+const formatCell = (value, format, unit) => {
+  if (value === null || value === undefined) return 'No data';
+  if (format === 'metric') return formatMetricValue(value, unit);
   if (format === 'percent') return formatPercent(value);
   if (format === 'currency') return formatCurrency(value);
-  if (format === 'achievement') return value !== null ? `${(value * 100).toFixed(0)}%` : '—';
+  if (format === 'achievement') {
+    const num = Number(value);
+    const pct = num <= 2 && num > 0 ? num * 100 : num;
+    return formatTargetAchievement(pct);
+  }
   return value;
 };
 
 export default function DetailTable({
   data,
   columns,
-  _lowerIsBetter,
+  lowerIsBetter,
+  alwaysGoodStatus = false,
+  targetIsZero = false,
+  noTrafficLight = false,
   bestPeriod,
   worstPeriod,
   anomalies = [],
   selectedPeriod,
   onPeriodClick,
 }) {
+  const hasData = data.some(
+    (row) =>
+      (row.currentResult !== null && row.currentResult !== undefined) ||
+      (row.previousResult !== null && row.previousResult !== undefined)
+  );
+
+  if (!hasData) {
+    return (
+      <div className="chart-empty-state" role="status">
+        <TableIcon size={28} aria-hidden="true" />
+        <strong>No data at the moment</strong>
+        <span>There is no record for this indicator in the selected period.</span>
+      </div>
+    );
+  }
+
   return (
     <div className="data-table__container">
       <table className="data-table">
@@ -53,7 +83,7 @@ export default function DetailTable({
               >
                 {columns.map((col, colIndex) => {
                   const value = row[col.key];
-                  const formatted = formatCell(value, col.format);
+                  const formatted = formatCell(value, col.format, col.unit);
 
                   // First column: period name with icons
                   if (colIndex === 0) {
@@ -75,9 +105,17 @@ export default function DetailTable({
                   let cellStyle = {};
                   if (col.highlight && value !== null && value !== undefined) {
                     if (col.format === 'achievement') {
-                      if (value >= 1.0) cellStyle = { color: 'var(--success)', fontWeight: 600 };
-                      else if (value >= 0.9) cellStyle = { color: 'var(--warning)', fontWeight: 600 };
-                      else cellStyle = { color: 'var(--danger)', fontWeight: 600 };
+                      const num = Number(value);
+                      const pct = num <= 2 && num > 0 ? num * 100 : num;
+                      const status = getAchievementStatusClass(pct, lowerIsBetter, alwaysGoodStatus, {
+                        targetIsZero,
+                        noTrafficLight,
+                        resultValue: row.currentResult,
+                      });
+                      if (status === 'good') cellStyle = { color: 'var(--success)', fontWeight: 600 };
+                      else if (status === 'alert') cellStyle = { color: 'var(--warning)', fontWeight: 600 };
+                      else if (status === 'critical') cellStyle = { color: 'var(--danger)', fontWeight: 600 };
+                      else cellStyle = { color: 'var(--text-muted)' };
                     }
                   }
 

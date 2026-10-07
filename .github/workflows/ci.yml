@@ -33,6 +33,10 @@ jobs:
         working-directory: ./dashboard
         run: npm run build
 
+      - name: Test API client
+        working-directory: ./dashboard
+        run: npm test
+
   backend-check:
     name: Python Lint & Tests
     runs-on: ubuntu-latest
@@ -49,11 +53,31 @@ jobs:
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements-test.txt
 
       - name: Run Unit Tests
         run: |
           python -m pytest
+
+  postgres-integration:
+    name: FastAPI + PostgreSQL integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run isolated HTTP and database tests
+        run: docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from integration-tests
+      - name: Collect service logs
+        if: always()
+        run: docker compose -f docker-compose.test.yml logs --no-color > integration-services.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: postgres-integration-logs
+          path: integration-services.log
+      - name: Remove isolated containers
+        if: always()
+        run: docker compose -f docker-compose.test.yml down
 
   docker-validate:
     name: Docker Compose Validation

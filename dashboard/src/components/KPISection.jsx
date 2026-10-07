@@ -1,142 +1,300 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import ComparisonChart from './ComparisonChart';
 import DetailTable from './DetailTable';
 import ActionPlanPanel from './ActionPlanPanel';
 import EvidencePanel from './EvidencePanel';
-import { MONTHS } from '../data/mockData';
-import { Table, BarChart3 } from 'lucide-react';
+import { MONTHS, QUARTER_MONTHS, SEMESTER_MONTHS, aggregateRatio, calculateTargetAchievement } from '../utils/kpiData';
+import { Table, BarChart3, PencilLine, Download, RotateCcw } from 'lucide-react';
+import { downloadKpiCsv } from '../utils/exportCsv';
 
-const INSIGHTS = {
-  logisticCost:
-    'Uptrend in logistics cost in Mar/26. Consider renegotiating transport contracts or reviewing shipping routes.',
-  airFreight:
-    'Air freight usage consistently above target in 2026. Evaluate advancing orders for sea freight shipping.',
-  logisticsVsProd:
-    'Cost/production ratio stable in 2026 (~4.4%). Optimization opportunity in high-production months.',
+const PERIOD_LABELS = {
+  monthly: 'kpi.monthly',
+  quarterly: 'kpi.quarterly',
+  semiannual: 'kpi.semiannual',
+  annual: 'kpi.annual',
 };
 
-function buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey) {
+const MONTH_OPTIONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const QUARTER_OPTIONS = ['Q1','Q2','Q3','Q4'];
+const SEMESTER_OPTIONS = ['H1','H2'];
+
+/** Retorna os sub-períodos disponíveis para um dado tipo de período */
+function subOptionsFor(periodType, yearOptions) {
+  if (periodType === 'monthly')    return MONTH_OPTIONS;
+  if (periodType === 'quarterly')  return QUARTER_OPTIONS;
+  if (periodType === 'semiannual') return SEMESTER_OPTIONS;
+  return yearOptions; // annual
+}
+
+/** Primeiro sub-período padrão ao mudar de tipo */
+function defaultSubFor(periodType, selectedYear) {
+  if (periodType === 'monthly')    return 'Jan';
+  if (periodType === 'quarterly')  return 'Q1';
+  if (periodType === 'semiannual') return 'H1';
+  return selectedYear;
+}
+
+function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, noTrafficLight, lowerIsBetter) {
   const isRatioKPI = kpiKey === 'logisticsVsProd';
+  const hasTargetData = !isRatioKPI && kpiKey !== 'incidentialCost' && !noTrafficLight;
   const resultField = isRatioKPI ? 'ratio' : 'result';
   const prevYearStr = `Y${parseInt(selectedYear.substring(1)) - 1}`;
 
-  if (period === 'monthly') {
-    const currentData = monthlyData.filter((d) => d.year === selectedYear);
-    const prevData = monthlyData.filter((d) => d.year === prevYearStr);
+  const avg = (arr, field, fixedDivisor = null) => {
+    const valid = arr.filter((d) => d[field] !== null && d[field] !== undefined);
+    if (!valid.length) return null;
+    const divisor = fixedDivisor && fixedDivisor > 0 ? fixedDivisor : valid.length;
+    return valid.reduce((s, d) => s + d[field], 0) / divisor;
+  };
 
+  const sum = (arr, field) => {
+    const valid = arr.filter((d) => d[field] !== null && d[field] !== undefined);
+    if (!valid.length) return null;
+    return valid.reduce((s, d) => s + d[field], 0);
+  };
+
+  // Demurrage usa soma acumulada
+  const aggregateFn = (rows, field, fixedDivisor = null) =>
+    ['demurrage', 'totalCost', 'incidentialCost'].includes(kpiKey) ? sum(rows, field) : avg(rows, field, fixedDivisor);
+
+  const currentData = monthlyData.filter((d) => d.year === selectedYear);
+  const prevData    = monthlyData.filter((d) => d.year === prevYearStr);
+  const resultValue = (rows, fixedDivisor = null) =>
+    isRatioKPI ? aggregateRatio(rows) : aggregateFn(rows, resultField, fixedDivisor);
+
+  // Detecta se os dados são apenas de granularidade anual (ex: AIR Freight Y24/Y25)
+  const isAnnualOnly = currentData.length > 0 && currentData.every((d) => d.month === 'Annual');
+  const isPrevAnnualOnly = prevData.length > 0 && prevData.every((d) => d.month === 'Annual');
+
+  if (period === 'monthly') {
+    if (isAnnualOnly) {
+      // Apenas um ponto "Annual" disponível
+      return [{
+        period: 'Annual',
+        currentResult: currentData[0]?.[resultField] ?? null,
+        previousResult: isPrevAnnualOnly ? prevData[0]?.[resultField] ?? null : null,
+        target: hasTargetData ? currentData[0]?.target ?? null : null,
+        currentAchievement: hasTargetData && currentData[0]?.target != null && currentData[0]?.[resultField] != null
+          ? calculateTargetAchievement(currentData[0][resultField], currentData[0].target, lowerIsBetter)
+          : null,
+        annualOnly: true,
+      }];
+    }
     return MONTHS.map((month) => {
-      const cur = currentData.find((d) => d.month === month);
+      const cur  = currentData.find((d) => d.month === month);
       const prev = prevData.find((d) => d.month === month);
+      const curResult = cur ? cur[resultField] : null;
+      const curTarget = cur && hasTargetData ? cur.target : null;
       return {
         period: month,
-        currentResult: cur ? cur[resultField] : null,
-        previousResult: prev ? prev[resultField] : null,
-        target: cur && !isRatioKPI ? cur.target : null,
-        currentAchievement: cur && !isRatioKPI ? cur.achievement : null,
+        currentResult:      curResult,
+        previousResult:     prev ? prev[resultField] : null,
+        target:             curTarget,
+        currentAchievement: hasTargetData && curTarget != null && curResult != null
+          ? calculateTargetAchievement(curResult, curTarget, lowerIsBetter)
+          : null,
       };
     });
   }
 
   if (period === 'quarterly') {
-    const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
-    const currentData = quarterlyData.filter((d) => d.year === selectedYear);
-    const prevData = quarterlyData.filter((d) => d.year === prevYearStr);
-    return quarters.map((q) => {
-      const cur = currentData.find((d) => d.quarter === q);
-      const prev = prevData.find((d) => d.quarter === q);
+    const quarters = [
+      { q: 'Q1', months: ['Jan','Feb','Mar'] },
+      { q: 'Q2', months: ['Apr','May','Jun'] },
+      { q: 'Q3', months: ['Jul','Aug','Sep'] },
+      { q: 'Q4', months: ['Oct','Nov','Dec'] },
+    ];
+    return quarters.map(({ q, months }) => {
+      const curMonths  = currentData.filter((d) => months.includes(d.month));
+      const prevMonths = prevData.filter((d) => months.includes(d.month));
+      const curRes = resultValue(curMonths, 3);
+      const curTgt = hasTargetData ? avg(curMonths, 'target', 3) : null;
       return {
         period: q,
-        currentResult: cur ? cur[resultField] : null,
-        previousResult: prev ? prev[resultField] : null,
-        target: cur && !isRatioKPI ? cur.target : null,
-        currentAchievement: cur && !isRatioKPI ? cur.achievement : null,
+        currentResult:      curRes,
+        previousResult:     resultValue(prevMonths, 3),
+        target:             curTgt,
+        currentAchievement: hasTargetData && curTgt != null && curRes != null
+          ? calculateTargetAchievement(curRes, curTgt, lowerIsBetter)
+          : null,
       };
     });
   }
 
   if (period === 'semiannual') {
-    const halves = ['H1', 'H2'];
-    const currentData = quarterlyData.filter((d) => d.year === selectedYear);
-    const prevData = quarterlyData.filter((d) => d.year === prevYearStr);
-    return halves.map((h) => {
-      const qList = h === 'H1' ? ['Q1', 'Q2'] : ['Q3', 'Q4'];
-      const curQs = currentData.filter((d) => qList.includes(d.quarter));
-      const prevQs = prevData.filter((d) => qList.includes(d.quarter));
-      const avg = (arr, field) => {
-        const valid = arr.filter((d) => d[field] !== null && d[field] !== undefined);
-        if (!valid.length) return null;
-        return valid.reduce((s, d) => s + d[field], 0) / valid.length;
-      };
+    const halves = [
+      { h: 'H1', months: ['Jan','Feb','Mar','Apr','May','Jun'] },
+      { h: 'H2', months: ['Jul','Aug','Sep','Oct','Nov','Dec'] },
+    ];
+    return halves.map(({ h, months }) => {
+      const curMonths  = currentData.filter((d) => months.includes(d.month));
+      const prevMonths = prevData.filter((d) => months.includes(d.month));
+      const curRes = resultValue(curMonths, 6);
+      const curTgt = hasTargetData ? avg(curMonths, 'target', 6) : null;
       return {
         period: h,
-        currentResult: avg(curQs, resultField),
-        previousResult: avg(prevQs, resultField),
-        target: !isRatioKPI ? avg(curQs, 'target') : null,
-        currentAchievement: !isRatioKPI ? avg(curQs, 'achievement') : null,
+        currentResult:      curRes,
+        previousResult:     resultValue(prevMonths, 6),
+        target:             curTgt,
+        currentAchievement: hasTargetData && curTgt != null && curRes != null
+          ? calculateTargetAchievement(curRes, curTgt, lowerIsBetter)
+          : null,
       };
     });
   }
 
   // annual
-  const currentData = quarterlyData.filter((d) => d.year === selectedYear);
-  const prevData = quarterlyData.filter((d) => d.year === prevYearStr);
-  const avg = (arr, field) => {
-    const valid = arr.filter((d) => d[field] !== null && d[field] !== undefined);
-    if (!valid.length) return null;
-    return valid.reduce((s, d) => s + d[field], 0) / valid.length;
-  };
-  return [
-    { period: selectedYear, currentResult: avg(currentData, resultField), previousResult: avg(prevData, resultField), target: !isRatioKPI ? avg(currentData, 'target') : null, currentAchievement: !isRatioKPI ? avg(currentData, 'achievement') : null },
-    { period: prevYearStr, currentResult: avg(prevData, resultField), previousResult: null, target: !isRatioKPI ? avg(prevData, 'target') : null, currentAchievement: !isRatioKPI ? avg(prevData, 'achievement') : null },
-  ];
+  const allYears = Array.from(new Set([selectedYear, prevYearStr, ...(yearOptions || [])]));
+  return allYears
+    .filter((yr) => monthlyData.some((d) => d.year === yr))
+    .sort()
+    .map((yr) => {
+      const yrData = monthlyData.filter((d) => d.year === yr);
+      const curRes = resultValue(yrData, 12);
+      const curTgt = hasTargetData ? avg(yrData, 'target', 12) : null;
+      return {
+        period: `20${yr.substring(1)}`,
+        currentResult:      curRes,
+        previousResult:     null,
+        target:             curTgt,
+        currentAchievement: hasTargetData && curTgt != null && curRes != null
+          ? calculateTargetAchievement(curRes, curTgt, lowerIsBetter)
+          : null,
+      };
+    });
+}
+
+/** Filtra chartData para o sub-período selecionado (para export e foco) */
+function filterBySubPeriod(chartData, subPeriod, periodType) {
+  if (!subPeriod || periodType === 'annual') return chartData;
+  const found = chartData.find((d) => d.period === subPeriod);
+  return found ? [found] : chartData;
 }
 
 export default function KPISection({
+
   kpiKey, title, icon: Icon, monthlyData, quarterlyData,
-  accentColor, lowerIsBetter, unit, selectedYear, period, activePeriodLabel,
+  accentColor, lowerIsBetter, alwaysGoodStatus = false, targetIsZero = false, noTrafficLight = false, unit, selectedYear, period, activePeriodLabel,
+  onEditData,
 }) {
+  const { t } = useTranslation();
   const [showTable, setShowTable] = useState(false);
-  const [localSelectedPeriod, setLocalSelectedPeriod] = useState(null);
 
-  // Sync or reset local selection when the global active period label or grouping period type changes
+  // Período local — permite mudar tipo e sub dentro da seção sem afetar o topo
+  const [localPeriod,    setLocalPeriod]    = useState(null); // null = usa global
+  const [localSubPeriod, setLocalSubPeriod] = useState(null);
+  const [localYear,      setLocalYear]      = useState(null);
+
+  // Obter lista de anos disponíveis nos dados
+  const availableYears = useMemo(() => {
+    const ys = new Set((monthlyData || []).map((d) => d.year).filter(Boolean));
+    return Array.from(ys).sort();
+  }, [monthlyData]);
+
+  // Sincroniza ao receber novas props globais (se local não estiver "travado")
   useEffect(() => {
-    setLocalSelectedPeriod(null);
-  }, [activePeriodLabel, period]);
+    setLocalPeriod(null);
+    setLocalSubPeriod(null);
+    setLocalYear(null);
+  }, [activePeriodLabel, period, selectedYear]);
 
-  const activePeriod = localSelectedPeriod || activePeriodLabel;
+  // Resolve período efetivo
+  const effectivePeriod    = localPeriod    ?? period;
+  const effectiveYear      = localYear      ?? selectedYear;
+  const effectiveSubPeriod = localSubPeriod ?? activePeriodLabel;
+
+  const hasLocalOverride = localPeriod !== null || localSubPeriod !== null || localYear !== null;
+
+  const handleLocalPeriodChange = (newPeriod) => {
+    setLocalPeriod(newPeriod);
+    setLocalSubPeriod(defaultSubFor(newPeriod, effectiveYear));
+  };
+
+  const handleResetLocal = () => {
+    setLocalPeriod(null);
+    setLocalSubPeriod(null);
+    setLocalYear(null);
+  };
 
   const chartData = useMemo(() => {
-    const raw = buildChartData(monthlyData, quarterlyData, period, selectedYear, kpiKey);
+    const raw = buildChartData(monthlyData, effectivePeriod, effectiveYear, availableYears, kpiKey, noTrafficLight, lowerIsBetter);
     const withResults = raw.filter((d) => d.currentResult !== null);
     let bestPeriod = null, worstPeriod = null;
     if (withResults.length > 0) {
       const sorted = [...withResults].sort((a, b) => a.currentResult - b.currentResult);
-      bestPeriod = lowerIsBetter ? sorted[0].period : sorted[sorted.length - 1].period;
+      bestPeriod  = lowerIsBetter ? sorted[0].period : sorted[sorted.length - 1].period;
       worstPeriod = lowerIsBetter ? sorted[sorted.length - 1].period : sorted[0].period;
     }
-    const values = withResults.map((d) => d.currentResult);
-    const mean = values.reduce((s, v) => s + v, 0) / values.length;
-    const stdDev = Math.sqrt(values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / values.length);
-    const anomalyPeriods = withResults.filter((d) => Math.abs(d.currentResult - mean) > stdDev * 2).map((d) => d.period);
-    return raw.map((d) => ({ ...d, isBest: d.period === bestPeriod, isWorst: d.period === worstPeriod, isAnomaly: anomalyPeriods.includes(d.period) }));
-  }, [monthlyData, quarterlyData, period, selectedYear, kpiKey, lowerIsBetter]);
+    const values   = withResults.map((d) => d.currentResult);
+    const mean     = values.reduce((s, v) => s + v, 0) / values.length;
+    const stdDev   = Math.sqrt(values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / values.length);
+    const anomalyPeriods = withResults
+      .filter((d) => Math.abs(d.currentResult - mean) > stdDev * 2)
+      .map((d) => d.period);
+    return raw.map((d) => ({
+      ...d,
+      isBest:    d.period === bestPeriod,
+      isWorst:   d.period === worstPeriod,
+      isAnomaly: anomalyPeriods.includes(d.period),
+    }));
+  }, [monthlyData, effectivePeriod, effectiveYear, availableYears, kpiKey, lowerIsBetter]);
 
-  const prevYearLabel = `20${(parseInt(selectedYear.replace(/\D/g, ''), 10) || 26) - 1}`;
-  const currentYearLabel = `20${selectedYear.replace(/\D/g, '') || '26'}`;
+  // Detecta se os dados desse ano são apenas de granularidade anual (AIR Freight Y24/Y25)
+  const isAnnualOnlyData = useMemo(() => {
+    const yearRows = (monthlyData || []).filter((d) => d.year === effectiveYear);
+    return yearRows.length > 0 && yearRows.every((d) => d.month === 'Annual');
+  }, [monthlyData, effectiveYear]);
+
+  const prevYearLabel    = `20${(parseInt(effectiveYear.replace(/\D/g, ''), 10) || 26) - 1}`;
+  const currentYearLabel = `20${effectiveYear.replace(/\D/g, '') || '26'}`;
+
+  // Período selecionado no gráfico por clique
+  const [clickedPeriod, setClickedPeriod] = useState(null);
+  useEffect(() => { setClickedPeriod(null); }, [effectivePeriod, effectiveYear]);
+
+  const activePeriod = clickedPeriod ?? effectiveSubPeriod;
 
   const columns = useMemo(() => {
-    const fmt = unit === '%' || unit === 'Ratio' ? 'percent' : unit === 'MUSD' ? 'currency' : 'number';
     const cols = [
-      { key: 'period', label: 'Period' },
-      { key: 'previousResult', label: prevYearLabel, format: fmt },
-      { key: 'currentResult', label: `${currentYearLabel} (Actual)`, format: fmt, highlight: true },
+      { key: 'period',         label: 'Period' },
+      { key: 'previousResult', label: prevYearLabel,           format: 'metric', unit },
+      { key: 'currentResult',  label: `${currentYearLabel} (Actual)`, format: 'metric', unit, highlight: true },
     ];
-    if (kpiKey !== 'logisticsVsProd') {
-      cols.splice(2, 0, { key: 'target', label: 'Target', format: fmt });
-      cols.push({ key: 'currentAchievement', label: 'Achievement', format: 'achievement', highlight: true });
+    if (kpiKey !== 'logisticsVsProd' && kpiKey !== 'incidentialCost' && !noTrafficLight) {
+      cols.splice(2, 0, { key: 'target',            label: 'Target',      format: 'metric',      unit });
+      cols.push(       { key: 'currentAchievement', label: 'Achievement', format: 'achievement', highlight: true });
     }
     return cols;
-  }, [unit, kpiKey, prevYearLabel, currentYearLabel]);
+  }, [unit, kpiKey, noTrafficLight, prevYearLabel, currentYearLabel]);
+
+  // Dados para export: se há um sub-período clicado, exporta só aquele; senão tudo
+  const exportData = useMemo(() => {
+    if (clickedPeriod) {
+      return filterBySubPeriod(chartData, clickedPeriod, effectivePeriod);
+    }
+    return chartData.filter((d) => d.currentResult !== null || d.previousResult !== null);
+  }, [chartData, clickedPeriod, effectivePeriod]);
+
+  const handleExport = () => {
+    const periodLabel = clickedPeriod
+      ? `${clickedPeriod}_${currentYearLabel}`
+      : `${effectivePeriod}_${currentYearLabel}`;
+    downloadKpiCsv({
+      data: exportData,
+      unit,
+      kpiName: title,
+      periodLabel,
+      currentYearLabel,
+      prevYearLabel,
+    });
+  };
+
+  // Sub-período options para o mini seletor
+  const subOptions = useMemo(() => {
+    if (effectivePeriod === 'annual') return availableYears;
+    return subOptionsFor(effectivePeriod, availableYears);
+  }, [effectivePeriod, availableYears]);
 
   return (
     <div className="kpi-section" id={`kpi-${kpiKey}`}>
@@ -153,12 +311,114 @@ export default function KPISection({
           </div>
           <button className={`btn ${showTable ? 'btn--active' : ''}`} onClick={() => setShowTable(!showTable)}>
             {showTable ? <BarChart3 size={14} /> : <Table size={14} />}
-            {showTable ? 'Chart' : 'Table'}
+            {showTable ? t('kpi.chart') : t('kpi.table')}
           </button>
+          {onEditData && (
+            <button
+              className="btn btn--primary"
+              onClick={() => onEditData(activePeriod)}
+              title="Enter or correct this indicator's values for a month"
+            >
+              <PencilLine size={14} />
+              {t('kpi.enter_values')}
+            </button>
+          )}
         </div>
       </div>
 
+      {/* Aviso para anos de granularidade anual apenas (AIR Freight Y24/Y25) */}
+      {isAnnualOnlyData && (
+        <div className="kpi-section__annual-only-notice">
+          <span>
+            ⚠️ {t('kpi.annual_only_warn').replace('{year}', currentYearLabel)}
+          </span>
+        </div>
+      )}
+
       <div className="chart-panel">
+        {/* Mini seletor de período inline — independente do filtro do topo */}
+        <div className="chart-panel__inline-filter">
+          <div className="chart-panel__inline-filter-left">
+            <span className="chart-panel__inline-filter-label">{t('kpi.view_as')}</span>
+            <div className="chart-panel__period-pills">
+              {Object.entries(PERIOD_LABELS).map(([key, label]) => (
+                <button
+                  key={key}
+                  className={`chart-period-pill ${effectivePeriod === key ? 'active' : ''}`}
+                  onClick={() => handleLocalPeriodChange(key)}
+                  disabled={isAnnualOnlyData && key !== 'annual' && key !== 'monthly'}
+                  title={isAnnualOnlyData && key !== 'annual' && key !== 'monthly' ? 'Annual-only data' : undefined}
+                >
+                  {t(label)}
+                </button>
+              ))}
+            </div>
+
+            {/* Seletor de ano local */}
+            {availableYears.length > 1 && (
+              <div className="chart-panel__year-select-wrap">
+                <label className="chart-panel__inline-filter-label" htmlFor={`year-select-${kpiKey}`}>Year:</label>
+                <select
+                  id={`year-select-${kpiKey}`}
+                  className="year-select year-select--sm"
+                  value={effectiveYear}
+                  onChange={(e) => {
+                    const yr = e.target.value;
+                    setLocalYear(yr);
+                    setLocalSubPeriod(defaultSubFor(effectivePeriod, yr));
+                  }}
+                >
+                  {availableYears.map((yr) => (
+                    <option key={yr} value={yr}>
+                      20{yr.substring(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Sub-período quando não é anual */}
+            {effectivePeriod !== 'annual' && !isAnnualOnlyData && (
+              <div className="chart-panel__sub-pills">
+                {subOptions.map((opt) => (
+                  <button
+                    key={opt}
+                    className={`chart-subperiod-pill ${effectiveSubPeriod === opt ? 'active' : ''}`}
+                    onClick={() => {
+                      setLocalSubPeriod(opt);
+                      setClickedPeriod(null);
+                    }}
+                  >
+                    {typeof opt === 'string' && opt.startsWith('Y') ? `20${opt.substring(1)}` : t(`months.${opt}`, opt)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Botões direita: Reset + Export */}
+          <div className="chart-panel__inline-filter-right">
+            {hasLocalOverride && (
+              <button
+                className="btn btn--sm chart-reset-btn"
+                onClick={handleResetLocal}
+                title={`Reset to global period (${activePeriodLabel})`}
+              >
+                <RotateCcw size={12} />
+                {t('kpi.reset_to')} {activePeriodLabel}
+              </button>
+            )}
+            <button
+              className="btn btn--sm btn--export"
+              onClick={handleExport}
+              title={`Export ${clickedPeriod ? clickedPeriod : 'all visible'} data as CSV`}
+            >
+              <Download size={13} />
+              {t('kpi.export_csv')}
+            </button>
+          </div>
+        </div>
+
         <div className="chart-panel-body">
           {!showTable ? (
             <ComparisonChart
@@ -167,7 +427,7 @@ export default function KPISection({
               lowerIsBetter={lowerIsBetter}
               accentColor={accentColor}
               selectedPeriod={activePeriod}
-              onPeriodClick={setLocalSelectedPeriod}
+              onPeriodClick={setClickedPeriod}
               currentYearLabel={currentYearLabel}
               prevYearLabel={prevYearLabel}
             />
@@ -176,11 +436,14 @@ export default function KPISection({
               data={chartData}
               columns={columns}
               lowerIsBetter={lowerIsBetter}
+              alwaysGoodStatus={alwaysGoodStatus}
+              targetIsZero={targetIsZero}
+              noTrafficLight={noTrafficLight}
               bestPeriod={chartData.find((d) => d.isBest)?.period}
               worstPeriod={chartData.find((d) => d.isWorst)?.period}
               anomalies={chartData.filter((d) => d.isAnomaly).map((d) => d.period)}
               selectedPeriod={activePeriod}
-              onPeriodClick={setLocalSelectedPeriod}
+              onPeriodClick={setClickedPeriod}
             />
           )}
         </div>
@@ -189,15 +452,16 @@ export default function KPISection({
       {/* Dynamic Focus Period Header */}
       <div className="kpi-section__period-focus">
         <div className="kpi-section__period-focus-badge" style={{ borderLeft: `3px solid ${accentColor}` }}>
-          Focused Period: <strong>{activePeriod} / {selectedYear.substring(1)}</strong>
+          {t('kpi.focused_period')} <strong>{['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(activePeriod) ? t('months.' + activePeriod) : activePeriod} / {effectiveYear.substring(1)}</strong>
+          {hasLocalOverride && <span className="kpi-section__local-badge"> · {t('kpi.local_view')}</span>}
         </div>
         <div className="kpi-section__period-focus-hint">
-          {localSelectedPeriod ? (
-            <button className="kpi-section__period-reset-btn" onClick={() => setLocalSelectedPeriod(null)}>
-              Reset to global default ({activePeriodLabel})
+          {clickedPeriod ? (
+            <button className="kpi-section__period-reset-btn" onClick={() => setClickedPeriod(null)}>
+              {t('kpi.reset_to')} {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(effectiveSubPeriod) ? t('months.' + effectiveSubPeriod) : effectiveSubPeriod}
             </button>
           ) : (
-            <span>Click on a chart column or table row to select another month</span>
+            <span>{t('kpi.focus_hint')}</span>
           )}
         </div>
       </div>
@@ -206,15 +470,14 @@ export default function KPISection({
         <ActionPlanPanel
           kpiKey={kpiKey}
           kpiName={title}
-          period={period}
-          selectedYear={selectedYear}
+          period={effectivePeriod}
+          selectedYear={effectiveYear}
           periodLabel={activePeriod}
-          insight={INSIGHTS[kpiKey]}
         />
         <EvidencePanel
           kpiKey={kpiKey}
           kpiName={title}
-          selectedYear={selectedYear}
+          selectedYear={effectiveYear}
           periodLabel={activePeriod}
         />
       </div>

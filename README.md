@@ -350,7 +350,7 @@ docker compose down -v
 
 #### Passo 2: Subir os serviços
 ```powershell
-docker compose up --build -d postgres api frontend
+docker compose up --build -d db api frontend
 ```
 
 #### Passo 3: Conferir o status
@@ -363,7 +363,13 @@ Aguarde até que os serviços `datalens-postgres` e `datalens-api` estejam com s
 - Acesse `http://localhost:5173` ou `http://localhost:80`.
 - Login: `admin@lge.com` / `admin123` (ou as credenciais informadas no `.env`).
 
-#### Passo 5: Popular dados históricos no Docker (opcional)
+#### Passo 5: Criar os usuários de teste no Docker (Recomendado)
+Para poder logar com todos os perfis descritos na tabela de testes (`gestor@lge.com`, `suporte@lge.com`, etc):
+```powershell
+docker compose exec api python scripts/seed_rbac.py
+```
+
+#### Passo 6: Popular dados históricos no Docker (Opcional)
 ```powershell
 docker compose exec api python scripts/seed_history_data.py
 ```

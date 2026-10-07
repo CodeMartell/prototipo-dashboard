@@ -29,6 +29,7 @@ import {
 } from '../services/api';
 import { hasPermission } from '../services/permissions';
 import DateRangeFilter from '../components/DateRangeFilter';
+import { useTranslation } from 'react-i18next';
 import './UserManagementPage.css';
 
 const ALL_ROLES = ['ADMIN', 'GESTOR', 'TI_SUPORTE', 'AUDITORIA', 'VIEWER'];
@@ -43,6 +44,7 @@ const ROLE_DESCRIPTIONS = {
 
 export default function UserManagementPage() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const currentUser = getCurrentUser();
   const isAdmin = currentUser?.role === 'ADMIN';
   const canWriteUsers = hasPermission(currentUser, 'users:write');
@@ -91,7 +93,7 @@ export default function UserManagementPage() {
       const data = await fetchUsers();
       setUsers(data);
     } catch (err) {
-      setError(err.message || 'Erro ao carregar usuários');
+      setError(err.message || t('users.err_load'));
     } finally {
       setLoading(false);
     }
@@ -117,11 +119,11 @@ export default function UserManagementPage() {
       setNewEmail('');
       setNewPassword('');
       setNewRole('VIEWER');
-      setSuccessMsg('Usuário criado com sucesso!');
+      setSuccessMsg(t('users.success_create'));
       setTimeout(() => setSuccessMsg(null), 4000);
       loadUsers();
     } catch (err) {
-      setError(err.message || 'Erro ao criar usuário');
+      setError(err.message || t('users.err_create'));
     } finally {
       setCreateSubmitting(false);
     }
@@ -134,26 +136,26 @@ export default function UserManagementPage() {
     try {
       await updateUserRole(roleModalUser.id, selectedRole);
       setRoleModalUser(null);
-      setSuccessMsg(`Papel de ${roleModalUser.email} alterado para ${selectedRole}!`);
+      setSuccessMsg(t('users.success_role').replace('{email}', roleModalUser.email).replace('{role}', selectedRole));
       setTimeout(() => setSuccessMsg(null), 4000);
       loadUsers();
     } catch (err) {
-      setError(err.message || 'Erro ao atualizar papel do usuário');
+      setError(err.message || t('users.err_role'));
     } finally {
       setRoleSubmitting(false);
     }
   };
 
   const handleDeleteUser = async (user) => {
-    if (!window.confirm(`Tem certeza que deseja excluir o usuário ${user.email}?`)) return;
+    if (!window.confirm(t('users.confirm_del').replace('{email}', user.email))) return;
     setError(null);
     try {
       await deleteUser(user.id);
-      setSuccessMsg(`Usuário ${user.email} excluído.`);
+      setSuccessMsg(t('users.success_del').replace('{email}', user.email));
       setTimeout(() => setSuccessMsg(null), 4000);
       loadUsers();
     } catch (err) {
-      setError(err.message || 'Erro ao excluir usuário');
+      setError(err.message || t('users.err_del'));
     }
   };
 
@@ -188,21 +190,21 @@ export default function UserManagementPage() {
       {/* Header bar */}
       <header className="user-mgmt-header">
         <div className="user-mgmt-header__left">
-          <button className="btn-back" onClick={() => navigate('/dashboard')} title="Voltar ao dashboard">
+          <button className="btn-back" onClick={() => navigate('/dashboard')} title={t('users.back')}>
             <ArrowLeft size={14} />
-            Dashboard
+            {t('users.back')}
           </button>
           <div>
-            <div className="user-mgmt-header__title">Gestão de Usuários &amp; Acessos</div>
+            <div className="user-mgmt-header__title">{t('users.title')}</div>
             <div className="user-mgmt-header__subtitle">
-              Controle de perfis granulares (RBAC) e rastreamento de acessos
+              {t('users.subtitle')}
             </div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button className="btn-back" onClick={loadUsers} disabled={loading}>
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-            Atualizar
+            {t('users.refresh')}
           </button>
           {canWriteUsers && (
             <button
@@ -211,7 +213,7 @@ export default function UserManagementPage() {
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}
             >
               <UserPlus size={14} />
-              Novo Usuário
+              {t('users.new_user')}
             </button>
           )}
         </div>
@@ -238,12 +240,12 @@ export default function UserManagementPage() {
             <table className="user-mgmt-table">
               <thead>
                 <tr>
-                  <th>Nome</th>
-                  <th>E-mail</th>
-                  <th>Papel Atual</th>
-                  <th>ID do Usuário</th>
-                  <th>Criado Em</th>
-                  <th style={{ textAlign: 'right' }}>Ações</th>
+                  <th>{t('users.tbl_name')}</th>
+                  <th>{t('users.tbl_email')}</th>
+                  <th>{t('users.tbl_role')}</th>
+                  <th>{t('users.tbl_id')}</th>
+                  <th>{t('users.tbl_created')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('users.tbl_actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -251,32 +253,32 @@ export default function UserManagementPage() {
                   <tr>
                     <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                       <RefreshCw size={20} className="animate-spin" style={{ margin: '0 auto 0.5rem' }} />
-                      Carregando usuários…
+                      {t('users.loading')}
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                      Nenhum usuário cadastrado.
+                      {t('users.empty')}
                     </td>
                   </tr>
                 ) : (
                   users.map((u) => (
                     <tr key={u.id}>
                       <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {u.name || '—'}
+                        {u.name ? t(`names.${u.name}`, u.name) : '—'}
                       </td>
                       <td>{u.email}</td>
                       <td>
                         <span className={`user-role-badge user-role-badge--${u.role}`}>
-                          {u.role}
+                          {t(`roles.${u.role}`, u.role)}
                         </span>
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.725rem', color: 'var(--text-dim)' }}>
                         {u.id}
                       </td>
                       <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '—'}
+                        {u.created_at ? new Date(u.created_at).toLocaleDateString(i18n.language === 'pt' ? 'pt-BR' : i18n.language === 'ko' ? 'ko-KR' : 'en-US') : '—'}
                       </td>
                       <td>
                         <div className="user-actions-cell" style={{ justifyContent: 'flex-end' }}>
@@ -285,10 +287,9 @@ export default function UserManagementPage() {
                             <button
                               className="btn-action"
                               onClick={() => openActivityModal(u)}
-                              title="Consultar logs de atividade deste usuário"
                             >
                               <Activity size={13} />
-                              Atividade
+                              {t('users.act_activity')}
                             </button>
                           )}
 
@@ -300,10 +301,9 @@ export default function UserManagementPage() {
                                 setRoleModalUser(u);
                                 setSelectedRole(u.role);
                               }}
-                              title="Alterar papel do usuário"
                             >
                               <Shield size={13} />
-                              Papel
+                              {t('users.act_role')}
                             </button>
                           )}
 
@@ -333,7 +333,7 @@ export default function UserManagementPage() {
         <div className="modal-overlay" onClick={() => setIsCreateOpen(false)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">Cadastrar Novo Usuário</span>
+              <span className="modal-title">{t('users.modal_new_title')}</span>
               <button className="btn-back" onClick={() => setIsCreateOpen(false)} style={{ padding: '0.25rem 0.5rem' }}>
                 <X size={14} />
               </button>
@@ -341,28 +341,28 @@ export default function UserManagementPage() {
             <form onSubmit={handleCreateUser}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">Nome Completo</label>
+                  <label className="form-label">{t('users.lbl_name')}</label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Ex: João da Silva"
+                    placeholder={t('users.ph_name')}
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">E-mail Corporativo *</label>
+                  <label className="form-label">{t('users.lbl_email')}</label>
                   <input
                     type="email"
                     required
                     className="form-input"
-                    placeholder="usuario@empresa.com"
+                    placeholder={t('users.ph_email')}
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Senha Inicial *</label>
+                  <label className="form-label">{t('users.lbl_pass')}</label>
                   <input
                     type="password"
                     required
@@ -373,7 +373,7 @@ export default function UserManagementPage() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Papel de Acesso *</label>
+                  <label className="form-label">{t('users.lbl_role')}</label>
                   <select
                     className="form-select"
                     value={newRole}
@@ -381,7 +381,7 @@ export default function UserManagementPage() {
                   >
                     {assignableRoles.map((role) => (
                       <option key={role} value={role}>
-                        {role} — {ROLE_DESCRIPTIONS[role] || ''}
+                        {role} — {t(`users.roles.${role}`)}
                       </option>
                     ))}
                   </select>
@@ -389,10 +389,10 @@ export default function UserManagementPage() {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn-back" onClick={() => setIsCreateOpen(false)}>
-                  Cancelar
+                  {t('users.btn_cancel')}
                 </button>
                 <button type="submit" className="btn btn--primary" disabled={createSubmitting}>
-                  {createSubmitting ? 'Cadastrando…' : 'Salvar Usuário'}
+                  {createSubmitting ? t('users.btn_saving') : t('users.btn_save')}
                 </button>
               </div>
             </form>
@@ -405,17 +405,17 @@ export default function UserManagementPage() {
         <div className="modal-overlay" onClick={() => setRoleModalUser(null)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">Alterar Papel de Acesso</span>
+              <span className="modal-title">{t('users.modal_role_title')}</span>
               <button className="btn-back" onClick={() => setRoleModalUser(null)} style={{ padding: '0.25rem 0.5rem' }}>
                 <X size={14} />
               </button>
             </div>
             <div className="modal-body">
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                Selecione o novo papel para <strong>{roleModalUser.name || roleModalUser.email}</strong>.
+                {t('users.role_desc').replace('{name}', roleModalUser.name || roleModalUser.email)}
               </p>
               <div className="form-group">
-                <label className="form-label">Novo Papel</label>
+                <label className="form-label">{t('users.lbl_new_role')}</label>
                 <select
                   className="form-select"
                   value={selectedRole}
@@ -423,7 +423,7 @@ export default function UserManagementPage() {
                 >
                   {assignableRoles.map((role) => (
                     <option key={role} value={role}>
-                      {role} — {ROLE_DESCRIPTIONS[role]}
+                      {role} — {t(`users.roles.${role}`)}
                     </option>
                   ))}
                 </select>
@@ -431,13 +431,13 @@ export default function UserManagementPage() {
 
               {!isAdmin && (
                 <div className="audit-scoped-warning" style={{ fontSize: '0.75rem' }}>
-                  <span>ℹ️ Por política de segurança (anti-escalação), apenas ADMIN pode atribuir o papel ADMIN.</span>
+                  <span>{t('users.anti_esc')}</span>
                 </div>
               )}
             </div>
             <div className="modal-footer">
               <button type="button" className="btn-back" onClick={() => setRoleModalUser(null)}>
-                Cancelar
+                {t('users.btn_cancel')}
               </button>
               <button
                 type="button"
@@ -445,7 +445,7 @@ export default function UserManagementPage() {
                 onClick={handleUpdateRole}
                 disabled={roleSubmitting || selectedRole === roleModalUser.role}
               >
-                {roleSubmitting ? 'Salvando…' : 'Confirmar Alteração'}
+                {roleSubmitting ? t('users.btn_saving') : t('users.btn_confirm')}
               </button>
             </div>
           </div>
@@ -458,7 +458,7 @@ export default function UserManagementPage() {
           <div className="modal-box modal-box--wide" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div>
-                <span className="modal-title">Atividade de {activityModalUser.name || activityModalUser.email}</span>
+                <span className="modal-title">{t('users.modal_act_title').replace('{name}', activityModalUser.name || activityModalUser.email)}</span>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>
                   ID: {activityModalUser.id}
                 </div>
@@ -483,11 +483,11 @@ export default function UserManagementPage() {
                 <table className="user-mgmt-table">
                   <thead>
                     <tr>
-                      <th>Data / Hora</th>
-                      <th>Ação</th>
-                      <th>Papel no Evento</th>
-                      <th>Alvo</th>
-                      <th>IP</th>
+                      <th>{t('users.tbl_date')}</th>
+                      <th>{t('users.tbl_action')}</th>
+                      <th>{t('users.tbl_ev_role')}</th>
+                      <th>{t('users.tbl_target')}</th>
+                      <th>{t('users.tbl_ip')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -495,20 +495,20 @@ export default function UserManagementPage() {
                       <tr>
                         <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                           <RefreshCw size={18} className="animate-spin" style={{ margin: '0 auto 0.5rem' }} />
-                          Carregando logs do usuário…
+                          {t('users.load_logs')}
                         </td>
                       </tr>
                     ) : userLogs.length === 0 ? (
                       <tr>
                         <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                          Nenhum log encontrado para este usuário no período.
+                          {t('users.empty_logs')}
                         </td>
                       </tr>
                     ) : (
                       userLogs.map((log) => (
                         <tr key={log.id}>
                           <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.725rem' }}>
-                            {log.occurred_at ? new Date(log.occurred_at).toLocaleString('pt-BR') : '—'}
+                            {log.occurred_at ? new Date(log.occurred_at).toLocaleString(i18n.language === 'pt' ? 'pt-BR' : i18n.language === 'ko' ? 'ko-KR' : 'en-US') : '—'}
                           </td>
                           <td style={{ fontWeight: 600 }}>{log.action}</td>
                           <td>
@@ -529,7 +529,7 @@ export default function UserManagementPage() {
             </div>
             <div className="modal-footer">
               <button type="button" className="btn-back" onClick={() => setActivityModalUser(null)}>
-                Fechar
+                {t('users.btn_close')}
               </button>
             </div>
           </div>

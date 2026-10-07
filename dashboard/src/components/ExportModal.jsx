@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { buildConsolidatedRows, downloadConsolidatedCsv } from '../utils/exportCsv.js';
 import { buildIndicatorReport, downloadIndicatorReport, resolveReportScope } from '../utils/exportReport.js';
+import { useTranslation } from 'react-i18next';
 import './ExportModal.css';
 
 const MONTHS_LIST = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -35,6 +36,7 @@ export default function ExportModal({
   period = 'monthly',
   selectedSubPeriod = 'Jan',
 }) {
+  const { t } = useTranslation();
   const [selectedKpiKeys, setSelectedKpiKeys] = useState([]);
   const [exportYears, setExportYears] = useState([selectedYear]);
   const [exportScope, setExportScope] = useState('all_months');
@@ -109,9 +111,9 @@ export default function ExportModal({
   const isAllYearsSelected = exportYears.length === availableYears.length;
 
   const yearsSummaryLabel = isAllYearsSelected
-    ? 'All Years'
+    ? t('export.all_years')
     : exportYears.length === 0
-    ? 'No year selected'
+    ? t('export.no_year')
     : exportYears
         .slice()
         .sort()
@@ -174,8 +176,8 @@ export default function ExportModal({
           <div className="modal-title">
             <FileSpreadsheet size={22} className="modal-title-icon" />
             <div>
-              <h3>Export Consolidated Report</h3>
-              <p>Choose indicators and periods. Excel organizes each indicator in a compact report block.</p>
+              <h3>{t('export.title')}</h3>
+              <p>{t('export.desc')}</p>
             </div>
           </div>
           <button className="btn-close" onClick={onClose} disabled={exporting} aria-label="Close">
@@ -190,9 +192,9 @@ export default function ExportModal({
             <div className="export-section__header">
               <div className="export-section__title">
                 <Layers size={16} />
-                Indicators to Export
+                {t('export.indicators_title')}
                 <span className="export-section__badge">
-                  {selectedKpiKeys.length} of {kpiCatalog.length} selected
+                  {selectedKpiKeys.length} of {kpiCatalog.length} {t('export.selected')}
                 </span>
               </div>
               <div className="export-section__actions">
@@ -202,7 +204,7 @@ export default function ExportModal({
                   onClick={handleSelectAll}
                   disabled={isAllSelected}
                 >
-                  Select All
+                  {t('export.select_all')}
                 </button>
                 <span style={{ color: 'var(--border)' }}>•</span>
                 <button
@@ -211,7 +213,7 @@ export default function ExportModal({
                   onClick={handleClearAll}
                   disabled={selectedKpiKeys.length === 0}
                 >
-                  Clear All
+                  {t('export.clear_all')}
                 </button>
               </div>
             </div>
@@ -238,8 +240,8 @@ export default function ExportModal({
                         <Icon size={16} />
                       </div>
                       <div className="export-kpi-card__info">
-                        <span className="export-kpi-card__name">{kpi.name}</span>
-                        <span className="export-kpi-card__unit">Unit: {kpi.unit}</span>
+                        <span className="export-kpi-card__name">{t(`nav.${kpi.key}`)}</span>
+                        <span className="export-kpi-card__unit">{t('export.unit')} {kpi.unit}</span>
                       </div>
                     </div>
                   </div>
@@ -253,14 +255,14 @@ export default function ExportModal({
             <div className="export-section__header">
               <div className="export-section__title">
                 <Calendar size={16} />
-                Time Period Scope
+                {t('export.time_scope')}
               </div>
             </div>
 
             <div className="export-options-row">
               {/* Year Dropdown (closed, opens a checkbox list) */}
               <div className="export-field-group" style={{ flex: 1 }} ref={yearsDropdownRef}>
-                <label className="export-label">Years:</label>
+                <label className="export-label">{t('export.years')}</label>
                 <div className="export-year-dropdown">
                   <button
                     type="button"
@@ -282,7 +284,7 @@ export default function ExportModal({
                           onClick={handleSelectAllYears}
                           disabled={isAllYearsSelected}
                         >
-                          Select All
+                          {t('export.select_all')}
                         </button>
                         <span style={{ color: 'var(--border)' }}>•</span>
                         <button
@@ -291,7 +293,7 @@ export default function ExportModal({
                           onClick={handleClearAllYears}
                           disabled={exportYears.length === 0}
                         >
-                          Clear All
+                          {t('export.clear_all')}
                         </button>
                       </div>
                       {availableYears.map((yr) => {
@@ -314,13 +316,13 @@ export default function ExportModal({
               </div>
 
               <div className="export-field-group">
-                <label className="export-label" htmlFor="export-file-format">File format:</label>
+                <label className="export-label" htmlFor="export-file-format">{t('export.file_format')}</label>
                 <select id="export-file-format" className="export-select" value={fileFormat} onChange={(e) => { setFileFormat(e.target.value); setExportSuccess(false); }}>
-                  <option value="xlsx">Excel (.xlsx) - Indicator report (Recommended)</option>
-                  <option value="csv">CSV (.csv) - Data table</option>
+                  <option value="xlsx">{t('export.format_xlsx')}</option>
+                  <option value="csv">{t('export.format_csv')}</option>
                 </select>
                 {fileFormat === 'csv' && <>
-                  <label className="export-label" htmlFor="export-delimiter">CSV delimiter:</label>
+                  <label className="export-label" htmlFor="export-delimiter">{t('export.csv_delimiter')}</label>
                   <select id="export-delimiter" className="export-select" value={delimiter} onChange={(e) => setDelimiter(e.target.value)}>
                     <option value=";">Semicolon ( ; )</option>
                     <option value=",">Comma ( , )</option>
@@ -331,49 +333,49 @@ export default function ExportModal({
 
             {/* Scope Pills */}
             <div className="export-field-group" style={{ marginTop: '0.5rem' }}>
-              <label className="export-label">Period Granularity:</label>
+              <label className="export-label">{t('export.granularity')}</label>
               <div className="export-scope-pills">
                 <button
                   type="button"
                   className={`export-scope-pill ${exportScope === 'all_months' ? 'export-scope-pill--active' : ''}`}
                   onClick={() => setExportScope('all_months')}
                 >
-                  Full Monthly Series (Jan to Dec)
+                  {t('export.scope_all')}
                 </button>
                 <button
                   type="button"
                   className={`export-scope-pill ${exportScope === 'current_period' ? 'export-scope-pill--active' : ''}`}
                   onClick={() => setExportScope('current_period')}
                 >
-                  Active Dashboard Period ({selectedSubPeriod})
+                  {t('export.scope_current')} ({selectedSubPeriod})
                 </button>
                 <button
                   type="button"
                   className={`export-scope-pill ${exportScope === 'specific_month' ? 'export-scope-pill--active' : ''}`}
                   onClick={() => setExportScope('specific_month')}
                 >
-                  Specific Month...
+                  {t('export.scope_month')}
                 </button>
                 <button
                   type="button"
                   className={`export-scope-pill ${exportScope === 'quarterly' ? 'export-scope-pill--active' : ''}`}
                   onClick={() => setExportScope('quarterly')}
                 >
-                  Quarterly (aggregated)
+                  {t('export.scope_quarter')}
                 </button>
                 <button
                   type="button"
                   className={`export-scope-pill ${exportScope === 'semiannual' ? 'export-scope-pill--active' : ''}`}
                   onClick={() => setExportScope('semiannual')}
                 >
-                  Semiannual (aggregated)
+                  {t('export.scope_semester')}
                 </button>
                 <button
                   type="button"
                   className={`export-scope-pill ${exportScope === 'annual' ? 'export-scope-pill--active' : ''}`}
                   onClick={() => setExportScope('annual')}
                 >
-                  Annual (aggregated)
+                  {t('export.scope_annual')}
                 </button>
               </div>
 
@@ -425,9 +427,9 @@ export default function ExportModal({
                 </div>
               )}
 
-              {AGGREGATED_SCOPE_HINT[exportScope] && (
-                <p className="export-scope-hint">{AGGREGATED_SCOPE_HINT[exportScope]}</p>
-              )}
+              {exportScope === 'quarterly' && <p className="export-scope-hint">{t('export.hint_quarter')}</p>}
+              {exportScope === 'semiannual' && <p className="export-scope-hint">{t('export.hint_semester')}</p>}
+              {exportScope === 'annual' && <p className="export-scope-hint">{t('export.hint_annual')}</p>}
             </div>
           </div>
 
@@ -437,21 +439,21 @@ export default function ExportModal({
               <div className="export-summary-banner export-summary-banner--warning">
                 <AlertTriangle size={18} />
                 <span className="export-summary-banner__text">
-                  No indicator selected. Please check at least one indicator above.
+                  {t('export.warn_no_kpi')}
                 </span>
               </div>
             ) : exportYears.length === 0 ? (
               <div className="export-summary-banner export-summary-banner--warning">
                 <AlertTriangle size={18} />
                 <span className="export-summary-banner__text">
-                  No year selected. Please check at least one year above.
+                  {t('export.warn_no_year')}
                 </span>
               </div>
             ) : exportSuccess ? (
               <div className="export-summary-banner" style={{ borderColor: 'var(--success, #22c55e)', color: 'var(--success, #22c55e)' }}>
                 <CheckCircle2 size={18} />
                 <span className="export-summary-banner__text" style={{ color: 'var(--success, #22c55e)' }}>
-                  Download started successfully. Open the file to view your report.
+                  {t('export.success')}
                 </span>
               </div>
             ) : (
@@ -459,9 +461,9 @@ export default function ExportModal({
                 <FileSpreadsheet size={18} style={{ color: 'var(--brand-500)' }} />
                 <span className="export-summary-banner__text">
                   {fileFormat === 'xlsx'
-                    ? <>The workbook will contain <span className="export-summary-banner__count">{report.sectionCount} indicator blocks</span> across {report.sheets.length} year sheet(s), with periods in columns and results in rows. The full monthly series includes a year consolidation. Empty months remain blank.</>
-                    : <>The CSV data table will contain <span className="export-summary-banner__count">{previewRows.length} records</span>.</>}
-                  {!hasData && <strong> No data available for this selection.</strong>}
+                    ? <>{t('export.summary_xlsx').replace('{count}', report.sectionCount)}</>
+                    : <>{t('export.summary_csv').replace('{count}', previewRows.length)}</>}
+                  {!hasData && <strong> {t('export.no_data')}</strong>}
                 </span>
               </div>
             )}
@@ -472,7 +474,7 @@ export default function ExportModal({
         {/* Footer Actions */}
         <div className="export-modal__actions">
           <button type="button" className="btn btn--ghost" onClick={onClose} disabled={exporting}>
-            Cancel
+            {t('export.cancel')}
           </button>
           <button
             type="button"
@@ -482,8 +484,8 @@ export default function ExportModal({
           >
             <Download size={16} />
             {exporting
-              ? 'Generating file…' : exportSuccess ? 'Download Again'
-              : `Export Spreadsheet (${selectedKpiKeys.length} indicator${selectedKpiKeys.length === 1 ? '' : 's'})`}
+              ? t('export.generating') : exportSuccess ? t('export.download_again')
+              : `${t('export.export_btn')} (${selectedKpiKeys.length} ${t('export.indicators_title')})`}
           </button>
         </div>
       </div>

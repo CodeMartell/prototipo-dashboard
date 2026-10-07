@@ -10,18 +10,19 @@ import { ArrowLeft, RefreshCw, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { fetchAuditLogs, getCurrentUser } from '../services/api';
 import { canReadAllAuditLog, hasPermission } from '../services/permissions';
 import DateRangeFilter from '../components/DateRangeFilter';
+import { useTranslation } from 'react-i18next';
 import './AuditPage.css';
 
 const ACTION_LABELS = {
-  'login.success': '🔑 Login com Sucesso',
-  'login.failed': '⚠️ Falha de Autenticação',
-  'kpi.manual_edit': '✏️ Edição Manual de KPI',
-  'kpi.deleted': '🗑️ Exclusão de Registro de KPI',
-  'user.created': '👤 Criação de Usuário',
-  'user.deleted': '🗑️ Exclusão de Usuário',
-  'user.role_changed': '🔄 Alteração de Papel (Role)',
-  'action_plan.created': '📋 Criação de Plano de Ação',
-  'action_plan.deleted': '🗑️ Exclusão de Plano de Ação',
+  'login.success': 'audit.act_login_suc',
+  'login.failed': 'audit.act_login_fail',
+  'kpi.manual_edit': 'audit.act_kpi_edit',
+  'kpi.deleted': 'audit.act_kpi_del',
+  'user.created': 'audit.act_user_cre',
+  'user.deleted': 'audit.act_user_del',
+  'user.role_changed': 'audit.act_role_chg',
+  'action_plan.created': 'audit.act_plan_cre',
+  'action_plan.deleted': 'audit.act_plan_del',
 };
 
 function formatDate(isoString) {
@@ -34,6 +35,7 @@ function formatDate(isoString) {
 
 export default function AuditPage() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const user = getCurrentUser();
   const isReadAll = canReadAllAuditLog(user);
   const isReadScoped = hasPermission(user, 'audit:read_scoped');
@@ -77,7 +79,7 @@ export default function AuditPage() {
       });
       setData(result);
     } catch (err) {
-      setError(err.message || 'Erro ao carregar audit log');
+      setError(err.message || t('audit.err_load'));
     } finally {
       setLoading(false);
     }
@@ -90,16 +92,14 @@ export default function AuditPage() {
       {/* Header bar */}
       <header className="audit-header-bar">
         <div className="audit-header-bar__left">
-          <button className="btn-back" onClick={() => navigate('/dashboard')} title="Voltar ao dashboard">
+          <button className="btn-back" onClick={() => navigate('/dashboard')} title={t('audit.back')}>
             <ArrowLeft size={14} />
-            Dashboard
+            {t('audit.back')}
           </button>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="audit-header-bar__title">Audit Log — Trilha de Auditoria</span>
+            <span className="audit-header-bar__title">{t('audit.title')}</span>
             <span className="audit-header-bar__subtitle">
-              {isReadAll
-                ? 'Leitura global de todos os eventos de governança e integridade'
-                : 'Consulta restrita de atividade por usuário específico (TI_SUPORTE)'}
+              {t('audit.subtitle')}
             </span>
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function AuditPage() {
           style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
         >
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-          Atualizar
+          {t('audit.refresh')}
         </button>
       </header>
 
@@ -119,7 +119,7 @@ export default function AuditPage() {
         <section className="audit-card">
           <div style={{ marginBottom: '1rem' }}>
             <span className="audit-filter-label" style={{ display: 'block', marginBottom: '0.5rem' }}>
-              Período de Ocorrência (Obrigatório)
+              {t('audit.lbl_period')}
             </span>
             <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onChange={handleDateChange} loading={loading} />
           </div>
@@ -128,11 +128,11 @@ export default function AuditPage() {
             {/* actor_user_id — obrigatório para TI_SUPORTE */}
             <div className="audit-filter-group">
               <label className="audit-filter-label">
-                ID do Usuário {!isReadAll && <span style={{ color: 'var(--danger)' }}>*</span>}
+                {t('audit.lbl_user_id')} {!isReadAll && <span style={{ color: 'var(--danger)' }}>*</span>}
               </label>
               <input
                 type="text"
-                placeholder={isReadAll ? "Filtrar por ID do usuário (opcional)" : "Informe o ID do usuário (obrigatório)"}
+                placeholder={isReadAll ? t('audit.ph_user_id_opt') : t('audit.ph_user_id_req')}
                 value={actorUserId}
                 onChange={(e) => { setActorUserId(e.target.value); setPage(1); }}
                 className="audit-input"
@@ -142,16 +142,16 @@ export default function AuditPage() {
 
             {/* Filtro por tipo de ação */}
             <div className="audit-filter-group">
-              <label className="audit-filter-label">Tipo de Ação</label>
+              <label className="audit-filter-label">{t('audit.lbl_action_type')}</label>
               <select
                 value={actionFilter}
                 onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
                 className="audit-select"
                 style={{ width: '260px' }}
               >
-                <option value="">Todas as ações</option>
+                <option value="">{t('audit.opt_all_actions')}</option>
                 {Object.entries(ACTION_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
+                  <option key={value} value={value}>{t(label)}</option>
                 ))}
               </select>
             </div>
@@ -160,7 +160,7 @@ export default function AuditPage() {
             {!isReadAll && isReadScoped && !actorUserId && (
               <div className="audit-scoped-warning">
                 <AlertTriangle size={15} />
-                <span>Informe o ID do usuário acima para consultar a atividade dele.</span>
+                <span>{t('audit.warn_sup_id')}</span>
               </div>
             )}
           </div>
@@ -171,7 +171,7 @@ export default function AuditPage() {
           {loading && (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
               <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 0.5rem' }} />
-              Carregando registros de auditoria…
+              {t('audit.loading')}
             </div>
           )}
 
@@ -185,7 +185,7 @@ export default function AuditPage() {
             <>
               <div className="audit-table-pagination">
                 <span>
-                  <strong>{data.total}</strong> evento{data.total !== 1 ? 's' : ''} registrado{data.total !== 1 ? 's' : ''}
+                  <strong>{data.total}</strong> {t('audit.event_reg').replace('{count}', '')}
                 </span>
                 {data.total > 50 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -194,15 +194,15 @@ export default function AuditPage() {
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
                     >
-                      ← Anterior
+                      ←
                     </button>
-                    <span>Página {page}</span>
+                    <span>{t('audit.pagination').replace('{page}', page).replace('{total}', Math.ceil(data.total / 50))}</span>
                     <button
                       className="btn-back"
                       onClick={() => setPage((p) => p + 1)}
                       disabled={data.items.length < 50}
                     >
-                      Próxima →
+                      →
                     </button>
                   </div>
                 )}
@@ -212,29 +212,29 @@ export default function AuditPage() {
                 <table className="audit-table">
                   <thead>
                     <tr>
-                      <th>Data / Hora</th>
-                      <th>Ação Realizada</th>
-                      <th>ID do Usuário</th>
-                      <th>Papel no Evento</th>
-                      <th>Alvo / Detalhe</th>
-                      <th>Endereço IP</th>
+                      <th>{t('audit.tbl_date')}</th>
+                      <th>{t('audit.tbl_action')}</th>
+                      <th>{t('audit.tbl_actor')}</th>
+                      <th>{t('audit.tbl_role')}</th>
+                      <th>{t('audit.tbl_target')}</th>
+                      <th>{t('audit.tbl_ip')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.items.length === 0 ? (
                       <tr>
                         <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                          Nenhum evento registrado com os filtros selecionados.
+                          {t('audit.empty')}
                         </td>
                       </tr>
                     ) : (
                       data.items.map((entry) => (
                         <tr key={entry.id}>
                           <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                            {formatDate(entry.occurred_at)}
+                            {entry.occurred_at ? new Date(entry.occurred_at).toLocaleString(i18n.language === 'pt' ? 'pt-BR' : i18n.language === 'ko' ? 'ko-KR' : 'en-US') : '—'}
                           </td>
                           <td style={{ fontWeight: 600 }}>
-                            {ACTION_LABELS[entry.action] || entry.action}
+                            {ACTION_LABELS[entry.action] ? t(ACTION_LABELS[entry.action]) : entry.action}
                           </td>
                           <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
                             {entry.actor_user_id || '—'}
@@ -242,14 +242,14 @@ export default function AuditPage() {
                           <td>
                             {entry.actor_role_snapshot ? (
                               <span className="audit-badge-role">
-                                {entry.actor_role_snapshot}
+                                {t(`roles.${entry.actor_role_snapshot}`, entry.actor_role_snapshot)}
                               </span>
                             ) : '—'}
                           </td>
                           <td style={{ fontSize: '0.75rem' }}>
                             {entry.target_type && (
                               <span>
-                                <strong>{entry.target_type}</strong>: {entry.target_id || ''}
+                                <strong>{t(`roles.${entry.target_type}`, entry.target_type)}</strong>: {entry.target_id || ''}
                               </span>
                             )}
                             {entry.metadata && (
@@ -272,7 +272,7 @@ export default function AuditPage() {
 
           {!loading && !error && !data && (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              Selecione um período para visualizar os eventos de auditoria.
+              {t('audit.empty')}
             </div>
           )}
         </section>

@@ -12,9 +12,9 @@ import {
   deleteEvidence,
   downloadEvidence,
   fetchEvidences,
-  UnauthorizedError,
   uploadEvidence,
 } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 const MAX_SIZE = 25 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['ppt', 'pptx'];
@@ -24,8 +24,8 @@ const formatSize = (bytes) =>
     ? `${Math.ceil(bytes / 1024)} KB`
     : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
-const extractErrorMessage = (err) => {
-  if (!err) return 'An unexpected error occurred.';
+const extractErrorMessage = (err, t) => {
+  if (!err) return t('evidence.err_unexp');
   if (typeof err === 'string') return err;
 
   if (Array.isArray(err)) {
@@ -39,10 +39,11 @@ const extractErrorMessage = (err) => {
     }
   }
 
-  return err.message || 'Could not complete the operation.';
+  return err.message || t('evidence.err_op');
 };
 
 export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLabel }) {
+  const { t, i18n } = useTranslation();
   const inputRef = useRef(null);
   const [files, setFiles] = useState([]);
   const [pendingFiles, setPendingFiles] = useState([]);
@@ -81,11 +82,11 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
     for (const file of candidates) {
       const extension = file.name.split('.').pop()?.toLowerCase();
       if (!ALLOWED_EXTENSIONS.includes(extension)) {
-        setError('Please upload only PowerPoint presentations (.ppt or .pptx).');
+        setError(t('evidence.err_ext'));
         continue;
       }
       if (file.size > MAX_SIZE) {
-        setError(`${file.name} exceeds the 25 MB limit.`);
+        setError(t('evidence.err_size').replace('{name}', file.name));
         continue;
       }
       validated.push(file);
@@ -116,14 +117,14 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
       }
       setMessage(
         pendingFiles.length === 1
-          ? `${pendingFiles[0].name} was saved to the platform.`
-          : `${pendingFiles.length} files were saved to the platform.`
+          ? t('evidence.msg_saved_1').replace('{name}', pendingFiles[0].name)
+          : t('evidence.msg_saved_n').replace('{count}', pendingFiles.length)
       );
       setPendingFiles([]);
       await loadFiles();
     } catch (err) {
       if (!(err instanceof UnauthorizedError)) {
-        setError(extractErrorMessage(err));
+        setError(extractErrorMessage(err, t));
       }
     } finally {
       setIsSaving(false);
@@ -135,7 +136,7 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
       await downloadEvidence(file.id);
     } catch (err) {
       if (!(err instanceof UnauthorizedError)) {
-        setError(extractErrorMessage(err));
+        setError(extractErrorMessage(err, t));
       }
     }
   };
@@ -144,10 +145,10 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
     try {
       await deleteEvidence(file.id);
       setFiles((prev) => prev.filter((item) => item.id !== file.id));
-      setMessage(`${file.name} was deleted.`);
+      setMessage(t('evidence.msg_del').replace('{name}', file.name));
     } catch (err) {
       if (!(err instanceof UnauthorizedError)) {
-        setError(extractErrorMessage(err));
+        setError(extractErrorMessage(err, t));
       }
     }
   };
@@ -155,10 +156,10 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
   return (
     <div className="evidence-wrapper">
       <div className="evidence-panel__title">
-        <span>Evidence</span>
+        <span>{t('evidence.title')}</span>
         <span className="evidence-panel__title-sep"> - </span>
         <small>
-          {kpiName} · {periodLabel}/{selectedYear?.substring(1)}
+          {kpiName} · {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(periodLabel) ? t('months.' + periodLabel) : periodLabel}/{selectedYear?.substring(1)}
         </small>
       </div>
 
@@ -191,15 +192,15 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
         <div className="evidence-panel__dropzone-icon">
           <Upload size={27} />
         </div>
-        <strong>Upload PowerPoint</strong>
-        <span>Drag a file here or click to select</span>
-        <small>.PPT or .PPTX · 25 MB maximum per file</small>
+        <strong>{t('evidence.drag_title')}</strong>
+        <span>{t('evidence.drag_desc')}</span>
+        <small>{t('evidence.drag_hint')}</small>
       </div>
 
       {pendingFiles.length > 0 && (
         <div className="evidence-panel__pending-container">
           <div className="evidence-panel__section-header">
-            <span>Selected files</span>
+            <span>{t('evidence.pending_title')}</span>
           </div>
 
           {pendingFiles.map((file, index) => (
@@ -212,7 +213,7 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
                 <span>{formatSize(file.size)}</span>
                 <span className="evidence-panel__badge evidence-panel__badge--pending">
                   <Clock size={12} />
-                  Pending upload
+                  {t('evidence.badge_pending')}
                 </span>
               </div>
             </div>
@@ -227,12 +228,12 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
             {isSaving ? (
               <>
                 <LoaderCircle size={15} className="evidence-panel__spinner" />
-                <span>Saving to platform...</span>
+                <span>{t('evidence.btn_saving')}</span>
               </>
             ) : (
               <>
                 <Upload size={15} />
-                <span>Save to platform</span>
+                <span>{t('evidence.btn_save')}</span>
               </>
             )}
           </button>
@@ -253,7 +254,7 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
       {files.length > 0 && (
         <div className="evidence-panel__file-list">
           <div className="evidence-panel__section-header">
-            <span>Saved records ({files.length})</span>
+            <span>{t('evidence.saved_title').replace('{count}', files.length)}</span>
           </div>
           {files.map((file) => (
             <div key={file.id} className="evidence-panel__file">
@@ -264,18 +265,18 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
                 <strong title={file.name}>{file.name}</strong>
                 <span>
                   {formatSize(file.size)} ·{' '}
-                  {file.createdAt ? new Date(file.createdAt).toLocaleString('en-US') : ''}
+                  {file.createdAt ? new Date(file.createdAt).toLocaleString(i18n.language === 'pt' ? 'pt-BR' : i18n.language === 'ko' ? 'ko-KR' : 'en-US') : ''}
                 </span>
                 <span className="evidence-panel__badge evidence-panel__badge--saved">
                   <CheckCircle2 size={12} />
-                  Saved successfully
+                  {t('evidence.badge_saved')}
                 </span>
               </div>
               <div className="evidence-panel__file-actions">
                 <button
                   type="button"
-                  title="Download file"
-                  aria-label={`Download ${file.name}`}
+                  title={t('evidence.btn_dl')}
+                  aria-label={t('evidence.btn_dl')}
                   className="evidence-panel__action-btn evidence-panel__action-btn--download"
                   onClick={() => handleDownload(file)}
                 >
@@ -283,8 +284,8 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
                 </button>
                 <button
                   type="button"
-                  title="Delete evidence"
-                  aria-label={`Delete ${file.name}`}
+                  title={t('evidence.btn_del')}
+                  aria-label={t('evidence.btn_del')}
                   className="evidence-panel__action-btn evidence-panel__action-btn--delete"
                   onClick={() => handleDelete(file)}
                 >

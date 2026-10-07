@@ -24,9 +24,11 @@ import {
   rollbackIngestion,
 } from '../services/api';
 import { hasPermission } from '../services/permissions';
+import { useTranslation } from 'react-i18next';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const user = getCurrentUser();
 
@@ -75,7 +77,7 @@ export default function ProfilePage() {
         setEmailHistory(data || []);
       }
     } catch (err) {
-      setError(err.message || 'Erro ao carregar dados do perfil');
+      setError(err.message || t('profile.err_load'));
     } finally {
       setLoading(false);
     }
@@ -91,11 +93,11 @@ export default function ProfilePage() {
     setLoading(true);
     try {
       await acceptIngestion(id);
-      setSuccessMessage('Planilha aceita e aplicada no dashboard com sucesso!');
+      setSuccessMessage(t('profile.msg_acc'));
       setTimeout(() => setSuccessMessage(null), 4000);
       await loadData();
     } catch (err) {
-      setError(err.message || 'Falha ao aceitar a planilha');
+      setError(err.message || t('profile.err_acc'));
     } finally {
       setLoading(false);
     }
@@ -111,12 +113,12 @@ export default function ProfilePage() {
     setLoading(true);
     try {
       await rejectIngestion(rejectModalItem.id, rejectReason);
-      setSuccessMessage('Atualização de planilha rejeitada com sucesso.');
+      setSuccessMessage(t('profile.msg_rej'));
       setTimeout(() => setSuccessMessage(null), 4000);
       setRejectModalItem(null);
       await loadData();
     } catch (err) {
-      setError(err.message || 'Falha ao rejeitar');
+      setError(err.message || t('profile.err_rej'));
     } finally {
       setLoading(false);
     }
@@ -149,16 +151,16 @@ export default function ProfilePage() {
       });
 
       if (selectedItems.length === 0) {
-        throw new Error('Selecione pelo menos um item para aceitar parcialmente');
+        throw new Error(t('profile.err_sel_part'));
       }
 
       await acceptPartialIngestion(partialModalItem.id, selectedItems);
-      setSuccessMessage('Atualização aceita parcialmente com sucesso!');
+      setSuccessMessage(t('profile.msg_acc_part'));
       setTimeout(() => setSuccessMessage(null), 4000);
       setPartialModalItem(null);
       await loadData();
     } catch (err) {
-      setError(err.message || 'Falha ao aceitar parcialmente');
+      setError(err.message || t('profile.err_acc_part'));
     } finally {
       setLoading(false);
     }
@@ -166,24 +168,24 @@ export default function ProfilePage() {
 
   const handleRollback = async (id) => {
     if (!isAdmin) return;
-    if (!window.confirm('Tem certeza de que deseja reverter esta ingestão? Os valores anteriores serão restaurados.')) return;
+    if (!window.confirm(t('profile.warn_rollback'))) return;
     setLoading(true);
     try {
       await rollbackIngestion(id);
-      setSuccessMessage('Ingestão revertida com sucesso. Dados anteriores restaurados.');
+      setSuccessMessage(t('profile.msg_rollback'));
       setTimeout(() => setSuccessMessage(null), 4000);
       await loadData();
     } catch (err) {
-      setError(err.message || 'Falha no rollback');
+      setError(err.message || t('profile.err_rollback'));
     } finally {
       setLoading(false);
     }
   };
 
   const formatDelta = (oldVal, newVal) => {
-    if (oldVal === null || oldVal === undefined) return <span className="val-new">NOVO</span>;
+    if (oldVal === null || oldVal === undefined) return <span className="val-new">{t('profile.val_new')}</span>;
     const diff = newVal - oldVal;
-    if (diff === 0) return <span className="val-old">Sem alteração</span>;
+    if (diff === 0) return <span className="val-old">{t('profile.val_no_change')}</span>;
     const pct = oldVal !== 0 ? ((diff / Math.abs(oldVal)) * 100).toFixed(1) : '100.0';
     const isUp = diff > 0;
     return (
@@ -212,13 +214,13 @@ export default function ProfilePage() {
         <div className="profile-header-bar__left">
           <button className="btn-back" onClick={() => navigate('/dashboard')}>
             <ArrowLeft size={16} />
-            Voltar ao Dashboard
+            {t('profile.btn_back_dash')}
           </button>
-          <span className="profile-header-bar__title">Governança & Perfil</span>
+          <span className="profile-header-bar__title">{t('profile.title_gov')}</span>
         </div>
-        <button className="btn-back" onClick={loadData} title="Atualizar dados">
+        <button className="btn-back" onClick={loadData} title={t('profile.btn_refresh')}>
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          Atualizar
+          {t('profile.btn_refresh')}
         </button>
       </div>
 
@@ -228,8 +230,8 @@ export default function ProfilePage() {
           {(user?.name || user?.email || 'U').slice(0, 2).toUpperCase()}
         </div>
         <div className="profile-hero__details">
-          <h2>{user?.name || 'Usuário'}</h2>
-          <p>{user?.email} • Perfil: <strong>{user?.role || '—'}</strong></p>
+          <h2>{user?.name || t('profile.lbl_user')}</h2>
+          <p>{user?.email} • {t('profile.lbl_role')} <strong>{user?.role || '—'}</strong></p>
         </div>
       </div>
 
@@ -256,7 +258,7 @@ export default function ProfilePage() {
               onClick={() => setActiveTab('staging')}
             >
               <ShieldCheck size={16} />
-              Fila de Aprovação (Staging)
+              {t('profile.tab_staging')}
               {pendingIngestions.length > 0 && (
                 <span className="tab-badge">{pendingIngestions.length}</span>
               )}
@@ -269,7 +271,7 @@ export default function ProfilePage() {
               onClick={() => setActiveTab('changes')}
             >
               <Edit3 size={16} />
-              Alterações Manuais
+              {t('profile.tab_changes')}
             </button>
           )}
 
@@ -279,7 +281,7 @@ export default function ProfilePage() {
               onClick={() => setActiveTab('emails')}
             >
               <Mail size={16} />
-              Dados Recebidos por Email
+              {t('profile.tab_emails')}
             </button>
           )}
         </div>
@@ -292,15 +294,14 @@ export default function ProfilePage() {
         {activeTab === 'staging' && (
           <div>
             <p className="profile-tab-description">
-              Todas as planilhas recebidas por e-mail entram primeiro nesta fila de staging.
-              Revise o impacto no dashboard antes de aceitar.
+              {t('profile.desc_staging')}
             </p>
 
             {pendingIngestions.length === 0 ? (
               <div className="profile-empty-state">
                 <CheckCircle2 size={40} className="profile-empty-state__icon" />
-                <h3>Nenhuma atualização pendente</h3>
-                <p>Todas as planilhas ingeridas estão aprovadas ou revisadas.</p>
+                <h3>{t('profile.empty_staging_title')}</h3>
+                <p>{t('profile.empty_staging_desc')}</p>
               </div>
             ) : (
               pendingIngestions.map((item) => (
@@ -311,14 +312,14 @@ export default function ProfilePage() {
                       <div>
                         <h3>{item.file_name || item.subject}</h3>
                         <span className="queue-card__meta">
-                          De: <strong>{item.sender}</strong> • Período: <strong>{item.period_label || 'Não detectado'}</strong>
+                          {t('profile.lbl_from')} <strong>{item.sender}</strong> • {t('profile.lbl_period')} <strong>{item.period_label || t('profile.val_not_detect')}</strong>
                         </span>
                       </div>
                     </div>
                     <div className="queue-card__tags">
-                      <span className="status-tag status-tag--pending">Pendente</span>
+                      <span className="status-tag status-tag--pending">{t('profile.tag_pending')}</span>
                       {item.is_update && (
-                        <span className="status-tag status-tag--superseded">Atualização</span>
+                        <span className="status-tag status-tag--superseded">{t('profile.tag_update')}</span>
                       )}
                     </div>
                   </div>
@@ -327,8 +328,8 @@ export default function ProfilePage() {
                     <div className="conflict-alert">
                       <AlertTriangle size={18} />
                       <div>
-                        <strong>Atenção: Conflito com Edição Manual!</strong>
-                        <div>Esta planilha substituiria valores que foram ajustados manualmente anteriormente por um usuário.</div>
+                        <strong>{t('profile.alert_conflict_title')}</strong>
+                        <div>{t('profile.alert_conflict_desc')}</div>
                       </div>
                     </div>
                   )}
@@ -336,11 +337,11 @@ export default function ProfilePage() {
                   <table className="diff-table">
                     <thead>
                       <tr>
-                        <th>KPI</th>
-                        <th>Período</th>
-                        <th>Valor Atual</th>
-                        <th>Novo Valor (Planilha)</th>
-                        <th>Variação (Diff)</th>
+                        <th>{t('profile.th_kpi')}</th>
+                        <th>{t('profile.th_period')}</th>
+                        <th>{t('profile.th_curr_val')}</th>
+                        <th>{t('profile.th_new_val_sheet')}</th>
+                        <th>{t('profile.th_diff')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -380,15 +381,15 @@ export default function ProfilePage() {
                     <div className="queue-card__actions">
                       <button className="btn-reject" onClick={() => handleOpenRejectModal(item)}>
                         <X size={16} />
-                        Rejeitar
+                        {t('profile.btn_reject')}
                       </button>
                       <button className="btn-partial" onClick={() => handleOpenPartialModal(item)}>
                         <Check size={16} />
-                        Aceitar Parcial...
+                        {t('profile.btn_acc_part')}
                       </button>
                       <button className="btn-accept" onClick={() => handleAccept(item.id)}>
                         <CheckCircle2 size={16} />
-                        Aceitar Tudo
+                        {t('profile.btn_acc_all')}
                       </button>
                     </div>
                   )}
@@ -403,34 +404,34 @@ export default function ProfilePage() {
         {activeTab === 'changes' && (
           <div>
             <p className="profile-tab-description">
-              Rastreabilidade de campos sobrescritos manualmente (Target, Resultado, Demurrage, etc.).
+              {t('profile.desc_changes')}
             </p>
 
             <table className="diff-table diff-table--card">
               <thead>
                 <tr>
-                  <th>Data / Hora</th>
-                  <th>Usuário</th>
-                  <th>KPI</th>
-                  <th>Período</th>
-                  <th>Campo</th>
-                  <th>Valor Anterior</th>
-                  <th>Novo Valor</th>
-                  <th>Origem</th>
+                  <th>{t('profile.th_date')}</th>
+                  <th>{t('profile.th_user')}</th>
+                  <th>{t('profile.th_kpi')}</th>
+                  <th>{t('profile.th_period')}</th>
+                  <th>{t('profile.th_field')}</th>
+                  <th>{t('profile.th_old_val')}</th>
+                  <th>{t('profile.th_new_val')}</th>
+                  <th>{t('profile.th_source')}</th>
                 </tr>
               </thead>
               <tbody>
                 {kpiChanges.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }}>Nenhuma alteração manual registrada.</td>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }}>{t('profile.empty_changes')}</td>
                   </tr>
                 ) : (
                   kpiChanges.map((c) => (
                     <tr key={c.id}>
                       <td className="val-old">
-                        {c.changed_at ? new Date(c.changed_at).toLocaleString('pt-BR') : '—'}
+                        {c.changed_at ? new Date(c.changed_at).toLocaleString(i18n.language === 'pt' ? 'pt-BR' : i18n.language === 'ko' ? 'ko-KR' : 'en-US') : '—'}
                       </td>
-                      <td>{c.user_email || 'Usuário'}</td>
+                      <td>{c.user_email || t('profile.lbl_user')}</td>
                       <td><strong>{formatKpiName(c.kpi_type)}</strong></td>
                       <td>{c.month}/{c.year}</td>
                       <td><code>{c.field_name}</code></td>
@@ -460,31 +461,31 @@ export default function ProfilePage() {
         {activeTab === 'emails' && (
           <div>
             <p className="profile-tab-description">
-              Histórico completo de planilhas recebidas por e-mail e seu estado no pipeline de governança.
+              {t('profile.desc_emails')}
             </p>
 
             <table className="diff-table diff-table--card">
               <thead>
                 <tr>
-                  <th>Data de Recebimento</th>
-                  <th>Arquivo / Assunto</th>
-                  <th>Remetente</th>
-                  <th>Período Coberto</th>
-                  <th>Status</th>
-                  <th>Revisado por</th>
-                  <th>Ações</th>
+                  <th>{t('profile.th_recv_date')}</th>
+                  <th>{t('profile.th_file_subj')}</th>
+                  <th>{t('profile.th_sender')}</th>
+                  <th>{t('profile.th_period_cov')}</th>
+                  <th>{t('profile.th_status')}</th>
+                  <th>{t('profile.th_reviewed_by')}</th>
+                  <th>{t('profile.th_actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {emailHistory.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }}>Nenhum e-mail de planilha ingerido até o momento.</td>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }}>{t('profile.empty_emails')}</td>
                   </tr>
                 ) : (
                   emailHistory.map((item) => (
                     <tr key={item.id}>
                       <td className="val-old">
-                        {item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : '—'}
+                        {item.created_at ? new Date(item.created_at).toLocaleString(i18n.language === 'pt' ? 'pt-BR' : i18n.language === 'ko' ? 'ko-KR' : 'en-US') : '—'}
                       </td>
                       <td>
                         <strong>{item.file_name || item.subject}</strong>
@@ -503,7 +504,7 @@ export default function ProfilePage() {
                         {item.status === 'ACCEPTED' && canManageIngestion && (
                           <button className="btn-rollback" onClick={() => handleRollback(item.id)}>
                             <RotateCcw size={12} />
-                            Rollback
+                            {t('profile.btn_rollback')}
                           </button>
                         )}
                       </td>
@@ -518,8 +519,8 @@ export default function ProfilePage() {
         {!canManageIngestion && !canSeeChanges && (
           <div className="profile-empty-state">
             <CheckCircle2 size={40} className="profile-empty-state__icon" />
-            <h3>Acesso Restrito a Governança</h3>
-            <p>Seu perfil de acesso não possui módulos de aprovação de planilhas ou governança associados.</p>
+            <h3>{t('profile.restr_title')}</h3>
+            <p>{t('profile.restr_desc')}</p>
           </div>
         )}
       </div>
@@ -529,20 +530,20 @@ export default function ProfilePage() {
       {rejectModalItem && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>Rejeitar Atualização de Planilha</h3>
+            <h3>{t('profile.mod_rej_title')}</h3>
             <p className="modal-subtitle">
-              Arquivo: <strong>{rejectModalItem.file_name}</strong> ({rejectModalItem.period_label})
+              {t('profile.mod_file')} <strong>{rejectModalItem.file_name}</strong> ({rejectModalItem.period_label})
             </p>
-            <label className="modal-label">Motivo da rejeição (opcional):</label>
+            <label className="modal-label">{t('profile.mod_rej_reason')}</label>
             <textarea
               className="modal-textarea"
-              placeholder="Ex: Planilha de mês anterior enviada por engano..."
+              placeholder={t('profile.mod_rej_ph')}
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
             />
             <div className="modal-actions">
-              <button className="btn-back" onClick={() => setRejectModalItem(null)}>Cancelar</button>
-              <button className="btn-reject" onClick={handleConfirmReject}>Confirmar Rejeição</button>
+              <button className="btn-back" onClick={() => setRejectModalItem(null)}>{t('profile.btn_cancel')}</button>
+              <button className="btn-reject" onClick={handleConfirmReject}>{t('profile.btn_confirm_rej')}</button>
             </div>
           </div>
         </div>
@@ -552,18 +553,18 @@ export default function ProfilePage() {
       {partialModalItem && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '700px' }}>
-            <h3>Aceitar Parcialmente Planilha</h3>
+            <h3>{t('profile.mod_part_title')}</h3>
             <p className="modal-subtitle">
-              Selecione quais KPIs e períodos deseja aceitar e aplicar no dashboard:
+              {t('profile.mod_part_desc')}
             </p>
             <div className="partial-list-wrapper">
               <table className="diff-table">
                 <thead>
                   <tr>
                     <th style={{ width: '40px' }}></th>
-                    <th>KPI</th>
-                    <th>Período</th>
-                    <th>Novo Valor</th>
+                    <th>{t('profile.th_kpi')}</th>
+                    <th>{t('profile.th_period')}</th>
+                    <th>{t('profile.th_new_val')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -595,8 +596,8 @@ export default function ProfilePage() {
               </table>
             </div>
             <div className="modal-actions">
-              <button className="btn-back" onClick={() => setPartialModalItem(null)}>Cancelar</button>
-              <button className="btn-accept" onClick={handleConfirmPartial}>Aplicar Selecionados</button>
+              <button className="btn-back" onClick={() => setPartialModalItem(null)}>{t('profile.btn_cancel')}</button>
+              <button className="btn-accept" onClick={handleConfirmPartial}>{t('profile.btn_apply_sel')}</button>
             </div>
           </div>
         </div>

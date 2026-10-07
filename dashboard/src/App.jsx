@@ -12,6 +12,7 @@ import AnalyticsPanel from './components/AnalyticsPanel';
 import { DollarSign, Plane, Package, Calendar, AlertTriangle, TrendingDown, Anchor, Layers } from 'lucide-react';
 import KpiEntryModal from './components/KpiEntryModal';
 import { fetchDashboardData, fetchPendingIngestions, getCurrentUser, logout, UnauthorizedError } from './services/api';
+import { useTranslation } from 'react-i18next';
 import { canAccessAnalytics, canEditKpiData } from './services/permissions';
 
 import {
@@ -138,6 +139,7 @@ const YEAR_OPTIONS = Array.from(
 
 function App() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [currentUser] = useState(() => getCurrentUser());
   const isAnalyticsAllowed = useMemo(
     () => ANALYTICS_ENABLED && canAccessAnalytics(currentUser),
@@ -181,6 +183,7 @@ function App() {
   const [period, setPeriod] = useState('monthly'); // 'monthly' | 'quarterly' | 'semiannual' | 'annual'
   const [selectedSubPeriod, setSelectedSubPeriod] = useState(CURRENT_MONTH); // 'Jan'..'Dec', 'Q1'..'Q4', 'H1'..'H2', 'Y26'
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [entryModalKpiKey, setEntryModalKpiKey] = useState(null);
@@ -470,8 +473,8 @@ function App() {
   // Helper para métricas do subperíodo ativo
   const getSubPeriodMetric = useCallback((monthlyArr, quarterlyArr, valueKey = 'result', aggregate = 'avg', lowerIsBetter = true, unit = '%') => {
     const isAnnual = period === 'annual';
-    const subLabel = isAnnual ? currentYearLabel : `${selectedSubPeriod}/${currentYearLabel.substring(2)}`;
-    const prevSubLabel = isAnnual ? prevYearLabel : `${selectedSubPeriod}/${prevYearLabel.substring(2)}`;
+    const subLabel = isAnnual ? currentYearLabel : `${t(`months.${selectedSubPeriod}`, selectedSubPeriod)}/${currentYearLabel.substring(2)}`;
+    const prevSubLabel = isAnnual ? prevYearLabel : `${t(`months.${selectedSubPeriod}`, selectedSubPeriod)}/${prevYearLabel.substring(2)}`;
 
     const current = getPeriodStats(monthlyArr, quarterlyArr, selectedYear, valueKey, aggregate, lowerIsBetter);
     const previous = getPeriodStats(monthlyArr, quarterlyArr, prevYear, valueKey, aggregate, lowerIsBetter);
@@ -597,6 +600,8 @@ function App() {
   return (
     <div className="app-layout">
       <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
         activeItem={activeTab}
         onNavigate={handleSidebarNavigate}
         onOpenHelp={() => setIsMetricsModalOpen(true)}
@@ -607,6 +612,7 @@ function App() {
 
       <div className="main-wrapper">
         <Header
+          onMenuToggle={() => setIsSidebarOpen(true)}
           alerts={activeAlerts}
           onNavigate={handleSidebarNavigate}
           onVerifyAlert={handleVerifyAlert}
@@ -652,7 +658,7 @@ function App() {
                 <div className="period-filter-card">
                   <div className="period-filter-card__label">
                     <Calendar size={14} />
-                    Period Filter & Grouping
+                    {t('filter.title')}
                   </div>
                   <PeriodFilter
                     activePeriod={period}
@@ -672,7 +678,7 @@ function App() {
                   <KPICard
                     key={m.key}
                     onClick={() => handleSidebarNavigate(m.key)}
-                    title={m.name}
+                    title={t(`nav.${m.key}`)}
                     subPeriodLabel={m.subLabel}
                     color={m.color}
                     unit={m.unit}
@@ -697,11 +703,11 @@ function App() {
                 <div className="global-warning-banner animate-fade-in">
                   <AlertTriangle size={18} className="text-warning" />
                   <div className="global-warning-banner__text">
-                    <strong>No data loaded:</strong> the API did not respond
-                    {loadError ? ` (${loadError})` : ''}. Nothing is displayed until the connection is restored.
+                    <strong>{t('app.no_data_loaded')}</strong> {t('app.api_error')}
+                    {loadError ? ` (${loadError})` : ''}{t('app.until_restored')}
                   </div>
                   <button className="btn btn--sm btn--primary" onClick={loadFromApi}>
-                    Try again
+                    {t('app.try_again')}
                   </button>
                 </div>
               )}
@@ -740,7 +746,7 @@ function App() {
                   )}
                   <KPISection
                     kpiKey={activeKpi.key}
-                    title={activeKpi.name}
+                    title={t('nav.' + activeKpi.key)}
                     icon={activeKpi.icon}
                     monthlyData={activeKpi.monthly}
                     quarterlyData={activeKpi.quarterly}
@@ -762,14 +768,14 @@ function App() {
         </main>
 
         <footer className="dashboard-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-          <span>Logistics KPI Dashboard — Prototype v1.1 | Homologated Analytics &amp; Integrity Engine | LG Electronics DXI</span>
+          <span>{t('app.footer_text')}</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem' }}>
             <span style={{
               display: 'inline-block', padding: '2px 8px', borderRadius: '9999px',
               background: dataSource === 'api' ? '#16a34a' : dataSource === 'error' ? '#dc2626' : '#d97706',
               color: '#fff', fontWeight: 600, letterSpacing: '0.02em',
             }}>
-              {dataSource === 'api' ? '● API' : dataSource === 'error' ? '● API OFFLINE' : '● LOADING'}
+              {dataSource === 'api' ? '● ' + t('app.api') : dataSource === 'error' ? '● ' + t('app.api_offline') : '● ' + t('app.loading')}
             </span>
             <button
               onClick={loadFromApi}
@@ -780,7 +786,7 @@ function App() {
               }}
               title="Reload API data"
             >
-              ↻ Reload
+              ↻ {t('app.reload')}
             </button>
           </span>
         </footer>

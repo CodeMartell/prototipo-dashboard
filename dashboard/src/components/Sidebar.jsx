@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   DollarSign,
@@ -13,23 +14,26 @@ import {
   Lock,
   Users,
   Shield,
+  X
 } from 'lucide-react';
 import { getCurrentUser } from '../services/api';
 import { canReadUsers, canReadAuditLog } from '../services/permissions';
 
 // Os badges acompanham a unidade real de cada indicador no banco.
 const NAV_ITEMS = [
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Overview', badge: 'Global' },
-  { id: 'logisticCost', icon: DollarSign, label: 'War Room Report', badge: '%' },
-  { id: 'totalCost', icon: TrendingDown, label: 'Task Cost Reduction', badge: 'KBRL' },
-  { id: 'airFreight', icon: Plane, label: 'Air Freight', badge: '%' },
-  { id: 'demurrage', icon: Anchor, label: 'Demurrage Cost', badge: 'CTNR' },
-  { id: 'logisticsVsProd', icon: Package, label: 'Incidental Cost', badge: 'Ratio' },
-  { id: 'incidentialCost', icon: Layers, label: 'Resin Consolidation', badge: 'KUSD' },
-  { id: 'analytics', icon: BarChart2, label: 'Analytics', badge: 'New' },
+  { id: 'dashboard', icon: LayoutDashboard, badge: 'Global' },
+  { id: 'logisticCost', icon: DollarSign, badge: '%' },
+  { id: 'totalCost', icon: TrendingDown, badge: 'KBRL' },
+  { id: 'airFreight', icon: Plane, badge: '%' },
+  { id: 'demurrage', icon: Anchor, badge: 'CTNR' },
+  { id: 'logisticsVsProd', icon: Package, badge: 'Ratio' },
+  { id: 'incidentialCost', icon: Layers, badge: 'KUSD' },
+  { id: 'analytics', icon: BarChart2, badge: 'New' },
 ];
 
-export default function Sidebar({ 
+export default function Sidebar({
+  isOpen = false,
+  onClose, 
   activeItem = 'dashboard', 
   onNavigate, 
   onOpenHelp,
@@ -39,22 +43,29 @@ export default function Sidebar({
 }) {
   const navigate = useNavigate();
   const user = getCurrentUser();
+  const { t } = useTranslation();
   const showUsersLink = canReadUsers(user);
   const showAuditLink = canReadAuditLog(user);
 
   return (
-    <aside className="sidebar">
+    
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div className="sidebar-backdrop" onClick={onClose} />
+      )}
+      <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`}>
       <div className="sidebar__brand">
         <div className="sidebar__brand-icon">LC</div>
         <div className="sidebar__brand-text">
-          <span className="sidebar__brand-name">Logistics Cost</span>
-          <span className="sidebar__brand-sub">LG Electronics · DXI</span>
+          <span className="sidebar__brand-name">{t('sidebar.brand')}</span>
+          <span className="sidebar__brand-sub">{t('sidebar.sub')}</span>
         </div>
       </div>
 
       <nav className="sidebar__nav">
-        <div className="sidebar__section-label">AVAILABLE DASHBOARDS</div>
-        {NAV_ITEMS.map(({ id, icon: Icon, label, badge }) => {
+        <div className="sidebar__section-label">{t('sidebar.available_dashboards')}</div>
+        {NAV_ITEMS.map(({ id, icon: Icon, badge }) => {
           const hasAlert = kpisWithAlerts.includes(id);
           const isAnalytics = id === 'analytics';
           // Analytics segue visivel mas bloqueado enquanto a feature nao for liberada.
@@ -74,7 +85,7 @@ export default function Sidebar({
               }}
             >
               {isLocked ? <Lock size={16} /> : <Icon size={16} />}
-              <span className="sidebar__item-label">{label}</span>
+              <span className="sidebar__item-label">{t(`nav.${id}`)}</span>
               {hasAlert && (
                 <span className="sidebar__item-warning" title="Inconsistency or fluctuation alert detected">
                   <AlertTriangle size={12} className="text-warning" />
@@ -94,7 +105,7 @@ export default function Sidebar({
         {(showUsersLink || showAuditLink) && (
           <>
             <div className="sidebar__section-label" style={{ marginTop: '1.25rem' }}>
-              GOVERNANCE &amp; ADMIN
+              {t('sidebar.governance')}
             </div>
 
             {showUsersLink && (
@@ -105,7 +116,7 @@ export default function Sidebar({
                 title="Gestão de Usuários e Permissões"
               >
                 <Users size={16} />
-                <span className="sidebar__item-label">Usuários</span>
+                <span className="sidebar__item-label">{t('sidebar.users')}</span>
               </button>
             )}
 
@@ -117,7 +128,7 @@ export default function Sidebar({
                 title="Trilha de Auditoria (Audit Log)"
               >
                 <Shield size={16} />
-                <span className="sidebar__item-label">Audit Log</span>
+                <span className="sidebar__item-label">{t('sidebar.audit')}</span>
               </button>
             )}
           </>
@@ -127,15 +138,16 @@ export default function Sidebar({
       <div className="sidebar__help-box" onClick={onOpenHelp}>
         <HelpCircle size={16} />
         <div>
-          <strong>Data Origin?</strong>
-          <span>Understand all metrics</span>
+          <strong>{t('sidebar.help_title')}</strong>
+          <span>{t('sidebar.help_sub')}</span>
         </div>
       </div>
 
       <div className="sidebar__footer">
-        Logistics Platform · LG DXI
+        {t('sidebar.footer')}
       </div>
     </aside>
+    </>
   );
 }
 

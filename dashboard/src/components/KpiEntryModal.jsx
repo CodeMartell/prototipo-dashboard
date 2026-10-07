@@ -3,6 +3,7 @@ import { X, Save, AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { MONTHS } from '../utils/kpiData';
 import { saveKpiRecord, saveLogisticsVsProd, deleteKpiRecord } from '../services/api';
 import { canDeleteKpiData } from '../services/permissions';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Lançamento manual dos valores de um indicador num mês.
@@ -17,12 +18,15 @@ import { canDeleteKpiData } from '../services/permissions';
 
 const isPercentUnit = (unit) => unit === '%';
 
-const UNIT_HINT = {
-  '%': 'em % (ex.: 4,7 para 4,7%)',
-  KUSD: 'em milhares de USD',
-  KBRL: 'em milhares de BRL',
-  MUSD: 'em milhões de USD',
-  CTNR: 'em quantidade de contêineres',
+const getUnitHint = (unit, t) => {
+  const map = {
+    '%': t('kpi_modal.hint_pct'),
+    KUSD: t('kpi_modal.hint_kusd'),
+    KBRL: t('kpi_modal.hint_kbrl'),
+    MUSD: t('kpi_modal.hint_musd'),
+    CTNR: t('kpi_modal.hint_ctnr'),
+  };
+  return map[unit];
 };
 
 /** Aceita vírgula como separador decimal, como o usuário digita em pt-BR. */
@@ -50,7 +54,7 @@ export default function KpiEntryModal({
   currentUser,
   onSaved,
 }) {
-
+  const { t } = useTranslation();
   const isRatioKpi = kpi?.valueKey === 'ratio';
 
   const [year, setYear] = useState(defaultYear);
@@ -117,11 +121,11 @@ export default function KpiEntryModal({
     for (const name of required) {
       const value = parseNumber(fields[name]);
       if (value === null) {
-        setError('Preencha os dois campos com números válidos.');
+        setError(t('kpi_modal.err_fill_both'));
         return;
       }
       if (value < 0) {
-        setError('Valores negativos não são aceitos.');
+        setError(t('kpi_modal.err_negative'));
         return;
       }
       parsed[name] = value;
@@ -148,7 +152,7 @@ export default function KpiEntryModal({
       await onSaved?.();
       onClose?.();
     } catch (err) {
-      setError(err.message || 'Não foi possível salvar. Tente novamente.');
+      setError(err.message || t('kpi_modal.err_save'));
     } finally {
       setIsSaving(false);
     }
@@ -162,14 +166,14 @@ export default function KpiEntryModal({
       await onSaved?.();
       onClose?.();
     } catch (err) {
-      setError(err.message || 'Não foi possível excluir o lançamento. Tente novamente.');
+      setError(err.message || t('kpi_modal.err_delete'));
       setDeleteConfirm(false);
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const hint = UNIT_HINT[kpi.unit] || '';
+  const hint = getUnitHint(kpi.unit, t) || '';
 
   return (
     <div className="modal-overlay" onClick={onClose} role="presentation">
@@ -182,9 +186,9 @@ export default function KpiEntryModal({
       >
         <div className="modal-header">
           <div>
-            <h2 id="kpi-entry-title">Manual entry — {kpi.name}</h2>
+            <h2 id="kpi-entry-title">{t('kpi_modal.title_manual').replace('{name}', kpi.name)}</h2>
             <p className="kpi-entry-modal__subtitle">
-              {existingRecord ? 'Updating an existing record' : 'Creating a new record'} for the selected period.
+              {existingRecord ? t('kpi_modal.subtitle_update') : t('kpi_modal.subtitle_create')}{t('kpi_modal.subtitle_suffix')}
             </p>
           </div>
           <button type="button" className="btn-close" onClick={onClose} aria-label="Close">
@@ -195,7 +199,7 @@ export default function KpiEntryModal({
         <form className="kpi-entry-form" onSubmit={handleSubmit}>
           <div className="kpi-entry-form__row">
             <label className="kpi-entry-field">
-              <span>Year</span>
+              <span>{t('kpi_modal.lbl_year')}</span>
               <select value={year} onChange={(event) => setYear(event.target.value)}>
                 {yearOptions.map((option) => (
                   <option key={option} value={option}>
@@ -206,7 +210,7 @@ export default function KpiEntryModal({
             </label>
 
             <label className="kpi-entry-field">
-              <span>Month</span>
+              <span>{t('kpi_modal.lbl_month')}</span>
               <select value={month} onChange={(event) => setMonth(event.target.value)}>
                 {MONTHS.map((option) => (
                   <option key={option} value={option}>
@@ -220,7 +224,7 @@ export default function KpiEntryModal({
           {isRatioKpi ? (
             <div className="kpi-entry-form__row">
               <label className="kpi-entry-field">
-                <span>Logistics cost (MUSD)</span>
+                <span>{t('kpi_modal.lbl_log_cost')}</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -231,7 +235,7 @@ export default function KpiEntryModal({
                 />
               </label>
               <label className="kpi-entry-field">
-                <span>Production amount (MUSD)</span>
+                <span>{t('kpi_modal.lbl_prod_amt')}</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -244,7 +248,7 @@ export default function KpiEntryModal({
           ) : (
             <div className="kpi-entry-form__row">
               <label className="kpi-entry-field">
-                <span>Target {hint && <small>{hint}</small>}</span>
+                <span>{t('kpi_modal.lbl_target')} {hint && <small>{hint}</small>}</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -255,7 +259,7 @@ export default function KpiEntryModal({
                 />
               </label>
               <label className="kpi-entry-field">
-                <span>Result {hint && <small>{hint}</small>}</span>
+                <span>{t('kpi_modal.lbl_result')} {hint && <small>{hint}</small>}</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -269,8 +273,8 @@ export default function KpiEntryModal({
 
           <p className="kpi-entry-form__note">
             {isRatioKpi
-              ? 'The ratio is calculated by the backend from cost and production.'
-              : 'Target achievement is calculated by the backend based on the indicator direction.'}
+              ? t('kpi_modal.note_ratio')
+              : t('kpi_modal.note_target')}
           </p>
 
           {error && (
@@ -287,7 +291,7 @@ export default function KpiEntryModal({
                 {deleteConfirm ? (
                   <>
                     <span className="kpi-entry-form__delete-warning">
-                      <AlertTriangle size={13} /> Excluir permanentemente?
+                      <AlertTriangle size={13} /> {t('kpi_modal.del_warning')}
                     </span>
                     <button
                       type="button"
@@ -296,7 +300,7 @@ export default function KpiEntryModal({
                       disabled={isDeleting}
                     >
                       {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                      {isDeleting ? 'Excluindo...' : 'Confirmar exclusão'}
+                      {isDeleting ? t('kpi_modal.btn_deleting') : t('kpi_modal.btn_confirm_del')}
                     </button>
                     <button
                       type="button"
@@ -304,7 +308,7 @@ export default function KpiEntryModal({
                       onClick={() => setDeleteConfirm(false)}
                       disabled={isDeleting}
                     >
-                      Cancelar
+                      {t('kpi_modal.btn_cancel')}
                     </button>
                   </>
                 ) : (
@@ -315,7 +319,7 @@ export default function KpiEntryModal({
                     disabled={isSaving}
                   >
                     <Trash2 size={14} />
-                    Deletar lançamento
+                    {t('kpi_modal.btn_del_entry')}
                   </button>
                 )}
               </div>
@@ -324,11 +328,11 @@ export default function KpiEntryModal({
 
             <div className="kpi-entry-form__save-zone">
               <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isSaving || isDeleting}>
-                Cancel
+                {t('kpi_modal.btn_cancel')}
               </button>
               <button type="submit" className="btn btn--primary" disabled={isSaving || isDeleting}>
                 {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                {isSaving ? 'Saving...' : 'Save values'}
+                {isSaving ? t('kpi_modal.btn_saving') : t('kpi_modal.btn_save')}
               </button>
             </div>
           </div>

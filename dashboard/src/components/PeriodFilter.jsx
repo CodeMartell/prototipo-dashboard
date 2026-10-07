@@ -1,5 +1,6 @@
 import React from 'react';
 import { CalendarDays } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function PeriodFilter({
   activePeriod,
@@ -10,38 +11,40 @@ export default function PeriodFilter({
   selectedYear,
   onYearChange,
 }) {
+  const { t } = useTranslation();
+
   const periods = [
-    { key: 'monthly', label: 'Monthly' },
-    { key: 'quarterly', label: 'Quarterly' },
-    { key: 'semiannual', label: 'Semiannual' },
-    { key: 'annual', label: 'Annual' },
+    { key: 'monthly', label: t('filter.monthly') },
+    { key: 'quarterly', label: t('filter.quarterly') },
+    { key: 'semiannual', label: t('filter.semiannual') },
+    { key: 'annual', label: t('filter.annual') },
   ];
 
   const monthOptions = [
-    { key: 'Jan', label: 'Jan' },
-    { key: 'Feb', label: 'Feb' },
-    { key: 'Mar', label: 'Mar' },
-    { key: 'Apr', label: 'Apr' },
-    { key: 'May', label: 'May' },
-    { key: 'Jun', label: 'Jun' },
-    { key: 'Jul', label: 'Jul' },
-    { key: 'Aug', label: 'Aug' },
-    { key: 'Sep', label: 'Sep' },
-    { key: 'Oct', label: 'Oct' },
-    { key: 'Nov', label: 'Nov' },
-    { key: 'Dec', label: 'Dec' },
+    { key: 'Jan', label: t('filter.Jan') },
+    { key: 'Feb', label: t('filter.Feb') },
+    { key: 'Mar', label: t('filter.Mar') },
+    { key: 'Apr', label: t('filter.Apr') },
+    { key: 'May', label: t('filter.May') },
+    { key: 'Jun', label: t('filter.Jun') },
+    { key: 'Jul', label: t('filter.Jul') },
+    { key: 'Aug', label: t('filter.Aug') },
+    { key: 'Sep', label: t('filter.Sep') },
+    { key: 'Oct', label: t('filter.Oct') },
+    { key: 'Nov', label: t('filter.Nov') },
+    { key: 'Dec', label: t('filter.Dec') },
   ];
 
   const quarterOptions = [
-    { key: 'Q1', label: '1st Qtr (Q1)' },
-    { key: 'Q2', label: '2nd Qtr (Q2)' },
-    { key: 'Q3', label: '3rd Qtr (Q3)' },
-    { key: 'Q4', label: '4th Qtr (Q4)' },
+    { key: 'Q1', label: t('filter.Q1') },
+    { key: 'Q2', label: t('filter.Q2') },
+    { key: 'Q3', label: t('filter.Q3') },
+    { key: 'Q4', label: t('filter.Q4') },
   ];
 
   const semesterOptions = [
-    { key: 'H1', label: '1st Sem (H1)' },
-    { key: 'H2', label: '2nd Sem (H2)' },
+    { key: 'H1', label: t('filter.H1') },
+    { key: 'H2', label: t('filter.H2') },
   ];
 
   return (
@@ -63,7 +66,7 @@ export default function PeriodFilter({
         {/* Seletor de ano — sempre visível, independente do tipo de período */}
         <div className="year-selector">
           <CalendarDays size={13} className="year-selector__icon" />
-          <label className="year-selector__label" htmlFor="global-year-select">Year:</label>
+          <label className="year-selector__label" htmlFor="global-year-select">{t('filter.year')}</label>
           <select
             id="global-year-select"
             className="year-select"
@@ -82,7 +85,7 @@ export default function PeriodFilter({
       {/* Sub-seletor de período — só aparece quando NÃO é anual */}
       {activePeriod === 'monthly' && (
         <div className="sub-period-filter">
-          <span className="sub-period-filter__label">Month under Verification:</span>
+          <span className="sub-period-filter__label">{t('filter.month_under')}</span>
           <div className="sub-period-pills-scroll">
             {monthOptions.map((m) => (
               <button
@@ -99,7 +102,7 @@ export default function PeriodFilter({
 
       {activePeriod === 'quarterly' && (
         <div className="sub-period-filter">
-          <span className="sub-period-filter__label">Quarter under Verification:</span>
+          <span className="sub-period-filter__label">{t('filter.quarter_under')}</span>
           <div className="sub-period-pills-scroll">
             {quarterOptions.map((q) => (
               <button
@@ -116,7 +119,7 @@ export default function PeriodFilter({
 
       {activePeriod === 'semiannual' && (
         <div className="sub-period-filter">
-          <span className="sub-period-filter__label">Semester under Verification:</span>
+          <span className="sub-period-filter__label">{t('filter.semester_under')}</span>
           <div className="sub-period-pills-scroll">
             {semesterOptions.map((s) => (
               <button
@@ -135,7 +138,7 @@ export default function PeriodFilter({
       {activePeriod === 'annual' && (
         <div className="sub-period-filter sub-period-filter--annual-hint">
           <span className="sub-period-filter__label">
-            Displaying full year data for <strong>{yearOptions.find(y => y.key === selectedYear)?.label ?? selectedYear}</strong>. Use the year selector above to switch.
+            {t('filter.displaying_full')} <strong>{yearOptions.find(y => y.key === selectedYear)?.label ?? selectedYear}</strong>. {t('filter.use_selector')}
           </span>
         </div>
       )}

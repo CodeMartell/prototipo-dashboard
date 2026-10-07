@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { login } from '../services/api';
 import AxAcademyLogo from '../components/AxAcademyLogo';
+import { useTranslation } from 'react-i18next';
 import './LoginPage.css';
 
 /* ══════════════════════════════════════════════
@@ -240,8 +241,95 @@ function DataLensIcon({ size = 20 }) {
 /* ══════════════════════════════════════════════
    COMPONENTE PRINCIPAL — LoginPage
    ══════════════════════════════════════════════ */
+
+const LanguageSelector = () => {
+  const { t, i18n } = useTranslation();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const langs = [
+    { code: 'pt', src: 'https://flagcdn.com/w20/br.png', alt: 'BR' },
+    { code: 'en', src: 'https://flagcdn.com/w20/us.png', alt: 'US' },
+    { code: 'ko', src: 'https://flagcdn.com/w20/kr.png', alt: 'KR' }
+  ];
+  
+  const currentLang = langs.find(l => l.code === i18n.language) || langs[0];
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block', marginLeft: '8px' }}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        title={t('header?.language') || 'Language'}
+        style={{
+          background: 'transparent',
+          color: 'inherit',
+          border: '1px solid var(--border, rgba(255,255,255,0.2))',
+          borderRadius: '4px',
+          padding: '6px 8px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <img src={currentLang.src} alt={currentLang.alt} style={{ width: '18px', height: '13px', objectFit: 'cover', borderRadius: '2px' }} />
+      </button>
+
+      {isOpen && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          right: 0,
+          marginTop: '4px',
+          background: 'var(--bg-card, #1e293b)',
+          border: '1px solid var(--border, rgba(255,255,255,0.1))',
+          borderRadius: '6px',
+          padding: '4px',
+          zIndex: 50,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+        }}>
+          {langs.map(lang => (
+            <button
+              key={lang.code}
+              onClick={() => { i18n.changeLanguage(lang.code); setIsOpen(false); }}
+              style={{
+                background: i18n.language === lang.code ? 'var(--highlight, rgba(124, 58, 237, 0.2))' : 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '6px 12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'background 0.2s',
+                minWidth: '50px',
+                justifyContent: 'center'
+              }}
+            >
+              <img src={lang.src} alt={lang.alt} style={{ width: '18px', height: '13px', objectFit: 'cover', borderRadius: '2px' }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   /* Estados do formulário */
   const [email, setEmail]         = useState('');
@@ -275,11 +363,11 @@ export default function LoginPage() {
 
   /* Validation */
   const validateEmail = (v) => {
-    if (!v) return 'Email is required.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Please enter a valid corporate email.';
+    if (!v) return t('login.email_req');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return t('login.email_inv');
     return '';
   };
-  const validatePassword = (v) => (!v ? 'Password is required.' : '');
+  const validatePassword = (v) => (!v ? t('login.pass_req') : '');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -294,7 +382,7 @@ export default function LoginPage() {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setAuthError(err.message || 'Unable to sign in. Please try again.');
+      setAuthError(err.message || t('login.err_msg'));
     } finally {
       setIsLoading(false);
     }
@@ -307,6 +395,9 @@ export default function LoginPage() {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
+      <div style={{ position: 'absolute', top: '20px', right: '30px', zIndex: 10 }}>
+        <LanguageSelector />
+      </div>
       {/* Interactive Background */}
       <AnalyticBackground parallax={parallax} mouseNorm={mouseNorm} />
 
@@ -315,7 +406,7 @@ export default function LoginPage() {
         <div className="login-card__header">
           <div className="login-card__logo-mark"><DataLensIcon size={18} /></div>
           <h1 className="login-card__title">DataLens</h1>
-          <p className="login-card__subtitle">Access your corporate account to continue.</p>
+          <p className="login-card__subtitle">{t('login.subtitle')}</p>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>
@@ -323,7 +414,7 @@ export default function LoginPage() {
             <div className="login-error-banner" role="alert">
               <AlertTriangle size={14} className="login-error-banner__icon" />
               <div className="login-error-banner__text">
-                <strong>Access denied</strong>
+                <strong>{t('login.access_denied')}</strong>
                 {authError}
               </div>
             </div>
@@ -331,7 +422,7 @@ export default function LoginPage() {
 
           {/* Email */}
           <div className={`form-field${errors.email ? ' form-field--error' : ''}`}>
-            <label className="form-field__label" htmlFor="login-email">Corporate Email</label>
+            <label className="form-field__label" htmlFor="login-email">{t('login.email_label')}</label>
             <div className="form-field__input-wrap">
               <Mail size={15} className="form-field__icon" aria-hidden="true" />
               <input
@@ -359,7 +450,7 @@ export default function LoginPage() {
 
           {/* Password */}
           <div className={`form-field${errors.password ? ' form-field--error' : ''}`}>
-            <label className="form-field__label" htmlFor="login-password">Password</label>
+            <label className="form-field__label" htmlFor="login-password">{t('login.pass_label')}</label>
             <div className="form-field__input-wrap">
               <Lock size={15} className="form-field__icon" aria-hidden="true" />
               <input
@@ -393,13 +484,13 @@ export default function LoginPage() {
 
           <button type="submit" className="btn-login" disabled={isLoading} aria-busy={isLoading}>
             {isLoading
-              ? (<><span className="btn-login__spinner" aria-hidden="true" />Verifying access…</>)
-              : 'Sign In'}
+              ? (<><span className="btn-login__spinner" aria-hidden="true" />{t('login.verifying')}</>)
+              : t('login.sign_in')}
           </button>
 
           <div className="login-form__forgot">
             <button type="button" className="login-form__forgot-link" onClick={() => {}}>
-              Forgot my password
+              {t('login.forgot')}
             </button>
           </div>
         </form>
@@ -407,11 +498,11 @@ export default function LoginPage() {
         <footer className="login-card__footer">
           <div className="login-card__security">
             <ShieldCheck size={11} aria-hidden="true" />
-            <span>Restricted access to authorized employees.</span>
+            <span>{t('login.restricted')}</span>
           </div>
 
           <div className="login-card__dev-credit">
-            <span className="login-card__dev-label">Developed by</span>
+            <span className="login-card__dev-label">{t('login.dev_by')}</span>
             <div className="login-card__dev-logo-wrap">
               <AxAcademyLogo className="login-card__dev-vector" />
             </div>

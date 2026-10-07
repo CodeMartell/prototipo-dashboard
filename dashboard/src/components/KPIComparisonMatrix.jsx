@@ -4,6 +4,7 @@ import {
   formatTargetAchievement,
   getAchievementStatusClass,
 } from '../utils/formatters';
+import { useTranslation } from 'react-i18next';
 
 const PERIOD_NOUN = {
   monthly: 'Month',
@@ -18,13 +19,15 @@ export default function KPIComparisonMatrix({
   selectedYear,
   metrics = [],
 }) {
+  const { t } = useTranslation();
+  
   const currentYearLabel = `20${selectedYear.substring(1)}`;
   const prevYearLabel = `20${parseInt(selectedYear.substring(1)) - 1}`;
 
   const isAnnual = periodType === 'annual';
-  const currentPeriodLabel = isAnnual ? currentYearLabel : `${selectedSubPeriod}/${currentYearLabel.substring(2)}`;
-  const prevPeriodLabel = isAnnual ? prevYearLabel : `${selectedSubPeriod}/${prevYearLabel.substring(2)}`;
-  const periodNoun = PERIOD_NOUN[periodType] || 'Period';
+  const currentPeriodLabel = isAnnual ? currentYearLabel : `${t(`months.${selectedSubPeriod}`, selectedSubPeriod)}/${currentYearLabel.substring(2)}`;
+  const prevPeriodLabel = isAnnual ? prevYearLabel : `${t(`months.${selectedSubPeriod}`, selectedSubPeriod)}/${prevYearLabel.substring(2)}`;
+  const periodNoun = t(`matrix.noun_${periodType}`);
 
   const renderAchievement = (value, metric, actualValue) => {
     // Incidental Cost não tem semáforo (noTrafficLight)
@@ -64,28 +67,28 @@ export default function KPIComparisonMatrix({
   return (
     <div className="kpi-matrix-panel animate-fade-in">
       <div className="kpi-matrix-header">
-        <h3 className="kpi-matrix-title">KPI Comparison Matrix — Clear View of Indicators</h3>
+        <h3 className="kpi-matrix-title">{t('kpi.matrix_title')}</h3>
       </div>
 
       <div className="kpi-matrix-table-container">
         <table className="kpi-matrix-table">
           <thead>
             <tr className="kpi-matrix-table__group-row">
-              <th rowSpan={2}>Indicator / Metric</th>
+              <th rowSpan={2}>{t('matrix.indicator')}</th>
               <th colSpan={3} className="matrix-group matrix-group--past">
-                Past {periodNoun} ({prevPeriodLabel})
+                {t('matrix.past')} {periodNoun} ({prevPeriodLabel})
               </th>
               <th colSpan={3} className="matrix-group matrix-group--current">
-                Current {periodNoun} ({currentPeriodLabel})
+                {t('matrix.current')} {periodNoun} ({currentPeriodLabel})
               </th>
             </tr>
             <tr>
-              <th className="matrix-group--past">Actual</th>
-              <th className="matrix-group--past">Target</th>
-              <th className="matrix-group--past">Achievement</th>
-              <th className="matrix-group--current">Actual</th>
-              <th className="matrix-group--current">Target</th>
-              <th className="matrix-group--current">Achievement</th>
+              <th className="matrix-group--past">{t('matrix.actual')}</th>
+              <th className="matrix-group--past">{t('matrix.target')}</th>
+              <th className="matrix-group--past">{t('matrix.achievement')}</th>
+              <th className="matrix-group--current">{t('matrix.actual')}</th>
+              <th className="matrix-group--current">{t('matrix.target')}</th>
+              <th className="matrix-group--current">{t('matrix.achievement')}</th>
             </tr>
           </thead>
           <tbody>
@@ -103,7 +106,7 @@ export default function KPIComparisonMatrix({
                     ) : (
                       <span className="matrix-cell-dot" aria-hidden="true" />
                     )}
-                    <strong>{m.name}</strong>
+                    <strong>{t(`nav.${m.key}`)}</strong>
                   </td>
 
                   <td className="matrix-cell--past">{formatMetricValue(m.prevValue, m.unit)}</td>

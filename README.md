@@ -281,9 +281,17 @@ O script de seed (`seed_rbac.py`) e o script de reset (`reset_local_data.py`) pr
 ## 🚀 Como Testar a Aplicação Ponta a Ponta
 
 
-Você pode testar a aplicação de duas maneiras:
-- **Método 1 (Recomendado):** Execução Direta / Local (muito mais rápida, utiliza SQLite e não depende do Docker).
-- **Método 2:** Execução com Docker Compose (orquestra contêineres com PostgreSQL e Nginx).
+### ⚡ Inicialização Rápida Automática (Windows)
+Se você estiver no Windows e tiver o Docker instalado, a forma mais fácil de subir toda a infraestrutura sem dor de cabeça é usando o script de automação:
+1. Dê **dois cliques no arquivo `start.bat`** (ou execute `.\start.bat` no terminal).
+2. Aguarde. O script verificará as dependências, configurará o ambiente e abrirá o projeto automaticamente.
+
+---
+
+### Execução Manual
+Caso você use outro sistema operacional ou prefira rodar passo a passo manualmente, escolha um dos métodos abaixo:
+- **Método 1:** Execução Direta / Local (Sem Docker, utiliza banco leve SQLite).
+- **Método 2:** Execução Manual com Docker Compose (orquestra contêineres com PostgreSQL e Nginx).
 
 ---
 

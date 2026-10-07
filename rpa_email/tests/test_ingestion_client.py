@@ -1,4 +1,6 @@
 import json
+import imaplib
+import ssl
 from email.message import EmailMessage
 from unittest.mock import Mock
 
@@ -79,6 +81,36 @@ def test_failed_send_can_retry_then_skips_locally(tmp_path, monkeypatch):
     assert sender.send.call_args_list[0] == sender.send.call_args_list[1]
     folders = [call.args[1] for call in service.handler.save_attachments.call_args_list]
     assert folders[0] != folders[1]
+
+
+def test_fetch_reconnects_once_after_an_imap_ssl_failure(tmp_path, monkeypatch):
+    service, _, sender, _ = service_setup(tmp_path, monkeypatch)
+    first_client, refreshed_client = Mock(), Mock()
+    service.handler.connect.side_effect = [first_client, refreshed_client]
+    original_message = service.handler.fetch.return_value
+    service.handler.fetch.side_effect = [ssl.SSLError('connection closed'), original_message]
+
+    result = service.execute()
+
+    assert (result.processed, result.errors) == (1, 0)
+    assert service.handler.connect.call_count == 2
+    first_client.logout.assert_called_once()
+    assert service.handler.fetch.call_args_list[1].args[0] is refreshed_client
+    sender.send.assert_called_once()
+
+
+def test_fetch_reconnects_after_a_closed_imap_session(tmp_path, monkeypatch):
+    service, _, sender, _ = service_setup(tmp_path, monkeypatch)
+    first_client, refreshed_client = Mock(), Mock()
+    service.handler.connect.side_effect = [first_client, refreshed_client]
+    original_message = service.handler.fetch.return_value
+    service.handler.fetch.side_effect = [imaplib.IMAP4.error('connection is logged out'), original_message]
+
+    result = service.execute()
+
+    assert (result.processed, result.errors) == (1, 0)
+    assert service.handler.connect.call_count == 2
+    sender.send.assert_called_once()
 
 
 @pytest.mark.parametrize('failure', ['corrupt', 'empty', 'unconfirmed'])

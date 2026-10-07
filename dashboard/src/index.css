@@ -2206,8 +2206,8 @@ body {
 }
 
 .achievement-pill.alert {
-  background: rgba(245, 158, 11, 0.12);
-  color: var(--accent-amber);
+  background: rgba(250, 204, 21, 0.12);
+  color: #facc15;
 }
 
 .achievement-pill.critical {

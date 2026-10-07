@@ -73,14 +73,20 @@ export const calculateDeviation = (current, previous) => {
   return current - previous;
 };
 
-/** Atingimento da meta: (current / target) * 100. Casos especiais: target 0 (100% se current 0, 0% senão). */
-export const calculateTargetAchievement = (current, target, _lowerIsBetter = false) => {
+/**
+ * Atingimento da meta em percentual.
+ *
+ * Para custos, menor resultado representa melhor desempenho e a razão é
+ * target/current. Para ganhos, a razão é current/target. Meta zero mantém a
+ * regra especial usada por Demurrage.
+ */
+export const calculateTargetAchievement = (current, target, lowerIsBetter = false) => {
   if (target === null || target === undefined || Number.isNaN(target)) return null;
   if (current === null || current === undefined || Number.isNaN(current)) return null;
   if (target === 0) {
     return current === 0 ? 100 : 0;
   }
-  return (current / target) * 100;
+  return (lowerIsBetter ? target / current : current / target) * 100;
 };
 
 const isNumber = (value) => value !== null && value !== undefined && !Number.isNaN(value);

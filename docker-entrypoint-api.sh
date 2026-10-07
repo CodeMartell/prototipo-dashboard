@@ -6,7 +6,19 @@
 set -e
 
 echo "[api] Aplicando migrations..."
-alembic upgrade head
+# A base local pode ter sido criada por uma revisão histórica que não está
+# mais versionada no repositório. Nesse caso ela já contém o schema usado
+# pela API e não deve ficar indisponível só porque o Alembic não acha a
+# revisão anterior. Mantemos a inicialização estrita para qualquer outro
+# erro de migration.
+if ! migration_output=$(alembic upgrade head 2>&1); then
+  printf '%s\n' "$migration_output"
+  if printf '%s' "$migration_output" | grep -q "Can't locate revision identified by"; then
+    echo "[api] Aviso: revisão histórica ausente; usando o schema existente."
+  else
+    exit 1
+  fi
+fi
 
 echo "[api] Garantindo perfil ADMIN..."
 python scripts/seed_roles.py

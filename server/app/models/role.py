@@ -1,6 +1,6 @@
 """
 app/models/role.py
-Perfis de usuário (ex: ADMIN).
+Perfis de usuário (ADMIN, GESTOR, TI_SUPORTE, AUDITORIA, VIEWER).
 Separado de User para permitir permissões por perfil sem alterar a tabela de usuários.
 """
 import uuid

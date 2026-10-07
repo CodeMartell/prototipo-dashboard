@@ -19,4 +19,7 @@ class Role(Base):
     description: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     users = relationship("User", back_populates="role")
-    role_permissions = relationship("RolePermission", back_populates="role")
+    role_permissions = relationship("RolePermission", back_populates="role", cascade="all, delete-orphan")
+# Garante o registro da classe de associação para execuções que carregam
+# somente este módulo (por exemplo, scripts/create_admin.py).
+from app.models.permission import RolePermission  # noqa: F401, E402

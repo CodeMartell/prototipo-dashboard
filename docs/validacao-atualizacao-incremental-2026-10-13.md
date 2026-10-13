@@ -55,6 +55,24 @@ Também foi executado o fluxo equivalente ao uso produtivo:
 4. A API confirmou Jan e Oct preservados, com Nov = 1221 e Dec = 1258
    disponíveis para o DataLens Desktop.
 
+## Validação controlada no ambiente normal
+
+Foi realizado também um teste controlado na API normal em execução, após
+consulta prévia para não sobrescrever períodos existentes. Para `Nov/Y26`,
+foram enviados somente os quatro indicadores que estavam sem registro:
+
+| Indicador | Valor inserido |
+| --- | ---: |
+| War Room Report | 4.5 (meta 5.0) |
+| Task Cost Reduction | 825 (meta 700) |
+| Demurrage Cost | 0 (meta 0) |
+| Logistics Cost x Production | custo 370 / produção 7200 |
+
+O e-mail com quatro planilhas foi processado pelo RPA, a carga foi aprovada
+na API normal e os dados foram exibidos no DataLens Desktop. Air Freight e
+Resin Consolidation não foram incluídos na remessa porque já possuíam dados
+para o período e, portanto, permaneceram inalterados.
+
 ## Achado para acompanhamento
 
 No ambiente de homologação utilizado, a rota de ingestão confirmou o status

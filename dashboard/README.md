@@ -2,7 +2,7 @@
 
 Interface React 19 com Vite, Recharts, exportação CSV/XLSX e tradução por
 `i18next`/`react-i18next`. Para instalar e validar a aplicação completa, siga o
-[roteiro de execução e testes](../docs/roteiro-testes-aplicacao.md).
+[roteiro de execução e testes](../docs/guides/development.md).
 
 ## Comandos do frontend
 
@@ -32,5 +32,5 @@ HTTP e permissões, e `src/utils/` os cálculos e exportação.
 e `ko`, com idioma inicial e fallback `en`. Os textos ficam em
 `src/locales/{pt,en,ko}.json`; o seletor fica dentro de `Header.jsx` e chama
 `i18n.changeLanguage`. Ao acrescentar texto, mantenha as três traduções e confira
-o layout. A [proposta original](../docs/proposta-implementacao-i18n.md) permanece
+o layout. A [proposta original](../docs/history/i18n-proposal.md) permanece
 como registro histórico; ela não é uma lista de instalações ainda pendentes.

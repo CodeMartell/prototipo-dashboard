@@ -1,7 +1,7 @@
 # 🚀 Bot Extrator e Normalizador de Dados Logísticos (Épico 3)
 
 **Bot legado independente:** o fluxo atual do dashboard usa
-[`rpa_email`](../docs/automacao-rpa-email.md). Este diretório preserva o bot
+[`rpa_email`](../docs/architecture/email-ingestion.md). Este diretório preserva o bot
 autônomo do Épico 3, seus testes, planilha de simulação e relatório histórico.
 
 Serviço autônomo (backend / ETL) para **extração, validação, limpeza e normalização** de indicadores logísticos para a plataforma **War Room / DXI Dashboard**, com **envio de Relatório Executivo por E-mail para o Gestor**.

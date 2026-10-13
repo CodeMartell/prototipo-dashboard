@@ -1,5 +1,5 @@
 """
-scripts/reset_local_data.py
+scripts/development/reset_local_data.py
 Reseta todos os dados locais para testar a aplicação do zero absoluto:
 1. Apaga o banco SQLite local (dashboard.db)
 2. Limpa os anexos baixados em rpa_email/resources/attachments
@@ -15,7 +15,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
+ROOT_DIR = Path(__file__).resolve().parents[2]
 SERVER_DIR = ROOT_DIR / "server"
 ATTACHMENTS_DIR = ROOT_DIR / "rpa_email" / "resources" / "attachments"
 HISTORY_DB = ROOT_DIR / "rpa_email" / "resources" / "api_email_history.db"

@@ -3,7 +3,7 @@ import secrets
 from pathlib import Path
 from dotenv import dotenv_values
 
-root = Path(__file__).resolve().parents[1]
+root = Path(__file__).resolve().parents[2]
 path = root / '.env.homologacao'
 existing = dotenv_values(path) if path.exists() else {}
 required = {

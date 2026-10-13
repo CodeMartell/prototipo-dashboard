@@ -6,7 +6,7 @@
 > O backend atual usa FastAPI (`@app.middleware`), não `@app.before_request`.
 > Portanto, o roteiro abaixo não comprova HTTPS nem bloqueio dessas portas na
 > configuração atual. Para execução vigente, use o
-> [roteiro principal](roteiro-testes-aplicacao.md); revalidar segurança no ambiente alvo.
+> [roteiro principal](../guides/development.md); revalidar segurança no ambiente alvo.
 
 Este documento mapeia cada um dos requisitos solicitados originalmente no Épico 5, descrevendo exatamente como nossa equipe resolveu o problema no código e como você pode testar cada uma dessas melhorias na sua máquina.
 

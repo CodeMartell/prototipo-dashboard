@@ -144,7 +144,7 @@ def test_message_without_attachments_is_terminal_out_of_pattern(tmp_path, monkey
 
 @pytest.mark.parametrize('url,message_id', [('https://other.example.com', '<test@example.com>'), ('http://127.0.0.1:15001', '')])
 def test_controlled_ingestion_blocks_wrong_destination_or_missing_id(monkeypatch, url, message_id):
-    from scripts import ingest_validated_test as validation
+    from scripts.homologation import ingest_validated_test as validation
     monkeypatch.setattr(validation, 'dotenv_values', lambda path: {'RPA_API_URL': url})
     transport = Mock()
     monkeypatch.setattr(validation.httpx, 'Client', transport)

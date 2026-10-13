@@ -77,7 +77,7 @@ def test_encoded_subject():
 ])
 def test_gmail_validation_handles_interrupted_fetch(monkeypatch, capsys, error, code, message):
     import logging
-    from scripts import validate_gmail_test as validator
+    from scripts.homologation import validate_gmail_test as validator
 
     previous_level = logging.root.manager.disable
     monkeypatch.setattr(validator, 'dotenv_values', lambda path: {'EMAIL_USER': 'test@example.com', 'EMAIL_PASSWORD': 'secret-test'})

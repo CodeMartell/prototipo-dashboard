@@ -21,11 +21,11 @@ for box in boxes:
         st, _ = client.select(f'"{box}"', readonly=True)
         if st != 'OK':
             continue
-        
+
         _, data = client.uid('search', None, 'ALL')
         uids = data[0].split() if data and data[0] else []
         print(f"📁 Pasta: {box} (Total de mensagens: {len(uids)})")
-        
+
         # Pega os 5 mais recentes
         for uid in uids[-5:]:
             _, pl = client.uid('fetch', uid, '(RFC822)')
@@ -34,7 +34,7 @@ for box in boxes:
             frm = msg.get('From', '')
             to = msg.get('To', '')
             dt = msg.get('Date', '')
-            
+
             # Checa anexos
             attachments = []
             for part in msg.walk():
@@ -42,7 +42,7 @@ for box in boxes:
                     fn = part.get_filename()
                     if fn:
                         attachments.append(str(make_header(decode_header(fn))))
-            
+
             print(f"   UID {uid.decode()} | {dt}")
             print(f"     De: {frm}")
             print(f"     Para: {to}")

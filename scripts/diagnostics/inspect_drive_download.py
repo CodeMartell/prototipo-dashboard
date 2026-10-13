@@ -5,7 +5,7 @@ import tempfile
 import urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -25,11 +25,11 @@ def download_gdrive(file_id: str, dest: Path):
     cj = http.cookiejar.CookieJar()
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
     opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')]
-    
+
     url = f"https://drive.google.com/uc?export=download&id={file_id}"
     resp = opener.open(url)
     content = resp.read()
-    
+
     # Se retornou a página de confirmação de vírus
     confirm_token = None
     if b'confirm=' in content or b'download_warning' in content:
@@ -42,12 +42,12 @@ def download_gdrive(file_id: str, dest: Path):
             match = re.search(r'name="confirm"\s+value="([^"]+)"', html)
             if match:
                 confirm_token = match.group(1)
-        
+
         if confirm_token:
             url2 = f"https://drive.google.com/uc?export=download&confirm={confirm_token}&id={file_id}"
             resp2 = opener.open(url2)
             content = resp2.read()
-    
+
     with open(dest, 'wb') as f:
         f.write(content)
 

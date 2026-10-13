@@ -3,7 +3,7 @@ from email.header import decode_header, make_header
 from dotenv import load_dotenv
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / ".env")
 load_dotenv(ROOT / "rpa_email" / ".env")
 

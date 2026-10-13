@@ -6,8 +6,8 @@
 > FastAPI, e a matriz padrão inclui ADMIN, GESTOR, TI_SUPORTE, AUDITORIA e VIEWER.
 > Referências a Flask, VISUALIZADOR, aplicação imediata e comandos de ambientes
 > antigos devem ser lidas nesse contexto. A execução atual está no
-> [roteiro principal](roteiro-testes-aplicacao.md), e os limites no
-> [guia de automação](automacao-rpa-email.md). Revalidar os cenários com a fila.
+> [roteiro principal](../guides/development.md), e os limites no
+> [guia de automação](../architecture/email-ingestion.md). Revalidar os cenários com a fila.
 
 ## Escopo e execução
 
@@ -39,15 +39,17 @@ O teste JavaScript usa o runner nativo do Node (22 ou superior), sem dependênci
 
 ### Etapa 4 — Gmail real → ingestão local controlada
 
-Verificado com a mensagem sintética enviada pelo usuário: Gmail → anexo → extrator → cliente HTTP do robô → FastAPI → PostgreSQL de homologação → React. Primeiro envio `processed`, repetição `skipped`, valores confirmados por consulta autenticada e pela interface. Ambiente separado, porta limitada a 127.0.0.1:15001 e credenciais próprias da API. Instruções em [homologacao-gmail-local.md](homologacao-gmail-local.md). É um E2E técnico controlado; não equivale ao aceite dos usuários nem à produção.
+O E2E técnico controlado Gmail → API → React foi executado em 26/08/2026.
+Os valores, condições e evidências estão em [Procedimento Gmail local](#procedimento-gmail-local-26082026).
+Não equivale a aceite de usuários nem a aprovação de produção.
 
 ### Etapa 5 — serviço completo e histórico real (26/08/2026)
 
-Executado `scripts/validate_full_gmail_bot.py` contra o Gmail de teste e a API local. O script restringiu a busca ao assunto exato e ao único anexo `logistic_cost.xlsx`, manteve a INBOX somente leitura e usou `EmailProcessingService`, `KpiExtractor`, `ApiReportSender` e `SqliteProcessingRepository` reais. Primeira execução: 1 encontrada, 1 processada, 0 erros. Segunda execução com o mesmo histórico: 1 encontrada, 1 duplicada, 0 processadas, 0 erros. O SQLite registrou uma linha `PROCESSADO` com um anexo; a API preservou Jan/Y26 = 0.04/0.05/0.8. Isso valida o ciclo manual do serviço, mas não o agendamento no BotCity nem concorrência.
+Executado `scripts/homologation/validate_full_gmail_bot.py` contra o Gmail de teste e a API local. O script restringiu a busca ao assunto exato e ao único anexo `logistic_cost.xlsx`, manteve a INBOX somente leitura e usou `EmailProcessingService`, `KpiExtractor`, `ApiReportSender` e `SqliteProcessingRepository` reais. Primeira execução: 1 encontrada, 1 processada, 0 erros. Segunda execução com o mesmo histórico: 1 encontrada, 1 duplicada, 0 processadas, 0 erros. O SQLite registrou uma linha `PROCESSADO` com um anexo; a API preservou Jan/Y26 = 0.04/0.05/0.8. Isso valida o ciclo manual do serviço, mas não o agendamento no BotCity nem concorrência.
 
 ### Etapa 6 — permissões na homologação local (26/08/2026)
 
-O ambiente passou a preparar os papéis ADMIN e VISUALIZADOR e credenciais locais distintas, ignoradas pelo Git. Executado `scripts/validate_local_permissions.py`: ADMIN autenticou e cadastrou o VISUALIZADOR; o novo usuário autenticou, confirmou o papel em `/api/auth/me` e leu Jan/Y26; cadastro de usuário e análise administrativa foram bloqueados com HTTP 403. Acesso sem token, token inválido e senha incorreta foram bloqueados com HTTP 401. Os 15 testes automatizados de segurança também passaram. Na conferência visual, o cabeçalho exibiu VISUALIZADOR e a Visão Geral mostrou Jan/Y26 = 5%/4%/80%; Cost x Product permaneceu vazio por ausência de dados. O teste revelou que Analytics era acessível localmente no React; a interface foi corrigida para ocultar menu, alertas administrativos e impedir a navegação interna para esse painel fora do papel ADMIN. Após a correção, 12 testes JavaScript e o build foram aprovados, e o usuário confirmou visualmente que Analytics desapareceu no modo VISUALIZADOR.
+O ambiente passou a preparar os papéis ADMIN e VISUALIZADOR e credenciais locais distintas, ignoradas pelo Git. Executado `scripts/homologation/validate_local_permissions.py`: ADMIN autenticou e cadastrou o VISUALIZADOR; o novo usuário autenticou, confirmou o papel em `/api/auth/me` e leu Jan/Y26; cadastro de usuário e análise administrativa foram bloqueados com HTTP 403. Acesso sem token, token inválido e senha incorreta foram bloqueados com HTTP 401. Os 15 testes automatizados de segurança também passaram. Na conferência visual, o cabeçalho exibiu VISUALIZADOR e a Visão Geral mostrou Jan/Y26 = 5%/4%/80%; Cost x Product permaneceu vazio por ausência de dados. O teste revelou que Analytics era acessível localmente no React; a interface foi corrigida para ocultar menu, alertas administrativos e impedir a navegação interna para esse painel fora do papel ADMIN. Após a correção, 12 testes JavaScript e o build foram aprovados, e o usuário confirmou visualmente que Analytics desapareceu no modo VISUALIZADOR.
 
 ### Etapa 7 — dados incompletos e incorretos (27/08/2026)
 
@@ -55,21 +57,16 @@ O extrator passou a rejeitar explicitamente planilhas sem registros, colunas obr
 
 ### Etapa 3 — envio do robô pela API
 
-Implementado `ApiReportSender` e conectado ao entrypoint atual `python -m rpa_email`. O serviço deixou de escrever KPIs diretamente no PostgreSQL/cache Excel; registra sucesso somente após confirmação da API. Falhas e anexos sem registros válidos permitem nova tentativa, com pastas separadas. Configuração e limites em [automação e limites de ingestão](automacao-rpa-email.md#configuração-e-ingestão). Verificação histórica: 62 testes locais aprovados, 1 externo ignorado; 5 testes Docker aprovados, incluindo mensagem sintética → serviço do robô → HTTP real → PostgreSQL. Gmail e React não participaram dessa execução.
+Implementado `ApiReportSender` e conectado ao entrypoint atual `python -m rpa_email`. O serviço deixou de escrever KPIs diretamente no PostgreSQL/cache Excel; registra sucesso somente após confirmação da API. Falhas e anexos sem registros válidos permitem nova tentativa, com pastas separadas. Configuração e limites em [automação e limites de ingestão](../architecture/email-ingestion.md#configuração-e-ingestão). Verificação histórica: 62 testes locais aprovados, 1 externo ignorado; 5 testes Docker aprovados, incluindo mensagem sintética → serviço do robô → HTTP real → PostgreSQL. Gmail e React não participaram dessa execução.
 
 Os achados sobre escrita direta e sucesso após falha abaixo descrevem o diagnóstico inicial. O fluxo legado de escrita direta foi removido; os demais itens permanecem como registro histórico desta homologação.
 
 ### Validação Gmail → anexo → extração (26/08/2026)
 
-Executado `scripts/validate_gmail_test.py` com credenciais locais não exibidas: autenticação Gmail, abertura da INBOX somente leitura, busca pelo assunto exato `Relatorio Logistico - TESTE EPICO 7`, download de `logistic_cost.xlsx` e extração usando `KpiExtractor` do projeto. Conferidos Jan/Y26, target 0.04, result 0.05 e achievement 0.8. Nenhuma mensagem foi alterada e nenhum dado foi enviado à API/banco. Esta evidência não equivale à execução do robô completo nem ao E2E até o React.
-
-Para repetir somente esta verificação com a mensagem sintética e o `.env` configurado:
-
-```powershell
-.\.venv\Scripts\python.exe scripts/validate_gmail_test.py
-```
-
-O script consulta até dez candidatos pelo assunto e usa o mais recente com assunto exato; salva somente o anexo esperado, numa pasta nova em `rpa_email/resources/attachments/gmail-validation/` (ignorada pelo Git). Não executa automaticamente na suíte local/CI e não substitui o teste de integração pendente.
+O primeiro estágio validou a leitura de `logistic_cost.xlsx` pelo `KpiExtractor`
+sem gravar na API/banco. O modo sem `--ingest-local`, as restrições e os valores
+estão preservados em [Procedimento Gmail local](#procedimento-gmail-local-26082026).
+A execução era manual, fora da suíte/CI; não comprovava o E2E completo.
 
 ### Etapa 1 — autenticação e contrato API/React (26/08/2026)
 
@@ -89,7 +86,7 @@ npm.cmd --prefix dashboard run build
 
 O parâmetro `-p no:cacheprovider` desativa apenas o cache opcional do pytest; outros avisos e falhas continuam visíveis.
 
-**Etapa 2:** ambiente isolado implementado em `docker-compose.test.yml`, com migrations, FastAPI, PostgreSQL descartável e testes HTTP reais. Instruções e limites em [ambiente-integracao.md](ambiente-integracao.md). Não executar o Compose principal como prova de homologação: `Dockerfile.api` ainda inicia Flask. Depois conectar o robô à ingestão HTTP com tratamento de falhas e executar o fluxo integrado.
+**Etapa 2:** ambiente isolado implementado em `docker-compose.test.yml`, com migrations, FastAPI, PostgreSQL descartável e testes HTTP reais. Instruções e limites em [ambiente-integracao.md](../testing/integration.md). Não executar o Compose principal como prova de homologação: `Dockerfile.api` ainda inicia Flask. Depois conectar o robô à ingestão HTTP com tratamento de falhas e executar o fluxo integrado.
 
 | Item do épico | Evidência automatizada | Validação ainda necessária |
 | --- | --- | --- |
@@ -132,36 +129,113 @@ O guia exige GitLab para versionamento e cita GitHub Actions para CI/CD. Confirm
 
 Os testes automatizados existentes não comprovam estes itens externos. Não remover cenários ou silenciar avisos para produzir uma evidência falsa de aceite. A integração técnica real já possui ambiente isolado; homologação com usuários, produção e acessos corporativos continuam dependendo de execução externa registrada.
 
-## Roteiro ponta a ponta em homologação
 
-Pré-condições: ambiente separado, banco de teste, caixa postal dedicada, ADMIN de teste, versão/commit registrados, robô/API/dashboard em execução. Usar dados sintéticos; não registrar senhas ou tokens nas evidências.
+## Procedimento Gmail local (26/08/2026)
 
-1. Confirmar FastAPI no ambiente e o caminho do robô até a API/banco. Registrar URLs, versão e configuração sem segredos. Bloquear envio ao usuário final e desabilitar `send_log` no caminho de testes, se existente.
-2. Preparar Excel de referência com mês/ano aceitos, KPI identificado pelo nome/aba e valores conhecidos (ex.: target 0.04, result 0.05, achievement 0.8). Registrar formato percentual esperado na tela.
-3. Enviar para a caixa de teste com assunto/remetente permitidos e Message-ID único. Registrar horário e identificador.
-4. Executar o robô e conferir anexos salvos, logs e persistência. Nenhum erro deve ser mascarado como sucesso.
-5. Fazer login no dashboard. Conferir valores na resposta da API e na tela, período, unidades, arredondamento e ausência de dados mock substituindo silenciosamente os reais.
-6. Reexecutar o mesmo e-mail. Confirmar que a contagem de registros não aumenta. Enviar outro Message-ID para o mesmo período com valor corrigido e confirmar a regra de atualização acordada.
-7. Repetir com assunto inválido, anexo corrompido, campo obrigatório ausente e falha de banco/API. Exigir erro rastreável, ausência de dados parciais e possibilidade de reprocessamento quando aplicável.
-8. Testar saída da sessão, acesso sem token, token expirado e acesso não autorizado às rotas administrativas. Não criar perfis novos em produção só para testar.
-9. Anexar evidências e abrir defeitos com passos de reprodução. Reexecutar após correção.
+Procedimento histórico incorporado ao registro do Épico 7. Os comandos e
+resultados esperam aplicação imediata de KPIs e precisam de adaptação para a fila
+atual. As credenciais não pertencem a produção. A conferência autenticada e as
+limitações abaixo preservam o contexto da evidência.
 
-## Homologação com usuários
+### Preparação
 
-Separar testes técnicos de aceite: durante os testes do RPA, o usuário final fica fora do ambiente e não recebe dados, conforme 10.2. Depois da validação técnica, organizar com o time uma sessão de aceite do output pelo area owner, conforme 10.4, sem envio automático dos dados de teste. Registrar a aprovação e, na sessão de homologação autorizada, a avaliação de login, indicadores, filtros e comparação com a referência.
+Manter Gmail de teste e senha de app no `.env`, sem compartilhar o conteúdo. Executar na raiz:
 
-Critério proposto para aceite (aprovar com o time): cenários obrigatórios aprovados; nenhuma falha crítica/alta aberta; valores conferidos; permissões respeitadas; processamento rastreável; aprovação nominal do responsável do negócio. Itens não executados permanecem pendentes.
+```powershell
+.\.venv\Scripts\python.exe scripts/homologation/prepare_homologation.py
+docker compose -f docker-compose.homologacao.yml up --build -d --wait
+```
 
-Usar o [Termo de Homologação com Usuários](termo-homologacao-usuarios.md) durante a sessão. O arquivo deve permanecer pendente até ser preenchido e confirmado por um representante real do negócio.
+A preparação cria `.env.homologacao` com senha aleatória para uma conta ADMIN exclusiva e segredo JWT próprio; preserva o arquivo se já existe. Essas credenciais são diferentes das do Gmail. Não executar `docker compose config` sem `--quiet`, pois pode revelar segredos expandidos.
 
-| ID/cenário | Versão/ambiente | Resultado esperado | Resultado observado | Evidência sem segredos | Defeito | Executor/data | Aceite |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| A preencher | | | | | | | Pendente |
+A API está em `http://127.0.0.1:15001`, somente neste computador. O banco não publica porta, usa tmpfs e não compartilha volumes com o projeto original. As migrations e o seed restrito à homologação são executados antes da API iniciar.
 
-## Validação de produção — somente com autorização
+### Ler e enviar o relatório de teste
 
-Antes do deploy: aprovação da mudança, backup/restauração verificados, migrations revisadas, plano de rollback com responsável, segredos fora do repositório, JWT_SECRET próprio, HTTPS, origem CORS e proxy conferidos.
+Requisitos da mensagem na INBOX: assunto exato `Relatorio Logistico - TESTE EPICO 7`, um anexo chamado `logistic_cost.xlsx`, uma linha Jan/Y26 com target 0.04, result 0.05 e achievement 0.8.
 
-Após deploy, iniciar com verificações de leitura: health (não comprova banco), login autorizado, resposta dos KPIs, renderização e logs sem segredos. Não fazer testes de carga, falha induzida, alteração de permissões ou envio de dados fictícios sem autorização específica. Se permitido, usar um relatório controlado e rastreável para confirmar o fluxo completo, com plano de limpeza aprovado.
+```powershell
+.\.venv\Scripts\python.exe scripts/homologation/validate_gmail_test.py --ingest-local
+```
 
-Registrar versão, horário, responsáveis, evidências e decisão de manter/reverter. Sem acesso e execução reais, marcar produção como **pendente**, nunca aprovada por inferência dos testes locais.
+O script consulta apenas candidatos ao assunto, seleciona o mais recente com assunto exato, mantém a mensagem sem alteração, limita o download a 5 MB e confere o anexo antes de enviar. O destino é fixo: API local acima, com health identificando `homologacao-local`. O envio usa `ApiReportSender` do robô e o contrato real de ingestão. Faz um segundo envio do mesmo Message-ID, exige `skipped` e consulta os valores pela API.
+
+O comando sem `--ingest-local` continua sem enviar nada à API/banco.
+
+Essa execução controlada reutiliza o extrator e cliente de ingestão, mas não executa o loop completo nem o histórico de `python -m rpa_email`. O serviço completo foi testado separadamente no Docker com mensagem/IMAP sintéticos. A conferência no React abaixo completa o cenário controlado Gmail → API → interface, mas não comprova o ciclo automático completo do robô.
+
+### React no ambiente de homologação
+
+Com a API local ainda ligada, executar em outro terminal:
+
+```powershell
+cd dashboard
+npm.cmd run dev:homologacao
+```
+
+Abrir `http://127.0.0.1:15173`. O proxy desse modo aponta exclusivamente para `127.0.0.1:15001`, sem alterar o destino padrão de desenvolvimento. Usar a conta/senha de `.env.homologacao` na tela de login (não as credenciais Gmail).
+
+Esse modo inicia sem dados demonstrativos, aceita listas vazias da API e mostra erro quando o carregamento falha. Janeiro é selecionado inicialmente. Os dados fixos de agrupamentos e outros indicadores não são usados; agrupamentos completos seguem pendentes. Injeção de erros demonstrativos fica sem efeito e restaurar dados recarrega a API. Insights fixos dos gráficos são omitidos.
+
+Verificação técnica: 11 testes JavaScript aprovados e build normal aprovado com aviso de tamanho do bundle.
+
+#### Conferência autenticada no navegador — 26/08/2026
+
+- Login local com a conta de homologação aprovado.
+- Janeiro/2026: cartão e matriz War Room exibiram resultado **5.00%**, meta **4.00%** e atingimento **80%**, correspondentes ao anexo e à consulta da API.
+- Fevereiro/2026: cartão e matriz sem valores (`—`), sem substituir a ausência por dados demonstrativos.
+- Retorno a janeiro e botão Recarregar: os mesmos valores foram confirmados novamente, com origem `API` no rodapé.
+- Nenhum erro retornado na consulta aos logs de erro do navegador durante essa conferência.
+
+Limites: verificação interativa de um cenário mensal sintético, não uma suíte automatizada de navegador nem homologação com usuários. Ficou identificado um ajuste de texto: a matriz chama Jan/25 de “Mês passado” ao compará-lo com Jan/26; o rótulo deve indicar o mesmo mês do ano anterior. Agrupamentos, demais indicadores, ciclo automático do robô e produção continuam pendentes.
+
+### Serviço completo e histórico local
+
+Para repetir o teste restrito ao assunto e anexo sintéticos, com Gmail e homologação ativos:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/homologation/validate_full_gmail_bot.py
+```
+
+Os resultados da execução de 26/08/2026 estão na Etapa 5 da
+[matriz de cobertura](#matriz-de-cobertura). O comando executa manualmente o
+`EmailProcessingService`; o agendamento no BotCity continua pendente.
+
+### Permissões locais
+
+`scripts/homologation/prepare_homologation.py` também prepara `HOMOLOGATION_VIEWER_EMAIL` e `HOMOLOGATION_VIEWER_PASSWORD` sem exibi-los. Após subir novamente os contêineres, executar:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\homologation\validate_local_permissions.py
+```
+
+Os resultados e os bloqueios 401/403 estão na Etapa 6 da
+[matriz de cobertura](#matriz-de-cobertura). As contas são exclusivas do banco
+descartável de homologação.
+
+### Parar o ambiente
+
+Os serviços ficam ligados para a próxima etapa de conferência. Para encerrá-los:
+
+```powershell
+docker compose -f docker-compose.homologacao.yml down
+```
+
+Ao parar o PostgreSQL, os dados sintéticos são descartados. Em nova inicialização, repetir a ingestão; o seed recria a conta com as mesmas credenciais locais.
+
+Em caso de falha após o envio, o resultado pode já ter sido persistido: repetir o mesmo e-mail mantém o Message-ID e permite confirmação pela API. Não alterar identificadores para contornar a deduplicação.
+
+Não enviar senhas, tokens, `.env` ou `.env.homologacao` ao chat/Git. Não conectar usuários finais nem usar dados reais. A rota atual requer ADMIN; perfil de menor privilégio para o bot e homologação corporativa seguem pendentes.
+
+Os procedimentos vigentes de validação técnica, aceite e produção estão em
+[Homologação e aceite](../testing/acceptance.md).
+
+## Evidência de integração PostgreSQL
+
+Na etapa 3, foram registrados **5 testes aprovados em 3,40 s**, com extração,
+ingestão autenticada por HTTP, PostgreSQL e encerramento com código zero.
+Em 27/08/2026, o registro passou a **11 testes aprovados**, sem skips ou warnings
+do pytest. Os avisos de locale/autenticação do boot vieram do PostgreSQL Alpine,
+não comprovam configuração de produção. O job remoto não foi comprovado pela
+execução local. O procedimento e a cobertura ficam em
+[Integração com PostgreSQL](../testing/integration.md).

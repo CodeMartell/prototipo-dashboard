@@ -1,6 +1,6 @@
 r"""Valida somente o anexo sintético do Épico 7, sem API/banco ou envio de e-mails.
 
-Execute da raiz: .venv\Scripts\python.exe scripts/validate_gmail_test.py
+Execute da raiz: .venv\rpa\Scripts\python.exe -m scripts.homologation.validate_gmail_test
 Credenciais são lidas do .env e nunca impressas.
 """
 import imaplib
@@ -13,7 +13,7 @@ from pathlib import Path
 
 from dotenv import dotenv_values
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from rpa_email.extractors import KpiExtractor
 
@@ -87,7 +87,7 @@ def main(ingest_local=False):
         print('Valores conferidos: Jan | Y26 | target=0.04 | result=0.05 | achievement=0.8')
         print('Anexo salvo em: ' + str(destination.relative_to(ROOT) / 'logistic_cost.xlsx'))
         if ingest_local:
-            from scripts.ingest_validated_test import ingest_and_verify
+            from scripts.homologation.ingest_validated_test import ingest_and_verify
             ingest_and_verify(message, result)
             print('Mensagem preservada; dados enviados somente a homologacao local. React ainda nao validado.')
         else:

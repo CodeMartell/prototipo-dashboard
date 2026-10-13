@@ -5,23 +5,14 @@ de seis KPIs logísticos e análise em um dashboard React.
 
 ## Começar
 
-O [roteiro de execução e testes](docs/roteiro-testes-aplicacao.md) é a fonte
+O [roteiro de execução e testes](docs/guides/development.md) é a fonte
 principal dos comandos: instalação, Docker, execução local com SQLite ou
 PostgreSQL, carga de dados, testes, reset e diagnóstico.
 
-| Assunto | Documento principal |
-| --- | --- |
-| Backend, contratos HTTP e migrations | [Backend](server/README.md) |
-| Frontend, proxy e idiomas | [Dashboard](dashboard/README.md) |
-| RPA, formatos, ingestão e limites | [Automação de e-mail](docs/automacao-rpa-email.md) |
-| Exemplo com três mensagens normalizadas | [Fluxo local](docs/fluxo-local-tres-emails.md) |
-| Integração isolada com PostgreSQL | [Ambiente de integração](docs/ambiente-integracao.md) |
-| Gmail em ambiente descartável | [Homologação Gmail local](docs/homologacao-gmail-local.md) |
-| Requisitos, decisões e evidências do Épico 7 | [Testes e homologação](docs/epico-7-homologacao.md) |
-| Aceite pelo negócio | [Termo de homologação](docs/termo-homologacao-usuarios.md) |
-| Histórico de segurança do Épico 5 | [Relatório histórico](docs/homologacao_epico_5.md) |
-| Proposta original de idiomas | [Proposta i18n](docs/proposta-implementacao-i18n.md) |
-| Bot autônomo do Épico 3 | [Bot legado](bot-extrator-email/README.md) |
+A [documentação](docs/README.md) organiza arquitetura, desenvolvimento, testes e
+histórico. Consulte os READMEs de [backend](server/README.md),
+[frontend](dashboard/README.md), [bot legado](bot-extrator-email/README.md) e
+[ferramentas auxiliares](scripts/README.md) para detalhes de cada área.
 
 - [Arquitetura](#-visão-geral-e-arquitetura)
 - [Indicadores](#-os-6-indicadores-kpis)
@@ -50,7 +41,7 @@ O sistema é dividido em três camadas desacopladas que operam de forma orquestr
                                                                 │ SQLAlchemy / Alembic
                                                                 v
                                                    ┌─────────────────────────┐
-                                                   │  PostgreSQL / SQLite │
+                                                   │  PostgreSQL / SQLite    │
                                                    │  conforme DATABASE_URL  │
                                                    └─────────────────────────┘
 ```
@@ -82,9 +73,16 @@ prototipo-dashboard/
 ├── server/                    # FastAPI, app/, alembic/, scripts/ e tests/
 ├── rpa_email/                 # Robô integrado à API, extratores e testes
 ├── bot-extrator-email/         # Bot autônomo legado do Épico 3 (IMAP/SMTP)
-├── docs/                      # Guias, homologações e arquitetura
-│   └── architecture/          # Diagrama C4 preservado
-├── scripts/                   # Geração de planilhas, reset e validações
+├── docs/
+│   ├── architecture/          # Ingestão e diagrama C4
+│   ├── guides/                # Desenvolvimento e operação local
+│   ├── testing/               # Integração e aceite
+│   └── history/               # Evidências e propostas datadas
+├── scripts/
+│   ├── development/           # Geração de planilhas e reset local
+│   ├── homologation/          # Preparação e validadores locais controlados
+│   ├── diagnostics/           # Inspeções manuais de mensagens e downloads
+│   └── manual/                # Envio explícito de e-mail
 ├── tests/system/              # Integração HTTP + PostgreSQL isolada
 ├── scratch/                   # Explorações e planilhas históricas versionadas
 ├── history_and_data.txt        # Referência de dados históricos
@@ -98,7 +96,7 @@ prototipo-dashboard/
 └── start.bat                   # Inicialização Docker no Windows
 ```
 
-`kpi_reports/` é gerado por `scripts/generate_kpi_reports.py` e ignorado pelo Git.
+`kpi_reports/` é gerado por `scripts/development/generate_kpi_reports.py` e ignorado pelo Git.
 A carga histórica está em `server/scripts/seed_history_data.py`.
 
 ## 🛡️ Divisão de Privilégios (RBAC) e Auditoria
@@ -161,7 +159,7 @@ cd ..
 
 ### 5. Usuários Padrão para Testes e Homologação (5 Papéis)
 
-O script de seed (`server/scripts/seed_rbac.py`) e o script de reset (`scripts/reset_local_data.py`) provisionam automaticamente os seguintes acessos para validação de cada perfil:
+O script de seed (`server/scripts/seed_rbac.py`) e o script de reset (`scripts/development/reset_local_data.py`) provisionam automaticamente os seguintes acessos para validação de cada perfil:
 
 | Papel | E-mail | Senha | Nome do Usuário | Capacidades Principais |
 |---|---|---|---|---|

@@ -28,7 +28,7 @@ for f in files:
     if not f.exists():
         print(f"ERRO: Arquivo {f} não encontrado!")
         sys.exit(1)
-    
+
     with open(f, 'rb') as fp:
         file_data = fp.read()
         msg.add_attachment(

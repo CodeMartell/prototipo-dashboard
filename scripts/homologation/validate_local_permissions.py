@@ -5,7 +5,7 @@ import sys
 import httpx
 from dotenv import dotenv_values
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 API_URL = 'http://127.0.0.1:15001'
 
 
@@ -14,7 +14,7 @@ def main() -> int:
     required = ('RPA_API_EMAIL', 'RPA_API_PASSWORD',
                 'HOMOLOGATION_VIEWER_EMAIL', 'HOMOLOGATION_VIEWER_PASSWORD')
     if config.get('RPA_API_URL') != API_URL or any(not config.get(name) for name in required):
-        print('CONFIGURACAO_INCOMPLETA: execute scripts/prepare_homologation.py.')
+        print('CONFIGURACAO_INCOMPLETA: execute scripts/homologation/prepare_homologation.py.')
         return 2
     try:
         with httpx.Client(base_url=API_URL, timeout=20, trust_env=False) as client:

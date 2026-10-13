@@ -1,5 +1,5 @@
 """
-scripts/generate_kpi_reports.py
+scripts/development/generate_kpi_reports.py
 Gera as planilhas de relatorio por KPI com dados compativeis com os mocks do dashboard.
 """
 from __future__ import annotations
@@ -11,7 +11,7 @@ from openpyxl.utils import get_column_letter
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 LOGGER = logging.getLogger(__name__)
-OUTPUT_DIR = Path(__file__).resolve().parent.parent / "kpi_reports"
+OUTPUT_DIR = Path(__file__).resolve().parents[2] / "kpi_reports"
 
 LOGISTIC_COST_DATA = [
     ("Jan","Y24",0.0420,0.0440,0.955),("Feb","Y24",0.0450,0.0410,1.098),("Mar","Y24",0.0430,0.0460,0.935),("Apr","Y24",0.0480,0.0510,0.941),("May","Y24",0.0520,0.0490,1.061),("Jun","Y24",0.0500,0.0470,1.064),("Jul","Y24",0.0490,0.0480,1.021),("Aug","Y24",0.0460,0.0450,1.022),("Sep","Y24",0.0380,0.0360,1.056),("Oct","Y24",0.0420,0.0390,1.077),("Nov","Y24",0.0550,0.0580,0.948),("Dec","Y24",0.0510,0.0480,1.063),

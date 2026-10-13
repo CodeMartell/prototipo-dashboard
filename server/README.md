@@ -7,7 +7,7 @@ no [README principal](../README.md#-divisão-de-privilégios-rbac-e-auditoria).
 
 ## Executar e testar
 
-Siga o [roteiro principal](../docs/roteiro-testes-aplicacao.md) para dependências,
+Siga o [roteiro principal](../docs/guides/development.md) para dependências,
 `.env` da raiz, migrations, seed, PostgreSQL/SQLite, carga histórica e testes.
 O entrypoint Docker aplica migrations, executa `scripts/seed_rbac.py` e cria o
 administrador de `ADMIN_*` quando configurado. O seed também provisiona contas
@@ -73,4 +73,4 @@ schema existente, use `upgrade head`; não gere outra migration inicial.
 As dependências estão em `requirements.txt` deste diretório: FastAPI, SQLAlchemy,
 Alembic, Pydantic, psycopg, PyJWT e bcrypt, além das ferramentas de testes.
 A integração com PostgreSQL descartável tem seus limites documentados em
-[Ambiente de integração](../docs/ambiente-integracao.md).
+[Ambiente de integração](../docs/testing/integration.md).

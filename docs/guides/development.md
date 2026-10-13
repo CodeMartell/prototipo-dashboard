@@ -71,26 +71,9 @@ Resultado esperado: testes e lint sem erros, e a pasta `dashboard/dist` criada.
 
 ## 4. Executar a integração isolada
 
-Esse ambiente usa PostgreSQL temporário e não altera o banco principal:
-
-```powershell
-docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from integration-tests
-```
-
-Resultado esperado: o serviço `integration-tests` termina com código `0`.
-
-Depois do teste:
-
-```powershell
-docker compose -f docker-compose.test.yml down
-```
-
-Se falhar, consulte:
-
-```powershell
-docker compose -f docker-compose.test.yml logs integration-tests
-docker compose -f docker-compose.test.yml logs api-test
-```
+Siga [Integração com PostgreSQL](../testing/integration.md) para executar, consultar
+logs e encerrar o ambiente descartável. Esse documento é a fonte dos comandos e
+limites da suíte `tests/system`; corrija falhas antes de avançar.
 
 ## 5. Configurar a aplicação local
 
@@ -177,7 +160,7 @@ Faça este teste somente com uma caixa postal de teste. Gere os anexos
 sintéticos antes de enviá-los:
 
 ```powershell
-.\.venv\rpa\Scripts\python.exe scripts/generate_kpi_reports.py
+.\.venv\rpa\Scripts\python.exe scripts/development/generate_kpi_reports.py
 ```
 
 A pasta gerada `kpi_reports/` contém `relatorio_logistic_cost.xlsx`,
@@ -245,7 +228,7 @@ docker compose run --rm --build rpa-bot
 
 Os quatro anexos exercitam todos os indicadores. O runtime também aceita fontes
 brutas disponíveis isoladamente; os limites estão em
-[Automação de e-mail](automacao-rpa-email.md).
+[Automação de e-mail](../architecture/email-ingestion.md).
 
 Revise e aceite o lote na página de perfil antes de conferir no dashboard
 War Room Report, Resin Consolidation, Task Cost Reduction,
@@ -300,7 +283,7 @@ Set-Location server
 ```
 
 Use no login e em `RPA_API_EMAIL`/`RPA_API_PASSWORD` a conta criada acima.
-O seed cria também as [contas demonstrativas de RBAC](../README.md#-divisão-de-privilégios-rbac-e-auditoria).
+O seed cria também as [contas demonstrativas de RBAC](../../README.md#-divisão-de-privilégios-rbac-e-auditoria).
 Para carga opcional, em outro terminal dentro de `server/`, execute
 `..\.venv\api\Scripts\python.exe scripts/seed_history_data.py`; esse comando
 faz upsert e pode substituir os valores dos mesmos períodos.
@@ -344,7 +327,7 @@ com `docker compose ps` e o health em `http://localhost:9192/api/health`.
 
 ## Reset local opcional
 
-`scripts/reset_local_data.py` apaga os SQLite `dashboard.db` da raiz e de
+`scripts/development/reset_local_data.py` apaga os SQLite `dashboard.db` da raiz e de
 `server/`, o histórico `rpa_email/resources/api_email_history.db`, os anexos
 baixados e logs locais (inclusive auditoria); depois aplica migrations e seed
 RBAC e cria o administrador. Use apenas quando quiser descartar esses dados.
@@ -352,7 +335,7 @@ Ele não apaga o volume PostgreSQL do Docker e aplica migrations no banco
 selecionado por `DATABASE_URL`; confirme o destino antes de executá-lo.
 
 ```powershell
-.\.venv\api\Scripts\python.exe scripts/reset_local_data.py
+.\.venv\api\Scripts\python.exe scripts/development/reset_local_data.py
 ```
 
 O seed provisiona cinco contas demonstrativas; consulte a matriz e credenciais
@@ -366,7 +349,7 @@ O roteiro normal acima dispensa reset.
   `Get-NetTCPConnection -LocalPort 5001,5173,9192` e encerre somente o serviço
   de desenvolvimento identificado. Frontend Docker e Vite disputam a porta 5173.
 - **Gmail / AUTHENTICATIONFAILED:** use senha de aplicativo, com verificação em
-  duas etapas, e confira `IMAP_HOST`/`IMAP_PORT`. `scripts/quick_check.py` consulta
+  duas etapas, e confira `IMAP_HOST`/`IMAP_PORT`. `scripts/diagnostics/quick_check.py` consulta
   e-mails reais usando a configuração local; não é um teste offline.
 - **Docker indisponível:** abra o Docker Desktop ou use a alternativa SQLite local.
 - **Falha de API:** consulte o health da modalidade escolhida. A resposta contém
@@ -377,6 +360,37 @@ O roteiro normal acima dispensa reset.
   nunca aponte para uma pasta com dados importantes.
 
 Para a integração descartável, cenários e isolamento estão em
-[Ambiente de integração](ambiente-integracao.md). Para uma conferência Gmail
+[Ambiente de integração](../testing/integration.md). Para uma conferência Gmail
 restrita a um anexo e porta 15001, use
-[Homologação Gmail local](homologacao-gmail-local.md).
+[Homologação Gmail local](../history/epic-7-validation.md#procedimento-gmail-local-26082026).
+
+## Exemplo com três e-mails
+
+Este cenário usa planilhas normalizadas em mensagens separadas. A persistência
+e os limites da fila estão no [guia de ingestão](../architecture/email-ingestion.md#persistência-e-aprovação).
+
+### Formato das mensagens
+
+Use um `Message-ID` diferente em cada mensagem, o mesmo assunto configurado em `EMAIL_SUBJECT_FILTER` e um remetente aceito por `EMAIL_SENDER_FILTER`.
+
+1. `logistic_cost.xlsx`, com colunas `month`, `year`, `target`, `result` e `achievement`.
+2. `air_freight.xlsx`, com colunas `month`, `year`, `target`, `result` e `achievement`.
+3. `logistics_vs_prod.xlsx`, com colunas `month`, `year`, `logisticsCost`, `productionAmount` e `ratio`.
+
+O nome da aba pode repetir o nome do indicador. Meses usam `Jan` a `Dec`; anos usam `YNN`, por exemplo `Y26`. Os valores devem ser números não negativos. Se uma planilha tiver coluna ausente, valor inválido ou arquivo corrompido, o e-mail inteiro falha e pode ser corrigido e reenviado.
+
+### Preparação do cenário
+
+Use o ambiente Docker das etapas 5 e 6, configure as credenciais e filtros da
+etapa 9 e envie as três mensagens de teste. Inclua o remetente e as datas dos
+três e-mails nos filtros. Execute a varredura com o mesmo comando da etapa 9.
+O robô executa uma varredura e termina; repita o comando para verificar deduplicação.
+
+### Conferência dos três lotes
+
+- O log do robô deve terminar com três processamentos e zero erros.
+- A API publicada em `http://localhost:9192/api/health` deve retornar `status: ok`.
+- Na página de perfil, revise e aceite os três lotes com ADMIN/GESTOR; só então
+  confira os valores no dashboard. `PROCESSADO` no robô confirma entrega à fila.
+- Após login, o selo inferior do dashboard deve mostrar `API`, nunca `MOCK`.
+- Reexecutar os mesmos três e-mails deve resultar em duplicidade/`skipped`, sem novas linhas de KPI.

@@ -7,7 +7,7 @@ processa os anexos elegíveis e encerra. O agendamento deve ficar fora do códig
 ## Decisão de arquitetura
 
 O pacote integrado ao dashboard é `rpa_email`. O bot autônomo do Épico 3
-permanece em [`bot-extrator-email/`](../bot-extrator-email/README.md), com
+permanece em [`bot-extrator-email/`](../../bot-extrator-email/README.md), com
 configuração, testes e saída SMTP próprios; ele não é o entrypoint da integração. A antiga pasta
 `Automacao-Planilha` misturava protótipos de exploração, geração de planilhas e
 código usado pelo robô. Essa divisão obrigava o runtime a alterar `sys.path` e a
@@ -118,7 +118,7 @@ Somente valores informados pela fonte são enviados.
 
 ## Configuração e ingestão
 
-As variáveis ficam no [`.env.example`](../.env.example) da raiz. São obrigatórias
+As variáveis ficam no [`.env.example`](../../.env.example) da raiz. São obrigatórias
 `EMAIL_USER`, `EMAIL_PASSWORD`, `RPA_API_URL`, `RPA_API_EMAIL` e `RPA_API_PASSWORD`.
 As credenciais `RPA_API_*` são de um usuário ADMIN da FastAPI, diferentes das
 credenciais Gmail. Use conta técnica dedicada e HTTPS fora do teste local.
@@ -143,22 +143,22 @@ ou link utilizável é `FORA_DO_PADRAO`, terminal; não é sucesso de ingestão.
 Não existe fallback de gravação em Excel nesse entrypoint. A fila e o histórico
 são distintos: `PROCESSADO` no robô significa entrega confirmada, inclusive
 quando a aprovação na API ainda está pendente. As rotas de revisão estão no
-[guia do backend](../server/README.md).
+[guia do backend](../../server/README.md).
 
 ## Execução e testes
 
 Os comandos de instalação, `python -m rpa_email`, perfil Docker e testes estão
-centralizados no [roteiro principal](roteiro-testes-aplicacao.md). Para mensagens
-normalizadas separadas, consulte o [exemplo de três e-mails](fluxo-local-tres-emails.md).
+centralizados no [roteiro principal](../guides/development.md). Para mensagens
+normalizadas separadas, consulte o [exemplo de três e-mails](../guides/development.md#exemplo-com-três-e-mails).
 
 A suíte local usa mensagens/planilhas sintéticas, transporte HTTP simulado,
 401/403/422/500, timeout, conexão, JSON inválido, confirmação desconhecida,
 reconexão IMAP, nova tentativa e deduplicação. Não acessa a caixa real do usuário.
-A [integração Docker](ambiente-integracao.md) usa mensagem/IMAP sintéticos com
+A [integração Docker](../testing/integration.md) usa mensagem/IMAP sintéticos com
 extratores, login, HTTP, PostgreSQL e histórico SQLite reais; não abre React nem Gmail.
 As evidências de Gmail/React de agosto de 2026 estão em
-[Homologação Gmail local](homologacao-gmail-local.md) e
-[Épico 7](epico-7-homologacao.md). Elas descrevem o fluxo anterior à fila de aprovação;
+[Homologação Gmail local](../history/epic-7-validation.md#procedimento-gmail-local-26082026) e
+[Épico 7](../history/epic-7-validation.md). Elas descrevem o fluxo anterior à fila de aprovação;
 não comprovam que os scripts antigos aceitem o novo retorno `pending`.
 
 ## Limites e pendências
@@ -172,3 +172,15 @@ não comprovam que os scripts antigos aceitem o novo retorno `pending`.
   robô com menor privilégio, rotação de credenciais, stress e agendamento.
 - Monitoramento, homologação com usuários e validação autorizada de produção;
   preservar os requisitos e decisões registrados no Épico 7.
+
+
+## Persistência e aprovação
+
+No Compose principal, os KPIs ficam no volume PostgreSQL `pg_data`, o histórico
+local do robô em `email_history` e os anexos em `email_attachments`. O nome efetivo
+dos volumes pode receber o prefixo do projeto Compose.
+
+A recepção grava payload, Message-ID e diferenças em `email_ingest_queue`. O
+aceite registra o processamento em `processed_emails`, aplica upsert por KPI,
+mês e ano e gera `kpi_change_logs`. Um novo Message-ID pode submeter uma correção
+para revisão. O histórico não equivale ao arquivamento integral do e-mail original.

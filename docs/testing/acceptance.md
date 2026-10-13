@@ -1,6 +1,14 @@
-# Termo de Homologação com Usuários — Épico 7
+# Homologação e aceite com usuários
 
 Este documento registra o aceite funcional do dashboard por um representante do negócio. Os testes técnicos já executados não substituem este aceite. Não incluir senhas, tokens, conteúdo de `.env` ou dados pessoais nas evidências.
+
+
+Os testes técnicos do RPA precedem o aceite pelo negócio: use destinatários de
+teste e desabilite `send_log`, se existir nesse caminho. Após a validação técnica,
+organize a sessão com o responsável do negócio; não envie dados sintéticos ao
+usuário final automaticamente. Essa separação corresponde aos requisitos
+registrados no [Épico 7](../history/epic-7-validation.md#requisitos-adicionais-do-guia-dxi).
+Os registros históricos não substituem uma sessão executada na versão atual.
 
 ## Identificação da sessão
 
@@ -80,3 +88,30 @@ Observações da decisão:
 - Este termo preenchido e confirmado pelo responsável do negócio.
 
 Somente após a decisão **APROVADO** ou **APROVADO COM RESSALVAS** aceita pelo time, atualizar o item “Realizar homologação com usuários” do Épico 7. A produção continua sendo uma etapa separada e exige autorização própria.
+
+## Validação técnica antes do aceite
+
+Pré-condições: ambiente separado, banco de teste, caixa postal dedicada, ADMIN de teste, versão/commit registrados, robô/API/dashboard em execução. Usar dados sintéticos; não registrar senhas ou tokens nas evidências.
+
+1. Confirmar FastAPI no ambiente e o caminho do robô até a API/banco. Registrar URLs, versão e configuração sem segredos. Bloquear envio ao usuário final e desabilitar `send_log` no caminho de testes, se existente.
+2. Preparar Excel de referência com mês/ano aceitos, KPI identificado pelo nome/aba e valores conhecidos (ex.: target 0.04, result 0.05, achievement 0.8). Registrar formato percentual esperado na tela.
+3. Enviar para a caixa de teste com assunto/remetente permitidos e Message-ID único. Registrar horário e identificador.
+4. Executar o robô, conferir anexos, logs e a fila `pending`; revisar e aceitar o lote com papel autorizado. Só então conferir persistência e dashboard. Nenhum erro deve ser mascarado como sucesso.
+5. Fazer login no dashboard. Conferir valores na resposta da API e na tela, período, unidades, arredondamento e ausência de dados mock substituindo silenciosamente os reais.
+6. Reexecutar o mesmo e-mail. Confirmar que a contagem de registros não aumenta. Enviar outro Message-ID para o mesmo período com valor corrigido e confirmar a regra de atualização acordada.
+7. Repetir com assunto inválido, anexo corrompido, campo obrigatório ausente e falha de banco/API. Exigir erro rastreável, ausência de dados parciais e possibilidade de reprocessamento quando aplicável.
+8. Testar saída da sessão, acesso sem token, token expirado e acesso não autorizado às rotas administrativas. Não criar perfis novos em produção só para testar.
+9. Anexar evidências e abrir defeitos com passos de reprodução. Reexecutar após correção.
+
+
+## Validação de produção — somente com autorização
+
+Antes do deploy: aprovação da mudança, backup/restauração verificados, migrations revisadas, plano de rollback com responsável, segredos fora do repositório, JWT_SECRET próprio, HTTPS, origem CORS e proxy conferidos.
+
+Após deploy, iniciar com verificações de leitura: health (não comprova banco), login autorizado, resposta dos KPIs, renderização e logs sem segredos. Não fazer testes de carga, falha induzida, alteração de permissões ou envio de dados fictícios sem autorização específica. Se permitido, usar um relatório controlado e rastreável para confirmar o fluxo completo, com plano de limpeza aprovado.
+
+Registrar versão, horário, responsáveis, evidências e decisão de manter/reverter. Sem acesso e execução reais, marcar produção como **pendente**, nunca aprovada por inferência dos testes locais.
+
+Use secrets da plataforma, certificado/domínio reais e backup automatizado do
+PostgreSQL. O frontend atual não usa `VITE_ALLOW_MOCK_FALLBACK`; sem API não há
+fallback de números locais.

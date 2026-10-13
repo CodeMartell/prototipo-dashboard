@@ -1,5 +1,13 @@
 # Relatório de Homologação da Nossa Equipe: Segurança (Épico 5)
 
+> **Relatório histórico do Épico 5.** Preserve as evidências abaixo no contexto
+> daquela entrega. O Compose principal atual publica frontend em 5173, API em
+> 9192 e PostgreSQL em 5434, sem serviço para o proxy HTTPS de `nginx/`.
+> O backend atual usa FastAPI (`@app.middleware`), não `@app.before_request`.
+> Portanto, o roteiro abaixo não comprova HTTPS nem bloqueio dessas portas na
+> configuração atual. Para execução vigente, use o
+> [roteiro principal](roteiro-testes-aplicacao.md); revalidar segurança no ambiente alvo.
+
 Este documento mapeia cada um dos requisitos solicitados originalmente no Épico 5, descrevendo exatamente como nossa equipe resolveu o problema no código e como você pode testar cada uma dessas melhorias na sua máquina.
 
 ---

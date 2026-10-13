@@ -1,15 +1,22 @@
 # Fluxo local — três e-mails para o dashboard
 
-O fluxo suportado é: Gmail/IMAP → robô → extração dos anexos `.xlsx` → API FastAPI → PostgreSQL → dashboard React.
+O fluxo atual é: Gmail/IMAP → robô → extração dos anexos `.xlsx` → fila na
+API FastAPI → aceite pelo ADMIN/GESTOR → PostgreSQL → dashboard React.
+Para instalação e comandos gerais, use o [roteiro principal](roteiro-testes-aplicacao.md).
 
 ## O que fica persistido
 
-- Os valores dos KPIs ficam no volume PostgreSQL `datalens_pg_data` e alimentam o dashboard pela API.
-- O `Message-ID`, remetente, assunto, estado e horário de cada ingestão concluída ficam na tabela `processed_emails`.
-- O robô mantém seu controle local de processamento no volume `datalens_email_history`, evitando processar novamente o mesmo e-mail.
-- Os anexos ficam no volume `datalens_email_attachments`.
+- Os valores dos KPIs ficam no volume PostgreSQL `pg_data` e alimentam o dashboard pela API.
+- O payload, Message-ID e diferenças ficam em `email_ingest_queue` para revisão.
+- Após o aceite, o processamento fica registrado em `processed_emails`.
+- O robô mantém seu controle local de processamento no volume `email_history`, evitando processar novamente o mesmo e-mail.
+- Os anexos ficam no volume `email_attachments`.
 
-Os valores de um mesmo KPI, mês e ano usam *upsert*: um novo e-mail com um `Message-ID` diferente corrige o registro daquele período, em vez de criar uma linha duplicada. O banco mantém o estado atual dos indicadores; ele ainda não mantém todas as versões anteriores de uma correção nem o conteúdo binário original do e-mail.
+Após o aceite, os valores de um mesmo KPI, mês e ano usam *upsert*. Um novo
+Message-ID permite submeter uma correção para revisão. O payload e as diferenças
+ficam na fila; alterações têm registros em `kpi_change_logs`. Não confundir esse
+registro com arquivamento integral do e-mail original. O nome efetivo dos volumes
+pode receber o prefixo do projeto Compose.
 
 ## Formato recomendado para os três e-mails
 
@@ -42,8 +49,12 @@ docker compose run --rm rpa-bot
 ## Conferência
 
 - O log do robô deve terminar com três processamentos e zero erros.
-- `GET /api/health` deve retornar `status: ok`.
+- A API publicada em `http://localhost:9192/api/health` deve retornar `status: ok`.
+- Na página de perfil, revise e aceite os três lotes com ADMIN/GESTOR; só então
+  confira os valores no dashboard. `PROCESSADO` no robô confirma entrega à fila.
 - Após login, o selo inferior do dashboard deve mostrar `API`, nunca `MOCK`.
 - Reexecutar os mesmos três e-mails deve resultar em duplicidade/`skipped`, sem novas linhas de KPI.
 
-Antes do deploy, mantenha `VITE_ALLOW_MOCK_FALLBACK=false`, use secrets da plataforma, configure certificado/domínio reais e automatize backup do volume PostgreSQL.
+Antes do deploy, use secrets da plataforma, configure certificado/domínio reais
+e automatize backup do PostgreSQL. O frontend atual não tem fallback de dados
+locais; não depende da antiga variável `VITE_ALLOW_MOCK_FALLBACK`.

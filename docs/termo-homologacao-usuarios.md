@@ -13,7 +13,7 @@ Este documento registra o aceite funcional do dashboard por um representante do 
 | Versão/commit | A preencher |
 | Responsável técnico | A preencher |
 | Usuário homologador / área | A preencher |
-| Perfil utilizado | ADMIN / VISUALIZADOR |
+| Perfil utilizado | Registrar o papel efetivo; padrão atual: ADMIN / GESTOR / TI_SUPORTE / AUDITORIA / VIEWER |
 
 ## Pré-condições
 
@@ -22,6 +22,11 @@ Este documento registra o aceite funcional do dashboard por um representante do 
 - [ ] Credencial individual ou temporária entregue por canal seguro.
 - [ ] Nenhuma senha ou token aparece em captura de tela.
 - [ ] Não existem defeitos críticos ou altos abertos.
+
+Os valores 5,00%/4,00%/80% abaixo pertencem ao anexo sintético Jan/Y26 da
+homologação, não à carga histórica padrão. Prepare essa referência antes do teste.
+Os registros antigos usavam VISUALIZADOR; a matriz padrão atual usa VIEWER.
+Para dados recebidos por e-mail, confirme o aceite da fila antes da comparação.
 
 ## Cenários de aceite
 
@@ -33,7 +38,7 @@ Este documento registra o aceite funcional do dashboard por um representante do 
 | HU-04 | Dados ausentes | Indicadores e períodos sem dados mostram `—`, sem valores demonstrativos | A preencher | Pendente | |
 | HU-05 | Gráfico War Room | Gráfico representa Jan/26 com 5,00% e meta 4,00% | A preencher | Pendente | |
 | HU-06 | Filtros | Seleção mensal funciona e não inventa dados nos demais períodos | A preencher | Pendente | |
-| HU-07 | Perfil VISUALIZADOR | Consulta painéis, mas não vê Analytics | A preencher | Pendente | |
+| HU-07 | Perfil VIEWER | Consulta painéis, mas não vê Analytics | A preencher | Pendente | |
 | HU-08 | Perfil ADMIN | Consulta painéis e acessa Analytics | A preencher | Pendente | |
 | HU-09 | Saída | Botão Sair encerra a sessão e retorna ao login | A preencher | Pendente | |
 | HU-10 | Clareza e usabilidade | Rótulos, unidades e navegação são compreensíveis para o negócio | A preencher | Pendente | |

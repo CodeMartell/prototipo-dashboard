@@ -1,10 +1,27 @@
 # 🚀 Bot Extrator e Normalizador de Dados Logísticos (Épico 3)
 
+**Bot legado independente:** o fluxo atual do dashboard usa
+[`rpa_email`](../docs/automacao-rpa-email.md). Este diretório preserva o bot
+autônomo do Épico 3, seus testes, planilha de simulação e relatório histórico.
+
 Serviço autônomo (backend / ETL) para **extração, validação, limpeza e normalização** de indicadores logísticos para a plataforma **War Room / DXI Dashboard**, com **envio de Relatório Executivo por E-mail para o Gestor**.
 
 ---
 
 ## ⚡ Como Executar
+
+Execute dentro de `bot-extrator-email/`, com ambiente próprio e dependências
+instaladas de `requirements.txt` deste diretório. No PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+Revise `.env` e `config.json`. O modo real acessa IMAP e pode enviar relatório
+via SMTP conforme `ENVIAR_RELATORIO_GESTOR`; use a simulação para teste offline.
 
 ### 1. Modo Simulação (Offline com arquivos da pasta `caixa_de_entrada/`)
 ```bash
@@ -23,10 +40,20 @@ python extrator.py --force
 
 ### 4. Executar os Testes Unitários
 ```bash
-.venv\Scripts\pytest
+python -m pytest -q
 ```
 
 ---
+
+### 5. Diagnóstico de e-mail
+
+```powershell
+python scripts/diagnostico_email.py
+```
+
+Esse diagnóstico usa a caixa real configurada. As decisões e correções do Épico 3
+estão no [relatório técnico histórico](RELATORIO_PROJETO_EPICO3.md); seus comandos
+representam aquela etapa, enquanto este README concentra a execução do bot legado.
 
 ## 🎯 KPIs Extraídos
 
@@ -42,7 +69,6 @@ python extrator.py --force
 bot-extrator-email/
 ├── .env.example              # Modelo de variáveis de ambiente seguro
 ├── .env                      # Configurações locais e credenciais do Gmail
-├── .gitignore                # Regras de exclusão do Git (.venv, logs, saídas)
 ├── requirements.txt          # Dependências do projeto
 ├── config.json               # Regras de filtros de assunto, remetentes e KPIs
 ├── extrator.py               # CLI principal com visualização limpa e objetiva

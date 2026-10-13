@@ -1,5 +1,10 @@
 # Proposta de Implementação de Internacionalização (i18n)
 
+> **Registro histórico da proposta.** O código atual já inclui as dependências,
+> `src/i18n.js`, os três dicionários e o seletor no Header. O estado de manutenção
+> está no [README do dashboard](../dashboard/README.md); o roadmap abaixo preserva
+> a intenção original e não representa uma validação de cobertura de tradução.
+
 ## 1. Objetivo
 Adicionar suporte a múltiplos idiomas no Dashboard DataLens, especificamente:
 - **Português Brasileiro (pt)**

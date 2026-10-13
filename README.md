@@ -1,28 +1,33 @@
 # DataLens — Dashboard de Indicadores Logísticos (War Room)
 
-Sistema integrado de ponta a ponta para consolidação, monitoramento e análise de 6 KPIs logísticos estratégicos. A plataforma automatiza a captura de relatórios via robô de e-mail (RPA), normaliza e persiste métricas em banco de dados relacional (PostgreSQL / SQLite), e fornece uma interface analítica moderna em React para suporte à tomada de decisão.
+Sistema integrado para captura de relatórios por e-mail, extração e persistência
+de seis KPIs logísticos e análise em um dashboard React.
 
----
+## Começar
 
-## 📑 Sumário
+O [roteiro de execução e testes](docs/roteiro-testes-aplicacao.md) é a fonte
+principal dos comandos: instalação, Docker, execução local com SQLite ou
+PostgreSQL, carga de dados, testes, reset e diagnóstico.
 
-- [Visão Geral e Arquitetura](#-visão-geral-e-arquitetura)
-- [Os 6 Indicadores (KPIs)](#-os-6-indicadores-kpis)
-- [Estrutura do Projeto](#-estrutura-do-projeto)
-- [Pré-requisitos](#-pré-requisitos)
-- [Configuração de Variáveis de Ambiente (`.env`)](#-configuração-de-variáveis-de-ambiente-env)
-- [Limpeza Total de Dados (Reset para Estado Zero)](#-limpeza-total-de-dados-reset-para-estado-zero)
-- [Executando os Testes Automatizados](#-executando-os-testes-automatizados)
-- [Divisão de Privilégios (RBAC) e Auditoria](#-divisão-de-privilégios-rbac-e-auditoria)
-- [Como Testar a Aplicação Ponta a Ponta](#-como-testar-a-aplicação-ponta-a-ponta)
-  - [Método 1: Execução Direta / Local (Sem Docker — Recomendado)](#método-1-execução-direta--local-sem-docker--recomendado)
-  - [Método 2: Execução com Docker Compose](#método-2-execução-com-docker-compose)
-- [Roteiro de Validação Manual (Checklist do Testador)](#-roteiro-de-validação-manual-checklist-do-testador)
-- [Testando a Ingestão do Robô RPA](#-testando-a-ingestão-do-robô-rpa)
-- [Resolução de Problemas Comuns (Troubleshooting)](#-resolução-de-problemas-comuns-troubleshooting)
+| Assunto | Documento principal |
+| --- | --- |
+| Backend, contratos HTTP e migrations | [Backend](server/README.md) |
+| Frontend, proxy e idiomas | [Dashboard](dashboard/README.md) |
+| RPA, formatos, ingestão e limites | [Automação de e-mail](docs/automacao-rpa-email.md) |
+| Exemplo com três mensagens normalizadas | [Fluxo local](docs/fluxo-local-tres-emails.md) |
+| Integração isolada com PostgreSQL | [Ambiente de integração](docs/ambiente-integracao.md) |
+| Gmail em ambiente descartável | [Homologação Gmail local](docs/homologacao-gmail-local.md) |
+| Requisitos, decisões e evidências do Épico 7 | [Testes e homologação](docs/epico-7-homologacao.md) |
+| Aceite pelo negócio | [Termo de homologação](docs/termo-homologacao-usuarios.md) |
+| Histórico de segurança do Épico 5 | [Relatório histórico](docs/homologacao_epico_5.md) |
+| Proposta original de idiomas | [Proposta i18n](docs/proposta-implementacao-i18n.md) |
+| Bot autônomo do Épico 3 | [Bot legado](bot-extrator-email/README.md) |
 
----
-
+- [Arquitetura](#-visão-geral-e-arquitetura)
+- [Indicadores](#-os-6-indicadores-kpis)
+- [Estrutura](#estrutura-do-repositório)
+- [Permissões e auditoria](#-divisão-de-privilégios-rbac-e-auditoria)
+- [Licença](#licença)
 
 ## 🏛 Visão Geral e Arquitetura
 
@@ -35,7 +40,7 @@ O sistema é dividido em três camadas desacopladas que operam de forma orquestr
 └─────────────────────────┘                        └────────────┬────────────┘
                                                                 │
                                                   POST JSON     │ Autenticação JWT
-                                                  /kpi-report   │
+                                                  ingestão HTTP │
                                                                 v
 ┌─────────────────────────┐       HTTP Proxy       ┌─────────────────────────┐
 │     Dashboard React     │ <───────────────────── │   API Backend FastAPI   │
@@ -45,13 +50,13 @@ O sistema é dividido em três camadas desacopladas que operam de forma orquestr
                                                                 │ SQLAlchemy / Alembic
                                                                 v
                                                    ┌─────────────────────────┐
-                                                   │  PostgreSQL 17 / SQLite │
-                                                   │  `dashboard.db`         │
+                                                   │  PostgreSQL / SQLite │
+                                                   │  conforme DATABASE_URL  │
                                                    └─────────────────────────┘
 ```
 
-1. **Robô Extrator RPA (`rpa_email/`)**: Conecta à caixa de e-mails via protocolo IMAP, identifica mensagens pelo assunto e anexos (suporta relatórios normalizados `.xlsx` e planilhas originais brutas `.xlsb`), extrai os números, deduplica para não processar duas vezes e transmite um payload validado para a API.
-2. **Servidor Backend (`server/`)**: Desenvolvido em FastAPI e SQLAlchemy, gerencia a autenticação JWT, controle de perfis de usuário (ADMIN e VIEWER), validação de payloads de ingestão, cálculo de desvios/anomalias e CRUD de planos de ação.
+1. **Robô Extrator RPA (`rpa_email/`)**: Conecta à caixa de e-mails via protocolo IMAP, identifica mensagens pelo assunto e anexos (suporta relatórios normalizados `.xlsx` e planilhas originais brutas `.xlsb`), extrai os números, deduplica e envia um payload validado à fila de aprovação da API. Os KPIs são aplicados após aceite na página de perfil.
+2. **Servidor Backend (`server/`)**: Desenvolvido em FastAPI e SQLAlchemy, gerencia a autenticação JWT, controle de acesso por papéis e permissões (RBAC), validação de payloads de ingestão, cálculo de desvios/anomalias e CRUD de planos de ação.
 3. **Interface do Usuário (`dashboard/`)**: Single Page Application (SPA) desenvolvida em React 19 e Vite, com gráficos Recharts, filtros temporais dinâmicos, controle de acessibilidade e design responsivo.
 
 ---
@@ -69,142 +74,32 @@ O sistema é dividido em três camadas desacopladas que operam de forma orquestr
 
 ---
 
-## 📁 Estrutura do Projeto
+## Estrutura do repositório
 
-```
+```text
 prototipo-dashboard/
-├── dashboard/                 # Frontend React 19 + Vite
-│   ├── src/
-│   │   ├── components/        # Componentes visuais (KPICard, Charts, Filtros, etc.)
-│   │   ├── pages/             # Telas principais (DashboardPage, LoginPage)
-│   │   └── services/          # Cliente HTTP da API (api.js) e regras de negócio
-│   └── package.json           # Scripts e dependências do frontend
-├── server/                    # Backend FastAPI
-│   ├── alembic/               # Migrations do banco de dados relacional
-│   ├── app/
-│   │   ├── controllers/       # Rotas REST (/api/auth, /api/dashboard, /api/ingestion)
-│   │   ├── models/            # Modelos de dados SQLAlchemy (KPIs, Usuários, Perfis)
-│   │   ├── repositories/      # Camada de acesso ao banco de dados
-│   │   └── services/          # Regras de consolidação e ingestão
-│   ├── scripts/               # Scripts de setup (create_admin.py, seed_history_data.py)
-│   └── requirements.txt       # Dependências Python do backend
-├── rpa_email/                 # Robô de Automação de E-mails
-│   ├── config/                # Leitura de credenciais e filtros IMAP
-│   ├── extractors/            # Extratores de planilhas (.xlsx e .xlsb brutos)
-│   ├── resources/             # Histórico local de ingestão e anexos temporários
-│   └── email_service.py       # Fluxo de varredura, deduplicação e envio
-├── kpi_reports/               # Planilhas de teste sintéticas prontas para uso
-├── scripts/
-│   ├── reset_local_data.py    # Script de limpeza total para testar do zero
-│   └── seed_history_data.py   # Carga com dados históricos de demonstração
-├── docker-compose.yml         # Orquestração completa em contêineres
-├── Dockerfile.api             # Imagem Docker do backend
-├── Dockerfile.email-rpa       # Imagem Docker do robô RPA
-├── .env.example               # Modelo documentado de variáveis de ambiente
-└── README.md                  # Este guia
+├── dashboard/                 # React, Vite, traduções e testes JavaScript
+├── server/                    # FastAPI, app/, alembic/, scripts/ e tests/
+├── rpa_email/                 # Robô integrado à API, extratores e testes
+├── bot-extrator-email/         # Bot autônomo legado do Épico 3 (IMAP/SMTP)
+├── docs/                      # Guias, homologações e arquitetura
+│   └── architecture/          # Diagrama C4 preservado
+├── scripts/                   # Geração de planilhas, reset e validações
+├── tests/system/              # Integração HTTP + PostgreSQL isolada
+├── scratch/                   # Explorações e planilhas históricas versionadas
+├── history_and_data.txt        # Referência de dados históricos
+├── .github/workflows/ci.yml    # Testes, lint, build e validação Docker
+├── .env.example               # Modelo de configuração da raiz
+├── docker-compose.yml         # db, api, frontend e perfil rpa
+├── docker-compose.test.yml     # Integração descartável
+├── docker-compose.homologacao.yml # Homologação local isolada
+├── Dockerfile.api / Dockerfile.email-rpa / Dockerfile.test-api
+├── docker-entrypoint-api.sh    # Migrations, seed RBAC e inicialização
+└── start.bat                   # Inicialização Docker no Windows
 ```
 
----
-
-## ⚙️ Pré-requisitos
-
-Para executar a aplicação no seu computador, certifique-se de possuir instalado:
-
-- **Python 3.11+** ou **3.12+** (verifique com `python --version`)
-- **Node.js 20+** e **npm** (verifique com `node --version` e `npm --version`)
-- **Docker Desktop** (opcional, necessário apenas se optar por testar via Docker)
-- **Git**
-
----
-
-## 🔐 Configuração de Variáveis de Ambiente (`.env`)
-
-Na raiz do projeto, copie o arquivo de exemplo para criar o seu `.env`:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Abra o arquivo `.env` e confirme os valores para teste local:
-
-```dotenv
-# Autenticação e API
-API_PORT=5001
-JWT_SECRET=supersecret-dev-local-jwt-token-key-32chars
-ADMIN_EMAIL=admin@lge.com
-ADMIN_PASSWORD=admin123
-ADMIN_NAME=Admin
-
-# Ingestão do Robô RPA para a API
-RPA_API_URL=http://127.0.0.1:5001
-RPA_API_EMAIL=admin@lge.com
-RPA_API_PASSWORD=admin123
-RPA_API_TIMEOUT=30
-
-# Banco de Dados (SQLite para execução local rápida)
-DATABASE_URL=sqlite:///./dashboard.db
-
-# Configuração de E-mail (necessário apenas se for testar varredura real do Gmail)
-EMAIL_USER=seu-email@gmail.com
-EMAIL_PASSWORD=sua-senha-de-aplicativo-google
-IMAP_HOST=imap.gmail.com
-IMAP_PORT=993
-IMAP_MAILBOX=INBOX
-EMAIL_SUBJECT_FILTER="Relatorio Logistico, Incidental Cost, Freight Air, War Room"
-EMAIL_DATE_FROM=2026-01-01
-EMAIL_DATE_TO=2026-12-31
-```
-
-> **Nota sobre o Gmail**: Caso utilize o robô com o Gmail, use uma **Senha de Aplicativo** gerada em sua Conta Google (Segurança -> Verificação em 2 etapas -> Senhas de app). Nunca utilize a senha comum da sua conta.
-
----
-
-## 🧹 Limpeza Total de Dados (Reset para Estado Zero)
-
-Quando quiser testar a aplicação **completamente do zero** (sem dados antigos, sem histórico de e-mails e com as tabelas de KPIs 100% vazias), execute o script de reset automatizado:
-
-```powershell
-python scripts/reset_local_data.py
-```
-
-Esse script realiza de forma segura:
-1. Elimina o banco SQLite local (`dashboard.db`);
-2. Limpa todos os anexos baixados em `rpa_email/resources/attachments`;
-3. Apaga a base de deduplicação do robô (`api_email_history.db`);
-4. Executa as migrations do **Alembic** recriando o schema vazio;
-5. Cria o perfil obrigatório `ADMIN`;
-6. Registra o usuário administrador limpo para login:
-   - **E-mail:** `admin@lge.com`
-   - **Senha:** `admin123`
-
----
-
-## 🧪 Executando os Testes Automatizados
-
-Antes de subir a aplicação, você pode validar a integridade de todas as camadas executando as suítes de testes:
-
-### 1. Testes do Robô RPA (56 testes)
-```powershell
-python -m pytest rpa_email/tests -q
-```
-*Resultado esperado:* `56 passed`.
-
-### 2. Testes do Backend FastAPI (117 testes)
-```powershell
-python -m pytest server/tests -q
-```
-*Resultado esperado:* `117 passed` (cobrindo segurança, matriz RBAC, ownership check, append-only e serviços).
-
-### 3. Testes e Build do Frontend React (41 testes)
-```powershell
-cd dashboard
-npm test
-npm run build
-cd ..
-```
-*Resultado esperado:* `41 pass, 0 fail` e bundle `dashboard/dist` gerado com sucesso pelo Vite.
-
----
+`kpi_reports/` é gerado por `scripts/generate_kpi_reports.py` e ignorado pelo Git.
+A carga histórica está em `server/scripts/seed_history_data.py`.
 
 ## 🛡️ Divisão de Privilégios (RBAC) e Auditoria
 
@@ -231,7 +126,7 @@ O DataLens adota um sistema robusto de controle de acesso baseado em papéis (RB
 | `users:write` | ✅ | ❌ | ✅ | ❌ | ❌ |
 | `users:assign_role` | ✅ *(qualquer)* | ❌ | ✅ *(exceto ADMIN)* | ❌ | ❌ |
 | `audit:read_all` | ✅ | ❌ | ❌ | ✅ | ❌ |
-| `audit:read_scoped` | ✅ | ❌ | ✅ *(requer user_id)* | *(redundante)* | ❌ |
+| `audit:read_scoped` | ✅ | ❌ | ✅ *(requer actor_user_id)* | ❌ | ❌ |
 
 ### 3. Regras de Segurança Implementadas
 
@@ -252,7 +147,7 @@ O DataLens adota um sistema robusto de controle de acesso baseado em papéis (RB
 
 ### 4. Como Inicializar e Aplicar o RBAC
 
-Para aplicar a estrutura no banco de dados e popular os perfis, permissões e usuários de teste:
+Em um ambiente local de teste já configurado, aplique as migrations e o seed. O seed também cria as contas demonstrativas abaixo; o entrypoint Docker atual executa esse mesmo script.
 
 ```powershell
 # 1. Aplicar a migration Alembic com as novas tabelas e colunas
@@ -261,11 +156,12 @@ alembic upgrade head
 
 # 2. Executar o seed idempotente de roles, permissions e usuários de teste
 python scripts/seed_rbac.py
+cd ..
 ```
 
 ### 5. Usuários Padrão para Testes e Homologação (5 Papéis)
 
-O script de seed (`seed_rbac.py`) e o script de reset (`reset_local_data.py`) provisionam automaticamente os seguintes acessos para validação de cada perfil:
+O script de seed (`server/scripts/seed_rbac.py`) e o script de reset (`scripts/reset_local_data.py`) provisionam automaticamente os seguintes acessos para validação de cada perfil:
 
 | Papel | E-mail | Senha | Nome do Usuário | Capacidades Principais |
 |---|---|---|---|---|
@@ -278,219 +174,8 @@ O script de seed (`seed_rbac.py`) e o script de reset (`reset_local_data.py`) pr
 ---
 
 
-## 🚀 Como Testar a Aplicação Ponta a Ponta
+## Licença
 
-
-### ⚡ Inicialização Rápida Automática (Windows)
-Se você estiver no Windows e tiver o Docker instalado, a forma mais fácil de subir toda a infraestrutura sem dor de cabeça é usando o script de automação:
-1. Dê **dois cliques no arquivo `start.bat`** (ou execute `.\start.bat` no terminal).
-2. Aguarde. O script verificará as dependências, configurará o ambiente e abrirá o projeto automaticamente.
-
----
-
-### Execução Manual
-Caso você use outro sistema operacional ou prefira rodar passo a passo manualmente, escolha um dos métodos abaixo:
-- **Método 1:** Execução Direta / Local (Sem Docker, utiliza banco leve SQLite).
-- **Método 2:** Execução Manual com Docker Compose (orquestra contêineres com PostgreSQL e Nginx).
-
----
-
-### Método 1: Execução Direta / Local (Sem Docker — Recomendado)
-
-#### Passo 1: Limpar os dados para começar do zero
-No PowerShell, na raiz do projeto:
-```powershell
-python scripts/reset_local_data.py
-```
-
-#### Passo 2: Iniciar o Servidor Backend (FastAPI)
-Abra um terminal PowerShell na pasta `server`:
-```powershell
-cd server
-python -m uvicorn main:app --host 0.0.0.0 --port 5001 --reload
-```
-- A API estará disponível em: `http://localhost:5001`
-- Documentação interativa (Swagger): `http://localhost:5001/docs`
-- Checagem de saúde: `http://localhost:5001/api/health` (deve retornar `{"status":"ok",...}`)
-
-#### Passo 3: Iniciar o Frontend (React + Vite)
-Abra **outro terminal PowerShell** na pasta `dashboard`:
-```powershell
-cd dashboard
-npm run dev
-```
-- O frontend abrirá em: `http://localhost:5173`
-
-#### Passo 4: Fazer Login na Aplicação
-1. Acesse `http://localhost:5173` no seu navegador.
-2. Na tela de Login, insira as credenciais geradas no reset:
-   - **E-mail:** `admin@lge.com`
-   - **Senha:** `admin123`
-3. Clique em **Entrar**.
-4. **Validação do estado zero:** Como o banco está limpo, você verá a interface carregada com o selo verde **API** no rodapé e os cards exibirão **"Sem dados"** para o período selecionado.
-
-#### Passo 5: Alimentar Dados para Teste
-Você tem 3 formas de alimentar a aplicação:
-
-- **Opção A — Carga Rápida de Demonstração (Recomendado para explorar):**
-  Para carregar todo o histórico de dados reais dos 6 KPIs (2025 e 2026), execute na raiz do projeto:
-  ```powershell
-  python server/scripts/seed_history_data.py
-  ```
-  Volte ao navegador e recarregue a página (`F5`). Todos os gráficos e cards estarão preenchidos!
-
-- **Opção B — Ingestão via Robô de E-mail:**
-  Envie um e-mail de teste com relatórios em anexo e execute o robô (veja detalhes na seção [Testando a Ingestão do Robô RPA](#-testando-a-ingestão-do-robô-rpa)).
-
-- **Opção C — Cadastro Manual na Interface:**
-  Como usuário `ADMIN`, clique no botão de edição/inserção de período no topo do dashboard para salvar metas e resultados manualmente.
-
----
-
-### Método 2: Execução com Docker Compose
-
-Se você possui o Docker Desktop instalado e em execução:
-
-#### Passo 1: Limpar volumes e contêineres anteriores
-```powershell
-docker compose down -v
-```
-
-#### Passo 2: Subir os serviços
-```powershell
-docker compose up --build -d db api frontend
-```
-
-#### Passo 3: Conferir o status
-```powershell
-docker compose ps
-```
-Aguarde até que os serviços `datalens-postgres` e `datalens-api` estejam com status `healthy`.
-
-#### Passo 4: Acessar a aplicação
-- Acesse `http://localhost:5173` ou `http://localhost:80`.
-- Login: `admin@lge.com` / `admin123` (ou as credenciais informadas no `.env`).
-
-#### Passo 5: Criar os usuários de teste no Docker (Recomendado)
-Para poder logar com todos os perfis descritos na tabela de testes (`gestor@lge.com`, `suporte@lge.com`, etc):
-```powershell
-docker compose exec api python scripts/seed_rbac.py
-```
-
-#### Passo 6: Popular dados históricos no Docker (Opcional)
-```powershell
-docker compose exec api python scripts/seed_history_data.py
-```
-
-#### Passo 6: Rodar o robô RPA no Docker
-```powershell
-docker compose run --rm rpa-bot
-```
-
-#### Passo 7: Encerrar o ambiente Docker
-```powershell
-docker compose down
-```
-*(Para apagar completamente os dados do volume PostgreSQL no Docker, use `docker compose down -v`)*.
-
----
-
-## 📋 Roteiro de Validação Manual (Checklist do Testador)
-
-Após iniciar a aplicação e carregar dados, verifique os seguintes fluxos no navegador:
-
-1. **Selo de Conexão com a API:**
-   - No rodapé inferior da tela, verifique se o indicador exibe `Conectado à API`. Ele nunca deve exibir `MOCK`.
-2. **Seleção de Ano:**
-   - No seletor de ano no cabeçalho, alterne entre `2026` e `2025`.
-   - Observe a atualização dos cards e dos gráficos de comparação ano a ano.
-3. **Filtros de Período:**
-   - Alterne entre os botões **Mensal**, **Trimestral**, **Semestral** e **Anual**.
-   - No modo mensal, selecione meses específicos (ex: Jan, Fev, Mar) e verifique os cálculos de variação e atingimento.
-4. **Regra de Cores e Direção dos Indicadores:**
-   - **Menor é melhor** (*War Room Report*, *Air Freight*, *Demurrage*, *Logistics vs Prod*): quando o resultado for menor ou igual à meta, deve destacar positivamente (verde); desvios acima da meta destacam em vermelho.
-   - **Maior é melhor** (*Resin Consolidation*, *Task Cost Reduction*): quando o resultado supera a meta, destaca positivamente.
-5. **Acessibilidade:**
-   - No cabeçalho, clique nos controles de tamanho de fonte (`A-` / `A+`) para verificar o redimensionamento dinâmico da interface.
-6. **Planos de Ação:**
-   - Role até a seção de Planos de Ação.
-   - Adicione um novo plano com título, responsável, prazo e descrição.
-   - Confirme se o plano persiste na listagem e teste a exclusão.
-7. **Logout e Segurança:**
-   - Clique em **Sair** no canto superior direito.
-   - Verifique o redirecionamento imediato para `/login`.
-   - Tente acessar a URL interna sem autenticação para confirmar o bloqueio de rota.
-
----
-
-## 🤖 Testando a Ingestão do Robô RPA
-
-O robô automatiza o fluxo de captura e envio de planilhas para a API.
-
-### Formatos de Planilha Suportados
-
-O robô aceita duas modalidades de arquivos:
-
-1. **Planilhas Sintéticas / Normalizadas (`.xlsx`):**
-   Disponíveis na pasta `kpi_reports/` do projeto:
-   - `relatorio_logistic_cost.xlsx` (War Room Report)
-   - `relatorio_air_freight.xlsx` (Air Freight)
-   - `relatorio_incidental_cost.xlsx` (Resin Consolidation)
-   - `relatorio_total_cost.xlsx` (Task Cost Reduction)
-   - `relatorio_demurrage.xlsx` (Demurrage Cost)
-   - `relatorio_logistics_vs_prod.xlsx` (Logistics Cost x Product Amount)
-
-2. **Relatórios Originais Brutos (`.xlsb` e `.xlsx`):**
-   Arquivos corporativos cujos nomes contenham:
-   - `War Room` (`.xlsb` ou `.xlsx`)
-   - `Freight Air` (`.xlsb` ou `.xlsx`)
-   - `Incidental Cost_Total` (`.xlsb` ou `.xlsx`)
-   - `3-indicadores` (`.xlsx`)
-
-### Procedimento de Teste com o Gmail
-
-1. No `.env`, configure `EMAIL_USER` e `EMAIL_PASSWORD` com suas credenciais do Gmail.
-2. Certifique-se de que `EMAIL_SUBJECT_FILTER` inclua o assunto que você utilizará (ex: `Relatorio Logistico`).
-3. Envie um e-mail para a conta configurada com:
-   - **Assunto:** `Relatorio Logistico`
-   - **Anexo:** Uma ou mais planilhas de teste (ex: `kpi_reports/relatorio_logistic_cost.xlsx`).
-4. Com a API ativa (`http://localhost:5001`), execute o robô no terminal:
-   ```powershell
-   python -m rpa_email
-   ```
-5. **Resultado esperado no log:**
-   ```text
-   Execucao concluida | encontrados=1 processados=1 duplicados=0 fora_do_padrao=0 erros=0
-   ```
-6. Atualize o dashboard (`http://localhost:5173`) e confira os novos dados refletidos na tela.
-7. **Teste de deduplicação:** Execute novamente `python -m rpa_email` sem enviar novo e-mail.
-   - O log deve indicar `duplicados=1` e `processados=0`, garantindo que o mesmo relatório não seja gravado em duplicidade.
-
----
-
-## 🔧 Resolução de Problemas Comuns (Troubleshooting)
-
-### 1. Porta 5001 ou 5173 já em uso
-Caso o terminal informe `address already in use`:
-- No Windows/PowerShell, localize e encerre o processo:
-  ```powershell
-  Get-Process -Id (Get-NetTCPConnection -LocalPort 5001).OwningProcess | Stop-Process -Force
-  Get-Process -Id (Get-NetTCPConnection -LocalPort 5173).OwningProcess | Stop-Process -Force
-  ```
-
-### 2. Erro de autenticação IMAP no Gmail (`AUTHENTICATIONFAILED`)
-- O Gmail exige autenticação de 2 fatores ativada e o uso exclusivo de **Senha de Aplicativo** (16 caracteres). Não use a senha pessoal da sua conta.
-- Certifique-se de que `IMAP_HOST=imap.gmail.com` e `IMAP_PORT=993`.
-
-### 3. Docker: Falha ao conectar ao daemon (`dockerDesktopLinuxEngine`)
-- Se o Docker Desktop não estiver aberto, utilize o **Método 1 (Execução Direta / Local)** descrito acima, que roda nativamente no Windows com SQLite e não requer Docker.
-
-### 4. O dashboard exibe "Não foi possível conectar à API"
-- Verifique se o servidor backend está rodando no terminal com `uvicorn`.
-- Teste abrindo `http://localhost:5001/api/health` no navegador para confirmar que a API está respondendo com `status: ok`.
-
----
-
-## 📄 Licença
-
-Projeto desenvolvido para fins de prototipação e gestão logística interna. Distribuído sob a licença MIT.
+Projeto desenvolvido para prototipação e gestão logística interna. O README
+anterior indicava licença MIT, mas não há arquivo `LICENSE` versionado. Confirmar
+com os responsáveis o texto e a titularidade antes de formalizar a distribuição.

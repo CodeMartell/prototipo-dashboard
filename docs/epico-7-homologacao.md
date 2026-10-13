@@ -1,5 +1,14 @@
 # Épico 7 — Testes e homologação
 
+> **Evidências históricas de agosto de 2026.** As contagens e resultados abaixo
+> pertencem às execuções registradas, não à versão atual. Hoje a ingestão retorna
+> `pending` e exige aprovação antes de aplicar KPIs; o Docker principal inicia
+> FastAPI, e a matriz padrão inclui ADMIN, GESTOR, TI_SUPORTE, AUDITORIA e VIEWER.
+> Referências a Flask, VISUALIZADOR, aplicação imediata e comandos de ambientes
+> antigos devem ser lidas nesse contexto. A execução atual está no
+> [roteiro principal](roteiro-testes-aplicacao.md), e os limites no
+> [guia de automação](automacao-rpa-email.md). Revalidar os cenários com a fila.
+
 ## Escopo e execução
 
 Referência normativa: **DXi — Guia de Engenharia de Software, versão 1.0, agosto de 2026**, especialmente seções 5, 7, 10, 12 e 14. O guia foi fornecido pelo usuário; este documento registra os requisitos aplicáveis, sem substituir a referência oficial.
@@ -46,7 +55,7 @@ O extrator passou a rejeitar explicitamente planilhas sem registros, colunas obr
 
 ### Etapa 3 — envio do robô pela API
 
-Implementado `ApiReportSender` e conectado ao entrypoint atual `python -m rpa_email`. O serviço deixou de escrever KPIs diretamente no PostgreSQL/cache Excel; registra sucesso somente após confirmação da API. Falhas e anexos sem registros válidos permitem nova tentativa, com pastas separadas. Configuração e limites em [robo-ingestao-api.md](robo-ingestao-api.md). Verificação histórica: 62 testes locais aprovados, 1 externo ignorado; 5 testes Docker aprovados, incluindo mensagem sintética → serviço do robô → HTTP real → PostgreSQL. Gmail e React não participaram dessa execução.
+Implementado `ApiReportSender` e conectado ao entrypoint atual `python -m rpa_email`. O serviço deixou de escrever KPIs diretamente no PostgreSQL/cache Excel; registra sucesso somente após confirmação da API. Falhas e anexos sem registros válidos permitem nova tentativa, com pastas separadas. Configuração e limites em [automação e limites de ingestão](automacao-rpa-email.md#configuração-e-ingestão). Verificação histórica: 62 testes locais aprovados, 1 externo ignorado; 5 testes Docker aprovados, incluindo mensagem sintética → serviço do robô → HTTP real → PostgreSQL. Gmail e React não participaram dessa execução.
 
 Os achados sobre escrita direta e sucesso após falha abaixo descrevem o diagnóstico inicial. O fluxo legado de escrita direta foi removido; os demais itens permanecem como registro histórico desta homologação.
 

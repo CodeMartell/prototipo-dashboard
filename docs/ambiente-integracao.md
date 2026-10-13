@@ -10,7 +10,7 @@ Com Docker Desktop em execução, na raiz do projeto:
 docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from integration-tests
 ```
 
-O primeiro build baixa imagens e dependências. A execução prepara o banco, aplica as migrations Alembic existentes, inicia FastAPI e executa cinco testes. O comando devolve o código de saída do executor: zero significa aprovação; valor diferente de zero significa erro. Quando o executor termina, os demais serviços são parados.
+O primeiro build baixa imagens e dependências. A execução prepara o banco, aplica as migrations Alembic existentes, inicia FastAPI e executa a suíte `tests/system`; a quantidade varia por versão. O comando devolve o código de saída do executor: zero significa aprovação; valor diferente de zero significa erro. Quando o executor termina, os demais serviços são parados.
 
 Para consultar as evidências:
 
@@ -34,6 +34,13 @@ docker compose -f docker-compose.test.yml down
 - Nenhum `.env` do projeto é carregado nos containers; arquivos `.env` também são excluídos do contexto de build.
 - Testes exigem o endereço e nome do banco isolado; configuração ausente ou diferente falha explicitamente, sem `skip` e sem fallback para produção.
 - Não iniciar com o Compose principal nem conectar o robô/usuários a este banco.
+
+## Compatibilidade com a versão atual
+
+As evidências abaixo são históricas. A API atual coloca lotes na fila de
+aprovação (`pending`); cenários que esperam `processed` e aplicação imediata
+precisam ser revalidados com esse contrato. Não interpretar resultados de
+agosto de 2026 como aprovação do HEAD atual.
 
 ## Cenários
 

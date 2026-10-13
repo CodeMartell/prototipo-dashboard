@@ -1,5 +1,11 @@
 # Gmail → API local: validação controlada
 
+> **Cenário e evidências de 26/08/2026.** A ingestão atual retorna `pending`
+> e exige aceite pela página de perfil antes de atualizar KPIs. Os scripts e
+> resultados abaixo esperam aplicação imediata (`processed`) e precisam de
+> revalidação/adaptação para a versão atual. Preserve as evidências históricas;
+> para executar o fluxo vigente, siga o [roteiro principal](roteiro-testes-aplicacao.md).
+
 Este roteiro envia somente o anexo sintético já conferido para um ambiente local descartável e permite conferir os valores no React. Não é produção.
 
 **Execução verificada em 26/08/2026:** autenticação Gmail e leitura do anexo aprovadas; primeiro envio à API retornou `processed`, segundo envio retornou `skipped`; consulta autenticada confirmou Jan/Y26, target 0.04, result 0.05 e achievement 0.8. A mensagem foi preservada. Os serviços foram mantidos ativos para a próxima etapa.

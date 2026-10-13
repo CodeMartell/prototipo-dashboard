@@ -24,7 +24,7 @@ services:
       ENVIRONMENT: homologacao-local
     ports:
       - "127.0.0.1:15001:5001"
-    command: ["sh", "-c", "python -m alembic upgrade head && python scripts/seed_homologation.py && exec python -m uvicorn main:app --host 0.0.0.0 --port 5001"]
+    command: ["sh", "-c", "python -m alembic upgrade head && python scripts/seed_homologation.py && python scripts/seed_rbac.py && exec python -m uvicorn main:app --host 0.0.0.0 --port 5001"]
     depends_on:
       postgres-homologacao:
         condition: service_healthy

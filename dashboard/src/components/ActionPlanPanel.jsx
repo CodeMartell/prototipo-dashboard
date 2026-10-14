@@ -18,8 +18,21 @@ export default function ActionPlanPanel({
   const [savedPlans, setSavedPlans] = useState(() => getActionPlans(kpiKey, selectedYear));
   const [showAllPeriods, setShowAllPeriods] = useState(false);
   const [expandedPeriods, setExpandedPeriods] = useState(() => new Set([periodLabel]));
+  const [expandedCardIds, setExpandedCardIds] = useState(() => new Set());
   
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved' | 'saving'
+
+  const toggleExpandCard = useCallback((planId) => {
+    setExpandedCardIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(planId)) {
+        next.delete(planId);
+      } else {
+        next.add(planId);
+      }
+      return next;
+    });
+  }, []);
 
   const loadPlans = useCallback(async () => {
     if (isAuthenticated()) {
@@ -221,27 +234,48 @@ export default function ActionPlanPanel({
                     </button>
                     {isOpen && (
                       <div className="action-plan-history__grid">
-                        {group.plans.map((plan, index) => (
-                          <article
-                            className={`action-plan-card ${plan.period === periodLabel ? 'action-plan-card--active' : ''}`}
-                            key={plan.id}
-                          >
-                            <div className="action-plan-card__header">
-                              <span className="action-plan-card__period">{t('action_plan.plan_title').replace('{idx}', index + 1)}</span>
-                              <button
-                                type="button"
-                                className="action-plan-card__remove"
-                                title={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
-                                aria-label={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
-                                onClick={() => removePlan(plan)}
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                            <p>{plan.notes}</p>
-                            <small>{formatUpdatedAt(plan.updatedAt)}</small>
-                          </article>
-                        ))}
+                        {group.plans.map((plan, index) => {
+                          const isCardExpanded = expandedCardIds.has(plan.id);
+                          return (
+                            <article
+                              className={`action-plan-card ${plan.period === periodLabel ? 'action-plan-card--active' : ''} ${isCardExpanded ? 'action-plan-card--expanded' : ''}`}
+                              key={plan.id}
+                              onClick={() => toggleExpandCard(plan.id)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  toggleExpandCard(plan.id);
+                                }
+                              }}
+                              title={isCardExpanded ? 'Clique para recolher o plano' : 'Clique para expandir o plano'}
+                            >
+                              <div className="action-plan-card__header">
+                                <span className="action-plan-card__period">{t('action_plan.plan_title').replace('{idx}', index + 1)}</span>
+                                <button
+                                  type="button"
+                                  className="action-plan-card__remove"
+                                  title={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
+                                  aria-label={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removePlan(plan);
+                                  }}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                              <p>{plan.notes}</p>
+                              <div className="action-plan-card__footer">
+                                <small>{formatUpdatedAt(plan.updatedAt)}</small>
+                                <span className="action-plan-card__expand-icon" aria-hidden="true">
+                                  {isCardExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                </span>
+                              </div>
+                            </article>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

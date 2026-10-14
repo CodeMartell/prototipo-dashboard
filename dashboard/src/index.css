@@ -1082,11 +1082,38 @@ body {
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.action-plan-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(148, 163, 184, 0.45);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
+}
+
+.action-plan-card:focus-visible {
+  outline: 2px solid rgba(56, 189, 248, 0.5);
+  outline-offset: 1px;
 }
 
 .action-plan-card--active {
   background: rgba(148, 163, 184, 0.07);
   border-color: rgba(148, 163, 184, 0.35);
+}
+
+.action-plan-card--active:hover {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.6);
+}
+
+.action-plan-card--expanded {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
 .action-plan-card__header {
@@ -1115,6 +1142,7 @@ body {
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .action-plan-card__remove:hover,
@@ -1134,13 +1162,44 @@ body {
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
+  white-space: pre-wrap;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.action-plan-card--expanded p {
+  display: block;
+  overflow-y: auto;
+  -webkit-line-clamp: unset;
+  max-height: 380px;
+}
+
+.action-plan-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-3);
+  padding-top: var(--space-1);
 }
 
 .action-plan-card small {
   display: block;
-  margin-top: var(--space-3);
   color: var(--text-dim);
   font-size: 0.6rem;
+}
+
+.action-plan-card__expand-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted);
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.action-plan-card:hover .action-plan-card__expand-icon {
+  opacity: 1;
+  color: var(--text-primary);
+  transform: scale(1.1);
 }
 
 /* ================================

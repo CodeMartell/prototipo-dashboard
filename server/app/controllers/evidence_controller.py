@@ -202,7 +202,7 @@ def delete_evidence(
     db: Session = Depends(get_db),
 ):
     query = db.query(Evidence).filter(Evidence.id == evidence_id)
-    if current_user.get("role") != "ADMIN":
+    if current_user.get("role") not in ("ADMIN", "GESTOR", "ANALISTA"):
         query = query.filter(Evidence.user_id == current_user["id"])
     evidence = query.first()
     if not evidence:

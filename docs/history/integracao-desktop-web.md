@@ -219,6 +219,8 @@ Para subir o ambiente com a integração ativa:
 # Isso iniciará a API na porta 5001 e o Dashboard Web na porta 5173
 
 # 2. No repositório datalens-desktop (branch: ajustes_integracao)
+Voce pode simplemente clicar 2x no executavel run-desktop ou seguir o passo a passo:
+
 python -m venv .venv
 .\.venv\Scripts\activate
 pip install -r requirements.txt

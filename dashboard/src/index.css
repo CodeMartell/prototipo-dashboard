@@ -1076,6 +1076,79 @@ body {
   gap: var(--space-3);
 }
 
+/* A pilha sugere os demais planos sem transformar o painel em uma lista longa. */
+.action-plan-carousel {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.action-plan-carousel__stage {
+  position: relative;
+  padding: 0 16px 14px 0;
+}
+
+.action-plan-carousel__backdrop {
+  position: absolute;
+  inset: 8px 8px 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.018);
+  pointer-events: none;
+}
+
+.action-plan-carousel__backdrop--far {
+  transform: translate(16px, 14px);
+  opacity: 0.45;
+}
+
+.action-plan-carousel__backdrop--near {
+  transform: translate(8px, 7px);
+  opacity: 0.75;
+}
+
+.action-plan-carousel .action-plan-card {
+  position: relative;
+  z-index: 1;
+  min-height: 205px;
+}
+
+.action-plan-carousel__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: 2px;
+}
+
+.action-plan-carousel__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.action-plan-carousel__nav:hover,
+.action-plan-carousel__nav:focus-visible {
+  color: var(--text-primary);
+  border-color: rgba(56, 189, 248, 0.55);
+  outline: none;
+}
+
+.action-plan-carousel__counter {
+  min-width: 44px;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
 .action-plan-card {
   min-width: 0;
   padding: var(--space-3);
@@ -1151,16 +1224,20 @@ body {
 }
 
 .action-plan-card p {
-  display: -webkit-box;
-  overflow: hidden;
   color: var(--text-secondary);
   font-size: 0.72rem;
   line-height: 1.45;
   overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
   flex: 1;
   margin: 0;
+}
+
+.action-plan-card__text {
+  max-height: 150px;
+  padding-right: 4px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  scrollbar-width: thin;
 }
 
 .action-plan-card small {

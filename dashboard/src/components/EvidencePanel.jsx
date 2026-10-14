@@ -17,7 +17,7 @@ import {
 import { useTranslation } from 'react-i18next';
 
 const MAX_SIZE = 25 * 1024 * 1024;
-const ALLOWED_EXTENSIONS = ['ppt', 'pptx'];
+const ALLOWED_EXTENSIONS = ['ppt', 'pptx', 'pdf'];
 
 const formatSize = (bytes) =>
   bytes < 1024 * 1024
@@ -58,14 +58,22 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
 
   const loadFiles = useCallback(async () => {
     try {
-      const data = await fetchEvidences({ kpiType: kpiKey, year: fullYear, month: periodLabel });
+      let data = await fetchEvidences({ kpiType: kpiKey, year: selectedYear, month: periodLabel });
+      if (!Array.isArray(data) || data.length === 0) {
+        if (fullYear && fullYear !== selectedYear) {
+          const fallbackData = await fetchEvidences({ kpiType: kpiKey, year: fullYear, month: periodLabel });
+          if (Array.isArray(fallbackData) && fallbackData.length > 0) {
+            data = fallbackData;
+          }
+        }
+      }
       setFiles(Array.isArray(data) ? data : []);
       setError('');
     } catch (err) {
       if (err instanceof UnauthorizedError) return;
       setFiles([]);
     }
-  }, [kpiKey, fullYear, periodLabel]);
+  }, [kpiKey, selectedYear, fullYear, periodLabel]);
 
   useEffect(() => {
     loadFiles();
@@ -99,6 +107,11 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
     if (inputRef.current) inputRef.current.value = '';
   };
 
+  const handleRemovePending = (indexToRemove) => {
+    setPendingFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    setError('');
+  };
+
   const handleSavePending = async () => {
     if (!pendingFiles.length) return;
 
@@ -111,7 +124,7 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
         await uploadEvidence({
           file,
           kpiType: kpiKey,
-          year: fullYear,
+          year: selectedYear || fullYear,
           month: periodLabel,
         });
       }
@@ -166,7 +179,7 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
       <input
         ref={inputRef}
         type="file"
-        accept=".ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        accept=".ppt,.pptx,.pdf,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
         multiple
         hidden
         onChange={(e) => handleSelectFiles(e.target.files)}
@@ -215,6 +228,18 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
                   <Clock size={12} />
                   {t('evidence.badge_pending')}
                 </span>
+              </div>
+              <div className="evidence-panel__file-actions">
+                <button
+                  type="button"
+                  title="Remover arquivo selecionado"
+                  aria-label="Remover arquivo selecionado"
+                  className="evidence-panel__action-btn evidence-panel__action-btn--delete"
+                  disabled={isSaving}
+                  onClick={() => handleRemovePending(index)}
+                >
+                  <Trash2 size={15} />
+                </button>
               </div>
             </div>
           ))}

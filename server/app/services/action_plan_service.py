@@ -16,8 +16,14 @@ class ActionPlanService:
     def __init__(self, repository: ActionPlanRepository):
         self.repo = repository
 
-    def list_plans(self, kpi_type: str | None = None, status: str | None = None) -> list[ActionPlan]:
-        return self.repo.list_all(kpi_type=kpi_type, status=status)
+    def list_plans(
+        self,
+        kpi_type: str | None = None,
+        year: str | None = None,
+        period: str | None = None,
+        status: str | None = None,
+    ) -> list[ActionPlan]:
+        return self.repo.list_all(kpi_type=kpi_type, year=year, period=period, status=status)
 
     def get_plan(self, plan_id: str) -> ActionPlan:
         plan = self.repo.get_by_id(plan_id)
@@ -26,11 +32,18 @@ class ActionPlanService:
         return plan
 
     def create_plan(self, payload: ActionPlanIn, actor: dict) -> ActionPlan:
+        from app.repositories.action_plan_repository import KPI_MAP
+        canonical_kpi = KPI_MAP.get(payload.kpi_type, payload.kpi_type) if payload.kpi_type else None
         plan = ActionPlan(
             title=payload.title,
             description=payload.description,
             status=payload.status or "open",
-            kpi_type=payload.kpi_type,
+            kpi_type=canonical_kpi,
+            year=payload.year,
+            period=payload.period,
+            owner=payload.owner,
+            due_date=payload.due_date,
+            priority=payload.priority or "Média",
             submitted_by=actor.get("id"),
         )
         created = self.repo.create(plan)
@@ -43,7 +56,7 @@ class ActionPlanService:
                 actor_role_snapshot=actor.get("role"),
                 target_type="action_plan",
                 target_id=created.id,
-                metadata={"title": payload.title},
+                metadata={"title": payload.title, "kpi_type": payload.kpi_type, "period": payload.period},
             )
         except Exception:
             pass
@@ -58,6 +71,16 @@ class ActionPlanService:
             plan.status = payload.status
         if payload.kpi_type is not None:
             plan.kpi_type = payload.kpi_type
+        if payload.year is not None:
+            plan.year = payload.year
+        if payload.period is not None:
+            plan.period = payload.period
+        if payload.owner is not None:
+            plan.owner = payload.owner
+        if payload.due_date is not None:
+            plan.due_date = payload.due_date
+        if payload.priority is not None:
+            plan.priority = payload.priority
         return self.repo.update(plan)
 
     def delete_plan(self, plan_id: str, actor: dict) -> None:

@@ -53,9 +53,19 @@ if not exist ".env" (
     copy .env.example .env >nul
 )
 
-:: 3. Inicia/Executa a aplicacao (Docker Compose)
+:: 3. Garante pasta de logs
+if not exist "logs" (
+    mkdir logs
+)
+
+:: 4. Inicia/Executa a aplicacao (Docker Compose)
 echo [RUN] Construindo e iniciando a aplicacao no Docker (pode demorar no primeiro uso)...
 docker compose up -d --build
+
+:: 5. Captura continua de logs dos servicos em segundo plano
+echo [LOGS] Iniciando captura de logs em 'logs\docker.log' e 'logs\api.log'...
+start /b "" cmd /c "docker compose logs -f --no-color > logs\docker.log 2>&1"
+start /b "" cmd /c "docker compose logs -f --no-color api > logs\api.log 2>&1"
 
 echo.
 echo ==============================================
@@ -63,9 +73,13 @@ echo   SUCESSO! O Docker subiu o sistema em segundo plano.
 echo.
 echo   - Frontend: http://localhost:5173
 echo   - Backend:  http://localhost:9192
+echo   - Desktop:  http://localhost:5001 (API)
 echo.
-echo   Lembre-se: O banco de dados e a API podem levar de
-echo   30 a 60 segundos para terminarem de configurar
-echo   tudo nos bastidores antes do primeiro login.
+echo   - Logs gerais: logs\docker.log
+echo   - Logs da API: logs\api.log
+echo.
+echo   DICA: Para acompanhar os logs da API em tempo real na tela,
+echo   abra outro terminal e digite:
+echo     docker compose logs -f api
 echo ==============================================
 pause

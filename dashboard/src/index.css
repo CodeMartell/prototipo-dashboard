@@ -1082,11 +1082,35 @@ body {
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease,
+              background 0.2s ease,
+              box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.action-plan-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.action-plan-card:focus-visible {
+  outline: 2px solid rgba(56, 189, 248, 0.6);
+  outline-offset: 1px;
 }
 
 .action-plan-card--active {
   background: rgba(148, 163, 184, 0.07);
   border-color: rgba(148, 163, 184, 0.35);
+}
+
+.action-plan-card--active:hover {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(56, 189, 248, 0.6);
 }
 
 .action-plan-card__header {
@@ -1107,21 +1131,22 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   color: var(--text-muted);
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .action-plan-card__remove:hover,
 .action-plan-card__remove:focus-visible {
   color: var(--accent-red);
-  background: rgba(239, 68, 68, 0.08);
-  border-color: rgba(239, 68, 68, 0.18);
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
   outline: none;
 }
 
@@ -1134,6 +1159,8 @@ body {
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
+  flex: 1;
+  margin: 0;
 }
 
 .action-plan-card small {
@@ -1141,6 +1168,137 @@ body {
   margin-top: var(--space-3);
   color: var(--text-dim);
   font-size: 0.6rem;
+}
+
+/* ================================
+   ACTION PLAN EXPANDED CARD MODAL
+   ================================ */
+.action-plan-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  animation: actionPlanFadeIn 0.2s ease-out forwards;
+}
+
+.action-plan-modal-card {
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  animation: actionPlanZoomIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+}
+
+.action-plan-modal-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.action-plan-modal-card__title-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.action-plan-modal-card__badge {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.action-plan-modal-card__period {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.action-plan-modal-card__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-plan-modal-card__close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+.action-plan-modal-card__body {
+  padding: 24px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.action-plan-modal-card__text {
+  color: #f1f5f9;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.action-plan-modal-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.25);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.action-plan-modal-card__hint {
+  font-style: italic;
+  opacity: 0.75;
+}
+
+@keyframes actionPlanFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes actionPlanZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* ================================

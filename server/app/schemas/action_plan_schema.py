@@ -11,6 +11,11 @@ class ActionPlanIn(BaseModel):
     description: str | None = None
     status: str | None = "open"
     kpi_type: str | None = None
+    year: str | None = None
+    period: str | None = None
+    owner: str | None = None
+    due_date: str | None = None
+    priority: str | None = "Média"
 
 
 class ActionPlanOut(BaseModel):
@@ -19,6 +24,11 @@ class ActionPlanOut(BaseModel):
     description: str | None = None
     status: str
     kpi_type: str | None = None
+    year: str | None = None
+    period: str | None = None
+    owner: str | None = None
+    due_date: str | None = None
+    priority: str | None = None
     submitted_by: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None

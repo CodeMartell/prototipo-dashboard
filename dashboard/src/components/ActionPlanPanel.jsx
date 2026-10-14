@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, FileText, Save, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, Save, Trash2, X } from 'lucide-react';
 import { addActionPlan, getActionPlans, removeActionPlan } from '../utils/actionPlanStorage';
+import { createActionPlan, deleteActionPlan, fetchActionPlans, isAuthenticated } from '../services/api';
 import { useTranslation } from 'react-i18next';
 
 export default function ActionPlanPanel({
@@ -17,17 +18,72 @@ export default function ActionPlanPanel({
   const [savedPlans, setSavedPlans] = useState(() => getActionPlans(kpiKey, selectedYear));
   const [showAllPeriods, setShowAllPeriods] = useState(false);
   const [expandedPeriods, setExpandedPeriods] = useState(() => new Set([periodLabel]));
+  const [selectedPlanModal, setSelectedPlanModal] = useState(null);
   
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved' | 'saving'
 
-  const persistNotes = useCallback(() => {
+  useEffect(() => {
+    if (!selectedPlanModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setSelectedPlanModal(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedPlanModal]);
+
+  const loadPlans = useCallback(async () => {
+    if (isAuthenticated()) {
+      try {
+        const apiPlans = await fetchActionPlans({ kpiType: kpiKey, year: selectedYear });
+        if (Array.isArray(apiPlans)) {
+          const formatted = apiPlans.map((p) => ({
+            id: p.id,
+            period: p.period || periodLabel,
+            notes: p.description || p.title,
+            createdAt: p.created_at || '',
+            updatedAt: p.updated_at || p.created_at || '',
+            legacy: false,
+          }));
+          setSavedPlans(formatted);
+          return;
+        }
+      } catch (err) {
+        console.warn('Não foi possível carregar planos da API, usando armazenamento local:', err);
+      }
+    }
+    setSavedPlans(getActionPlans(kpiKey, selectedYear));
+  }, [kpiKey, selectedYear, periodLabel]);
+
+  const persistNotes = useCallback(async () => {
     const trimmedNotes = notes.trim();
     if (!trimmedNotes) return;
+    const currentPeriod = (periodLabel ? (['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(periodLabel) ? periodLabel : periodLabel) : 'Jan');
+    setSaveStatus('saving');
+
+    if (isAuthenticated()) {
+      try {
+        await createActionPlan({
+          title: trimmedNotes.split('\n')[0].slice(0, 90),
+          description: trimmedNotes,
+          kpi_type: kpiKey,
+          year: selectedYear,
+          period: currentPeriod,
+          status: 'open',
+        });
+        setNotes('');
+        setSaveStatus('saved');
+        await loadPlans();
+        return;
+      } catch (err) {
+        console.warn('Erro ao salvar plano na API, persistindo no armazenamento local:', err);
+      }
+    }
+
     addActionPlan(kpiKey, selectedYear, (periodLabel ? (['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(periodLabel) ? t('months.' + periodLabel) : periodLabel) : t('months.Jan')), trimmedNotes);
     setNotes('');
     setSavedPlans(getActionPlans(kpiKey, selectedYear));
     setSaveStatus('saved');
-  }, [kpiKey, notes, periodLabel, selectedYear]);
+  }, [kpiKey, notes, periodLabel, selectedYear, loadPlans, t]);
 
   // O campo sempre representa um novo plano; trocar de período não carrega
   // um card existente para edição nem provoca sobrescrita acidental.
@@ -37,14 +93,21 @@ export default function ActionPlanPanel({
     setExpandedPeriods((current) => new Set([...current, periodLabel]));
   }, [kpiKey, selectedYear, periodLabel]);
 
-  // The history belongs to the KPI/year, not to the currently selected month.
-  // Keeping this effect independent from storageKey prevents the cards from
-  // disappearing while the user navigates between periods.
+  // Carrega os planos sempre que o indicador ou o ano selecionado mudar
   useEffect(() => {
-    setSavedPlans(getActionPlans(kpiKey, selectedYear));
-  }, [kpiKey, selectedYear]);
+    loadPlans();
+  }, [loadPlans]);
 
-  const removePlan = (plan) => {
+  const removePlan = async (plan) => {
+    if (isAuthenticated() && plan?.id && !String(plan.id).startsWith('legacy:')) {
+      try {
+        await deleteActionPlan(plan.id);
+        await loadPlans();
+        return;
+      } catch (err) {
+        console.warn('Erro ao excluir na API, removendo do armazenamento local:', err);
+      }
+    }
     removeActionPlan(kpiKey, selectedYear, plan);
     setSavedPlans(getActionPlans(kpiKey, selectedYear));
   };
@@ -113,7 +176,11 @@ export default function ActionPlanPanel({
             </p>
             <div className="action-plan-panel__save-controls">
               <span className={`action-plan-panel__status action-plan-panel__status--${saveStatus}`}>
-                {saveStatus === 'saving' ? t('action_plan.unsaved') : t('action_plan.saved')}
+                {saveStatus === 'saving'
+                  ? t('action_plan.unsaved')
+                  : isAuthenticated()
+                  ? (t('action_plan.saved_synced') || '✓ Sincronizado com o servidor')
+                  : t('action_plan.saved')}
               </span>
               <button
                 type="button"
@@ -168,6 +235,16 @@ export default function ActionPlanPanel({
                           <article
                             className={`action-plan-card ${plan.period === periodLabel ? 'action-plan-card--active' : ''}`}
                             key={plan.id}
+                            onClick={() => setSelectedPlanModal({ plan, index })}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setSelectedPlanModal({ plan, index });
+                              }
+                            }}
+                            title="Clique para abrir e ler o plano completo"
                           >
                             <div className="action-plan-card__header">
                               <span className="action-plan-card__period">{t('action_plan.plan_title').replace('{idx}', index + 1)}</span>
@@ -176,7 +253,10 @@ export default function ActionPlanPanel({
                                 className="action-plan-card__remove"
                                 title={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
                                 aria-label={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
-                                onClick={() => removePlan(plan)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removePlan(plan);
+                                }}
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -194,6 +274,58 @@ export default function ActionPlanPanel({
           )}
         </div>
       </div>
+
+      {/* Modal / Card Expandido de Leitura */}
+      {selectedPlanModal && (
+        <div
+          className="action-plan-modal-overlay"
+          onClick={() => setSelectedPlanModal(null)}
+          role="presentation"
+        >
+          <div
+            className="action-plan-modal-card"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="action-plan-modal-title"
+          >
+            <div className="action-plan-modal-card__header">
+              <div className="action-plan-modal-card__title-box">
+                <span id="action-plan-modal-title" className="action-plan-modal-card__badge">
+                  {t('action_plan.plan_title').replace('{idx}', selectedPlanModal.index + 1)}
+                </span>
+                <span className="action-plan-modal-card__period">
+                  {selectedPlanModal.plan.period}/{selectedYear ? selectedYear.substring(1) : ''}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="action-plan-modal-card__close"
+                onClick={() => setSelectedPlanModal(null)}
+                aria-label={t('common.close', 'Fechar')}
+                title="Fechar (Esc)"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="action-plan-modal-card__body">
+              <p className="action-plan-modal-card__text">
+                {selectedPlanModal.plan.notes}
+              </p>
+            </div>
+
+            <div className="action-plan-modal-card__footer">
+              <span className="action-plan-modal-card__updated">
+                {formatUpdatedAt(selectedPlanModal.plan.updatedAt)}
+              </span>
+              <span className="action-plan-modal-card__hint">
+                Clique fora ou pressione Esc para fechar
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

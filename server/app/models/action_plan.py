@@ -21,6 +21,13 @@ class ActionPlan(Base):
     # open | in_progress | closed
     kpi_type: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
     # KPI ao qual o plano está vinculado (opcional)
+    year: Mapped[str | None] = mapped_column(String(10), nullable=True, index=True)
+    # Ano de referência (ex: Y26, 2026)
+    period: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    # Mês / Período (ex: Jan, Feb, Q1)
+    owner: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    due_date: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    priority: Mapped[str | None] = mapped_column(String(30), nullable=True, default="Média")
     submitted_by: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
@@ -33,3 +40,4 @@ class ActionPlan(Base):
     )
 
     creator = relationship("User", foreign_keys=[submitted_by])
+

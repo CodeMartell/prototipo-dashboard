@@ -217,6 +217,15 @@ export default function KPISection({
     setLocalYear(null);
   };
 
+  const canonicalKpiKey = useMemo(() => ({
+    logisticCost: 'logistic_cost',
+    incidentialCost: 'incidental_cost',
+    totalCost: 'total_cost',
+    airFreight: 'air_freight',
+    demurrage: 'demurrage',
+    logisticsVsProd: 'logistics_vs_prod',
+  }[kpiKey] || kpiKey), [kpiKey]);
+
   const chartData = useMemo(() => {
     const raw = buildChartData(monthlyData, effectivePeriod, effectiveYear, availableYears, kpiKey, noTrafficLight, lowerIsBetter);
     const withResults = raw.filter((d) => d.currentResult !== null);
@@ -468,14 +477,14 @@ export default function KPISection({
 
       <div className="kpi-section__actions">
         <ActionPlanPanel
-          kpiKey={kpiKey}
+          kpiKey={canonicalKpiKey}
           kpiName={title}
           period={effectivePeriod}
           selectedYear={effectiveYear}
           periodLabel={activePeriod}
         />
         <EvidencePanel
-          kpiKey={kpiKey}
+          kpiKey={canonicalKpiKey}
           kpiName={title}
           selectedYear={effectiveYear}
           periodLabel={activePeriod}

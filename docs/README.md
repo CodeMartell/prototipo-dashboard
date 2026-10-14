@@ -12,6 +12,7 @@ com data ficam no histórico e não comprovam o estado da versão atual.
 | Consultar decisões, requisitos DXi e evidências de agosto/2026 | [Histórico do Épico 7](history/epic-7-validation.md) |
 | Consultar o relatório de segurança da entrega anterior | [Histórico do Épico 5](history/epic-5-security.md) |
 | Consultar a proposta original de idiomas | [Proposta i18n](history/i18n-proposal.md) |
+| Consultar o relatório de integração Desktop e Web (outubro/2026) | [Integração Desktop e Web](history/integracao-desktop-web.md) |
 | Consultar o desenho C4 | [Diagrama editável](architecture/Prototipo-DX_C4-Models-N1.drawio) · [Imagem](architecture/Prototipo-DX_C4-Models-N1.png) |
 
 A visão geral, KPIs e matriz RBAC estão no [README principal](../README.md).

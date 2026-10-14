@@ -26,9 +26,22 @@ import app.models  # noqa: F401
 
 settings = get_settings()
 
-# Garantir criação automática das tabelas (activity_logs, kpi_change_logs, email_ingest_queue, evidences)
+from sqlalchemy import text
+# Garantir criação automática das tabelas (activity_logs, kpi_change_logs, email_ingest_queue, evidences, action_plans)
 try:
     Base.metadata.create_all(bind=engine)
+    with engine.begin() as conn:
+        for col_name, col_type in [
+            ("year", "VARCHAR(10)"),
+            ("period", "VARCHAR(20)"),
+            ("owner", "VARCHAR(100)"),
+            ("due_date", "VARCHAR(30)"),
+            ("priority", "VARCHAR(30)"),
+        ]:
+            try:
+                conn.execute(text(f"ALTER TABLE action_plans ADD COLUMN {col_name} {col_type}"))
+            except Exception:
+                pass
 except Exception as e:
     logger.warning(f"Aviso ao inicializar tabelas do banco: {e}")
 

@@ -12,8 +12,42 @@ from app.services.activity_log_service import ActivityLogService
 
 router = APIRouter(prefix="/api/evidences", tags=["evidences"], dependencies=[Depends(get_current_user)])
 
-ALLOWED_EXTENSIONS = {"ppt", "pptx"}
-MAX_SIZE = 25 * 1024 * 1024
+ALLOWED_EXTENSIONS = {"ppt", "pptx", "pdf"}
+MAX_SIZE = 50 * 1024 * 1024
+
+KPI_MAP = {
+    "logisticCost": "logistic_cost",
+    "incidentialCost": "incidental_cost",
+    "totalCost": "total_cost",
+    "airFreight": "air_freight",
+    "demurrage": "demurrage",
+    "logisticsVsProd": "logistics_vs_prod",
+}
+
+
+def _normalize_kpis(kpi: str) -> list[str]:
+    kpis = [kpi]
+    norm = KPI_MAP.get(kpi)
+    if norm and norm not in kpis:
+        kpis.append(norm)
+    for k, v in KPI_MAP.items():
+        if v == kpi and k not in kpis:
+            kpis.append(k)
+    return kpis
+
+
+def _normalize_years(year: str) -> list[str]:
+    y = str(year).strip()
+    res = [y]
+    if y.startswith("Y") and y[1:].isdigit():
+        alt = f"20{y[1:]}"
+        if alt not in res:
+            res.append(alt)
+    elif len(y) == 4 and y.startswith("20") and y[2:].isdigit():
+        alt = f"Y{y[2:]}"
+        if alt not in res:
+            res.append(alt)
+    return res
 
 
 def _current_user(authorization_user: dict = Depends(get_current_user)):
@@ -28,12 +62,13 @@ def list_evidences(
     current_user: dict = Depends(_current_user),
     db: Session = Depends(get_db),
 ):
+    kpi_candidates = _normalize_kpis(kpi_key)
+    year_candidates = _normalize_years(year)
     rows = (
         db.query(Evidence)
         .filter(
-            Evidence.user_id == current_user["id"],
-            Evidence.kpi_key == kpi_key,
-            Evidence.year == year,
+            Evidence.kpi_key.in_(kpi_candidates),
+            Evidence.year.in_(year_candidates),
             Evidence.period == period,
         )
         .order_by(Evidence.created_at.desc())
@@ -91,15 +126,16 @@ async def upload_evidence(
 ):
     extension = file.filename.rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else ""
     if extension not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Envie somente apresentações PowerPoint (.ppt ou .pptx).")
+        raise HTTPException(status_code=400, detail="Envie somente apresentações PowerPoint (.ppt ou .pptx) ou documentos PDF (.pdf).")
 
     content = await file.read()
     if len(content) > MAX_SIZE:
-        raise HTTPException(status_code=400, detail="O arquivo excede o limite de 25 MB.")
+        raise HTTPException(status_code=400, detail="O arquivo excede o limite máximo permitido de 50 MB.")
 
+    canonical_kpi = KPI_MAP.get(kpi_key, kpi_key)
     evidence = Evidence(
         user_id=current_user["id"],
-        kpi_key=kpi_key,
+        kpi_key=canonical_kpi,
         year=year,
         period=period,
         name=file.filename,
@@ -149,7 +185,7 @@ def download_evidence(
     current_user: dict = Depends(_current_user),
     db: Session = Depends(get_db),
 ):
-    evidence = db.query(Evidence).filter(Evidence.id == evidence_id, Evidence.user_id == current_user["id"]).first()
+    evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
     if not evidence:
         raise HTTPException(status_code=404, detail="Evidência não encontrada.")
     return Response(
@@ -165,9 +201,12 @@ def delete_evidence(
     current_user: dict = Depends(_current_user),
     db: Session = Depends(get_db),
 ):
-    evidence = db.query(Evidence).filter(Evidence.id == evidence_id, Evidence.user_id == current_user["id"]).first()
+    query = db.query(Evidence).filter(Evidence.id == evidence_id)
+    if current_user.get("role") not in ("ADMIN", "GESTOR", "ANALISTA"):
+        query = query.filter(Evidence.user_id == current_user["id"])
+    evidence = query.first()
     if not evidence:
-        raise HTTPException(status_code=404, detail="Evidência não encontrada.")
+        raise HTTPException(status_code=404, detail="Evidência não encontrada ou sem permissão para exclusão.")
 
     file_name = evidence.name
     kpi_key = evidence.kpi_key

@@ -18,6 +18,7 @@ server/.env
 
 # Logs e Auditoria
 *.log
+logs/
 audit.log
 server/audit.log
 
@@ -74,3 +75,9 @@ test.png
 
 # Aplicacao Desktop complementar (desenvolvimento local / standalone)
 desktop_app/
+
+# RAG e documentação interna de LLM
+docs/RAG/
+como_o_rag_funciona.*
+build_html.py
+

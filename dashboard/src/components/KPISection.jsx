@@ -6,7 +6,7 @@ import ActionPlanPanel from './ActionPlanPanel';
 import EvidencePanel from './EvidencePanel';
 import { MONTHS, QUARTER_MONTHS, SEMESTER_MONTHS, aggregateRatio, calculateTargetAchievement } from '../utils/kpiData';
 import { Table, BarChart3, PencilLine, Download, RotateCcw } from 'lucide-react';
-import { downloadKpiCsv } from '../utils/exportCsv';
+import { buildIndicatorReport, downloadIndicatorReport } from '../utils/exportReport';
 
 const PERIOD_LABELS = {
   monthly: 'kpi.monthly',
@@ -165,13 +165,6 @@ function buildChartData(monthlyData, period, selectedYear, yearOptions, kpiKey, 
     });
 }
 
-/** Filtra chartData para o sub-período selecionado (para export e foco) */
-function filterBySubPeriod(chartData, subPeriod, periodType) {
-  if (!subPeriod || periodType === 'annual') return chartData;
-  const found = chartData.find((d) => d.period === subPeriod);
-  return found ? [found] : chartData;
-}
-
 export default function KPISection({
 
   kpiKey, title, icon: Icon, monthlyData, quarterlyData,
@@ -277,26 +270,29 @@ export default function KPISection({
     return cols;
   }, [unit, kpiKey, noTrafficLight, prevYearLabel, currentYearLabel]);
 
-  // Dados para export: se há um sub-período clicado, exporta só aquele; senão tudo
-  const exportData = useMemo(() => {
-    if (clickedPeriod) {
-      return filterBySubPeriod(chartData, clickedPeriod, effectivePeriod);
-    }
-    return chartData.filter((d) => d.currentResult !== null || d.previousResult !== null);
-  }, [chartData, clickedPeriod, effectivePeriod]);
-
-  const handleExport = () => {
-    const periodLabel = clickedPeriod
-      ? `${clickedPeriod}_${currentYearLabel}`
-      : `${effectivePeriod}_${currentYearLabel}`;
-    downloadKpiCsv({
-      data: exportData,
-      unit,
-      kpiName: title,
-      periodLabel,
-      currentYearLabel,
-      prevYearLabel,
+  const handleExport = async () => {
+    const selectedSubPeriod = clickedPeriod ?? effectiveSubPeriod;
+    const aggregate = ['demurrage', 'totalCost', 'incidentialCost'].includes(kpiKey) ? 'sum' : 'avg';
+    const report = buildIndicatorReport({
+      selectedKpis: [{
+        key: kpiKey,
+        dataKey: canonicalKpiKey,
+        name: title,
+        unit,
+        aggregate,
+        valueKey: kpiKey === 'logisticsVsProd' ? 'ratio' : 'result',
+        lowerIsBetter,
+        alwaysGoodStatus,
+        noTrafficLight,
+      }],
+      datasets: { [canonicalKpiKey]: monthlyData },
+      years: [effectiveYear],
+      scope: 'current_period',
+      period: effectivePeriod,
+      selectedSubPeriod,
     });
+    const safeName = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    await downloadIndicatorReport(report, `kpi_${safeName}_${effectiveYear}_${selectedSubPeriod}.xlsx`);
   };
 
   // Sub-período options para o mini seletor
@@ -420,7 +416,7 @@ export default function KPISection({
             <button
               className="btn btn--sm btn--export"
               onClick={handleExport}
-              title={`Export ${clickedPeriod ? clickedPeriod : 'all visible'} data as CSV`}
+              title={`Export ${clickedPeriod ? clickedPeriod : 'current'} data as formatted spreadsheet`}
             >
               <Download size={13} />
               {t('kpi.export_csv')}

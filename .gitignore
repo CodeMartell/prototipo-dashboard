@@ -18,6 +18,7 @@ server/.env
 
 # Logs e Auditoria
 *.log
+logs/
 audit.log
 server/audit.log
 

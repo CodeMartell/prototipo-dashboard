@@ -5,10 +5,12 @@ Reseta EXCLUSIVAMENTE os dados de KPIs, filas de ingestao e historico do robo.
 PRESERVA INTACTOS:
 - Usuarios (users)
 - Perfis e Permissoes (roles, permissions, role_permissions)
-- Auditoria do sistema (audit_logs, activity_logs)
+- Auditoria do sistema (audit_log, activity_logs)
 
-Pode ser executado diretamente no terminal do VSCode/Antigravity:
+Pode ser executado diretamente no terminal:
+    python scripts/reset_kpis.py
     python scripts/development/reset_kpis.py
+    .\\reset_kpis.bat
 """
 import os
 import shutil
@@ -71,11 +73,25 @@ def load_database_url() -> str:
     return db_url
 
 
-def clear_kpi_tables(engine) -> None:
+def is_docker_running() -> bool:
+    try:
+        res = subprocess.run(
+            ["docker", "compose", "ps", "--services", "--filter", "status=running"],
+            cwd=str(ROOT_DIR),
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        return res.returncode == 0 and ("db" in res.stdout.split() or "api" in res.stdout.split())
+    except Exception:
+        return False
+
+
+def clear_kpi_tables(engine, db_label: str = "Banco de Dados") -> bool:
     inspector = inspect(engine)
     existing_tables = set(inspector.get_table_names())
 
-    print("\n[1/2] Limpando tabelas de dados de KPI no banco de dados...")
+    print(f"\n[{db_label}] Limpando tabelas de dados de KPI...")
     with engine.begin() as conn:
         for table in KPI_TABLES:
             if table in existing_tables:
@@ -92,14 +108,61 @@ def clear_kpi_tables(engine) -> None:
         # Seguranca: exibe que usuarios e permissoes permanecem intocados
         if "users" in existing_tables:
             user_count = conn.execute(text("SELECT COUNT(*) FROM users")).scalar()
-            print(f"\n  [SEGURANCA] {user_count} usuario(s) mantido(s) intacto(s) na tabela 'users'!")
+            print(f"  [SEGURANCA] {user_count} usuario(s) mantido(s) intacto(s) na tabela 'users'!")
         if "roles" in existing_tables:
             role_count = conn.execute(text("SELECT COUNT(*) FROM roles")).scalar()
             print(f"  [SEGURANCA] {role_count} perfil(is) mantido(s) intacto(s) na tabela 'roles'!")
 
+    return True
+
+
+def clear_docker_postgres() -> bool:
+    if not is_docker_running():
+        return False
+
+    print("\n[Docker Compose] Detectado PostgreSQL ativo no container Docker ('db')...")
+    # Tenta conectar via SQLAlchemy na porta mapeada (localhost:5434) para log detalhado
+    docker_url = "postgresql+psycopg://dashboard:dashboard@localhost:5434/dashboard"
+    try:
+        engine = create_engine(docker_url)
+        clear_kpi_tables(engine, db_label="Docker PostgreSQL (localhost:5434)")
+        return True
+    except Exception as e_conn:
+        print(f"  [AVISO] Conexão direta na porta 5434 falhou ({e_conn}). Executando via psql no contêiner...")
+
+    # Fallback: executa truncate diretamente via psql no contêiner db
+    try:
+        table_list = ", ".join(KPI_TABLES)
+        sql = f"TRUNCATE TABLE {table_list} RESTART IDENTITY CASCADE;"
+        cmd = ["docker", "compose", "exec", "-T", "db", "psql", "-U", "dashboard", "-d", "dashboard", "-c", sql]
+        res = subprocess.run(cmd, cwd=str(ROOT_DIR), capture_output=True, text=True, timeout=15)
+        if res.returncode == 0:
+            print("  [OK] Tabelas truncadas com sucesso via psql no container Docker 'db'!")
+            return True
+        else:
+            print(f"  [ERRO] Falha ao truncar no Docker: {res.stderr.strip()}")
+    except Exception as e_cmd:
+        print(f"  [ERRO] Falha ao rodar docker compose exec: {e_cmd}")
+
+    return False
+
+
+def clear_sqlite_databases() -> None:
+    sqlite_candidates = [
+        ROOT_DIR / "dashboard.db",
+        ROOT_DIR / "server" / "dashboard.db",
+    ]
+    for db_file in sqlite_candidates:
+        if db_file.exists():
+            try:
+                engine = create_engine(f"sqlite:///{db_file.as_posix()}")
+                clear_kpi_tables(engine, db_label=f"SQLite Local ({db_file.name})")
+            except Exception as e:
+                print(f"  [AVISO] Falha ao limpar SQLite {db_file.name}: {e}")
+
 
 def clear_robot_history() -> None:
-    print("\n[2/2] Limpando historico de e-mails e anexos do robo...")
+    print("\n[Robo] Limpando historico de e-mails e anexos do robo...")
 
     for history_file in (LOCAL_HISTORY_DB, RESOURCES_HISTORY_DB):
         if history_file.exists():
@@ -132,6 +195,7 @@ def clear_robot_history() -> None:
             cwd=str(ROOT_DIR),
             capture_output=True,
             text=True,
+            timeout=5,
         )
         if "rpa-bot" in res.stdout or "db" in res.stdout:
             subprocess.run(
@@ -139,6 +203,7 @@ def clear_robot_history() -> None:
                 cwd=str(ROOT_DIR),
                 capture_output=True,
                 text=True,
+                timeout=15,
             )
             print("  [OK] Historico do robo no container/volume Docker resetado com sucesso!")
     except Exception:
@@ -150,20 +215,27 @@ def main():
     print("  RESET ESPECIFICO DE DADOS DE KPI (USUARIOS PRESERVADOS)")
     print("=" * 65)
 
-    db_url = load_database_url()
-    display_url = db_url
-    if "@" in display_url and ":" in display_url.split("@")[0]:
-        prefix, rest = display_url.split(":", 2)[0], display_url.split("@", 1)[1]
-        display_url = f"{prefix}:***@{rest}"
+    docker_cleaned = clear_docker_postgres()
 
-    print(f"Conectando ao banco: {display_url}")
-    try:
-        engine = create_engine(db_url)
-        clear_kpi_tables(engine)
-    except Exception as e:
-        print(f"\n[ERRO] Falha ao conectar/limpar banco de dados: {e}")
-        return False
+    configured_url = load_database_url()
+    is_docker_url = "5434" in configured_url or "db:5432" in configured_url
+    if not (docker_cleaned and is_docker_url):
+        display_url = configured_url
+        if "@" in display_url and ":" in display_url.split("@")[0]:
+            prefix, rest = display_url.split(":", 2)[0], display_url.split("@", 1)[1]
+            display_url = f"{prefix}:***@{rest}"
 
+        print(f"\nConectando ao banco configurado: {display_url}")
+        try:
+            engine = create_engine(configured_url)
+            clear_kpi_tables(engine, db_label=f"Banco Configurado ({display_url})")
+        except Exception as e:
+            print(f"  [AVISO] Falha ao limpar banco configurado ({display_url}): {e}")
+
+    # Limpa eventuais bancos SQLite locais
+    clear_sqlite_databases()
+
+    # Limpa histórico e anexos do robô
     clear_robot_history()
 
     print("\n" + "=" * 65)

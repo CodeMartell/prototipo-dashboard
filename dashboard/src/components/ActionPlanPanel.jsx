@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, FileText, Save, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, Save, Trash2, X } from 'lucide-react';
 import { addActionPlan, getActionPlans, removeActionPlan } from '../utils/actionPlanStorage';
 import { createActionPlan, deleteActionPlan, fetchActionPlans, isAuthenticated } from '../services/api';
 import { useTranslation } from 'react-i18next';
@@ -18,21 +18,18 @@ export default function ActionPlanPanel({
   const [savedPlans, setSavedPlans] = useState(() => getActionPlans(kpiKey, selectedYear));
   const [showAllPeriods, setShowAllPeriods] = useState(false);
   const [expandedPeriods, setExpandedPeriods] = useState(() => new Set([periodLabel]));
-  const [expandedCardIds, setExpandedCardIds] = useState(() => new Set());
+  const [selectedPlanModal, setSelectedPlanModal] = useState(null);
   
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved' | 'saving'
 
-  const toggleExpandCard = useCallback((planId) => {
-    setExpandedCardIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(planId)) {
-        next.delete(planId);
-      } else {
-        next.add(planId);
-      }
-      return next;
-    });
-  }, []);
+  useEffect(() => {
+    if (!selectedPlanModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setSelectedPlanModal(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedPlanModal]);
 
   const loadPlans = useCallback(async () => {
     if (isAuthenticated()) {
@@ -234,48 +231,40 @@ export default function ActionPlanPanel({
                     </button>
                     {isOpen && (
                       <div className="action-plan-history__grid">
-                        {group.plans.map((plan, index) => {
-                          const isCardExpanded = expandedCardIds.has(plan.id);
-                          return (
-                            <article
-                              className={`action-plan-card ${plan.period === periodLabel ? 'action-plan-card--active' : ''} ${isCardExpanded ? 'action-plan-card--expanded' : ''}`}
-                              key={plan.id}
-                              onClick={() => toggleExpandCard(plan.id)}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  toggleExpandCard(plan.id);
-                                }
-                              }}
-                              title={isCardExpanded ? 'Clique para recolher o plano' : 'Clique para expandir o plano'}
-                            >
-                              <div className="action-plan-card__header">
-                                <span className="action-plan-card__period">{t('action_plan.plan_title').replace('{idx}', index + 1)}</span>
-                                <button
-                                  type="button"
-                                  className="action-plan-card__remove"
-                                  title={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
-                                  aria-label={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    removePlan(plan);
-                                  }}
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                              <p>{plan.notes}</p>
-                              <div className="action-plan-card__footer">
-                                <small>{formatUpdatedAt(plan.updatedAt)}</small>
-                                <span className="action-plan-card__expand-icon" aria-hidden="true">
-                                  {isCardExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                                </span>
-                              </div>
-                            </article>
-                          );
-                        })}
+                        {group.plans.map((plan, index) => (
+                          <article
+                            className={`action-plan-card ${plan.period === periodLabel ? 'action-plan-card--active' : ''}`}
+                            key={plan.id}
+                            onClick={() => setSelectedPlanModal({ plan, index })}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setSelectedPlanModal({ plan, index });
+                              }
+                            }}
+                            title="Clique para abrir e ler o plano completo"
+                          >
+                            <div className="action-plan-card__header">
+                              <span className="action-plan-card__period">{t('action_plan.plan_title').replace('{idx}', index + 1)}</span>
+                              <button
+                                type="button"
+                                className="action-plan-card__remove"
+                                title={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
+                                aria-label={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removePlan(plan);
+                                }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                            <p>{plan.notes}</p>
+                            <small>{formatUpdatedAt(plan.updatedAt)}</small>
+                          </article>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -285,6 +274,58 @@ export default function ActionPlanPanel({
           )}
         </div>
       </div>
+
+      {/* Modal / Card Expandido de Leitura */}
+      {selectedPlanModal && (
+        <div
+          className="action-plan-modal-overlay"
+          onClick={() => setSelectedPlanModal(null)}
+          role="presentation"
+        >
+          <div
+            className="action-plan-modal-card"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="action-plan-modal-title"
+          >
+            <div className="action-plan-modal-card__header">
+              <div className="action-plan-modal-card__title-box">
+                <span id="action-plan-modal-title" className="action-plan-modal-card__badge">
+                  {t('action_plan.plan_title').replace('{idx}', selectedPlanModal.index + 1)}
+                </span>
+                <span className="action-plan-modal-card__period">
+                  {selectedPlanModal.plan.period}/{selectedYear ? selectedYear.substring(1) : ''}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="action-plan-modal-card__close"
+                onClick={() => setSelectedPlanModal(null)}
+                aria-label={t('common.close', 'Fechar')}
+                title="Fechar (Esc)"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="action-plan-modal-card__body">
+              <p className="action-plan-modal-card__text">
+                {selectedPlanModal.plan.notes}
+              </p>
+            </div>
+
+            <div className="action-plan-modal-card__footer">
+              <span className="action-plan-modal-card__updated">
+                {formatUpdatedAt(selectedPlanModal.plan.updatedAt)}
+              </span>
+              <span className="action-plan-modal-card__hint">
+                Clique fora ou pressione Esc para fechar
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

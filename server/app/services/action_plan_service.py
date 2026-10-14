@@ -32,11 +32,13 @@ class ActionPlanService:
         return plan
 
     def create_plan(self, payload: ActionPlanIn, actor: dict) -> ActionPlan:
+        from app.repositories.action_plan_repository import KPI_MAP
+        canonical_kpi = KPI_MAP.get(payload.kpi_type, payload.kpi_type) if payload.kpi_type else None
         plan = ActionPlan(
             title=payload.title,
             description=payload.description,
             status=payload.status or "open",
-            kpi_type=payload.kpi_type,
+            kpi_type=canonical_kpi,
             year=payload.year,
             period=payload.period,
             owner=payload.owner,

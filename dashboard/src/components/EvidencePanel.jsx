@@ -58,14 +58,22 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
 
   const loadFiles = useCallback(async () => {
     try {
-      const data = await fetchEvidences({ kpiType: kpiKey, year: fullYear, month: periodLabel });
+      let data = await fetchEvidences({ kpiType: kpiKey, year: selectedYear, month: periodLabel });
+      if (!Array.isArray(data) || data.length === 0) {
+        if (fullYear && fullYear !== selectedYear) {
+          const fallbackData = await fetchEvidences({ kpiType: kpiKey, year: fullYear, month: periodLabel });
+          if (Array.isArray(fallbackData) && fallbackData.length > 0) {
+            data = fallbackData;
+          }
+        }
+      }
       setFiles(Array.isArray(data) ? data : []);
       setError('');
     } catch (err) {
       if (err instanceof UnauthorizedError) return;
       setFiles([]);
     }
-  }, [kpiKey, fullYear, periodLabel]);
+  }, [kpiKey, selectedYear, fullYear, periodLabel]);
 
   useEffect(() => {
     loadFiles();
@@ -111,7 +119,7 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
         await uploadEvidence({
           file,
           kpiType: kpiKey,
-          year: fullYear,
+          year: selectedYear || fullYear,
           month: periodLabel,
         });
       }

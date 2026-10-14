@@ -15,6 +15,40 @@ router = APIRouter(prefix="/api/evidences", tags=["evidences"], dependencies=[De
 ALLOWED_EXTENSIONS = {"ppt", "pptx", "pdf"}
 MAX_SIZE = 25 * 1024 * 1024
 
+KPI_MAP = {
+    "logisticCost": "logistic_cost",
+    "incidentialCost": "incidental_cost",
+    "totalCost": "total_cost",
+    "airFreight": "air_freight",
+    "demurrage": "demurrage",
+    "logisticsVsProd": "logistics_vs_prod",
+}
+
+
+def _normalize_kpis(kpi: str) -> list[str]:
+    kpis = [kpi]
+    norm = KPI_MAP.get(kpi)
+    if norm and norm not in kpis:
+        kpis.append(norm)
+    for k, v in KPI_MAP.items():
+        if v == kpi and k not in kpis:
+            kpis.append(k)
+    return kpis
+
+
+def _normalize_years(year: str) -> list[str]:
+    y = str(year).strip()
+    res = [y]
+    if y.startswith("Y") and y[1:].isdigit():
+        alt = f"20{y[1:]}"
+        if alt not in res:
+            res.append(alt)
+    elif len(y) == 4 and y.startswith("20") and y[2:].isdigit():
+        alt = f"Y{y[2:]}"
+        if alt not in res:
+            res.append(alt)
+    return res
+
 
 def _current_user(authorization_user: dict = Depends(get_current_user)):
     return authorization_user
@@ -28,11 +62,13 @@ def list_evidences(
     current_user: dict = Depends(_current_user),
     db: Session = Depends(get_db),
 ):
+    kpi_candidates = _normalize_kpis(kpi_key)
+    year_candidates = _normalize_years(year)
     rows = (
         db.query(Evidence)
         .filter(
-            Evidence.kpi_key == kpi_key,
-            Evidence.year == year,
+            Evidence.kpi_key.in_(kpi_candidates),
+            Evidence.year.in_(year_candidates),
             Evidence.period == period,
         )
         .order_by(Evidence.created_at.desc())
@@ -96,9 +132,10 @@ async def upload_evidence(
     if len(content) > MAX_SIZE:
         raise HTTPException(status_code=400, detail="O arquivo excede o limite de 25 MB.")
 
+    canonical_kpi = KPI_MAP.get(kpi_key, kpi_key)
     evidence = Evidence(
         user_id=current_user["id"],
-        kpi_key=kpi_key,
+        kpi_key=canonical_kpi,
         year=year,
         period=period,
         name=file.filename,

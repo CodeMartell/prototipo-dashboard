@@ -1,0 +1,81 @@
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+
+
+def _date(name: str) -> datetime | None:
+    value = os.getenv(name, "").strip()
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d")
+    except ValueError as exc:
+        raise ValueError(f"{name} deve usar o formato AAAA-MM-DD") from exc
+
+
+@dataclass(frozen=True)
+class Settings:
+    imap_host: str
+    imap_port: int
+    mailbox: str
+    email_user: str
+    email_password: str
+    subject_filters: list[str]
+    sender_filter: str
+    date_from: datetime | None
+    date_to: datetime | None
+    attachments_dir: Path
+    api_url: str = ''
+    api_email: str = ''
+    api_password: str = ''
+    api_timeout: float = 20
+    processing_history_path: Path = ROOT_DIR / 'resources' / 'api_email_history.db'
+
+    @classmethod
+    def from_env(cls, env_file: Path | None = None) -> "Settings":
+        if env_file:
+            load_dotenv(env_file)
+        else:
+            load_dotenv(ROOT_DIR.parent / ".env")
+            load_dotenv(ROOT_DIR / ".env")
+        required = {
+            "EMAIL_USER": os.getenv("EMAIL_USER", "").strip(),
+            "EMAIL_PASSWORD": os.getenv("EMAIL_PASSWORD", "").strip(),
+            "RPA_API_URL": os.getenv("RPA_API_URL", "").strip(),
+            "RPA_API_EMAIL": os.getenv("RPA_API_EMAIL", "").strip(),
+            "RPA_API_PASSWORD": os.getenv("RPA_API_PASSWORD", ""),
+        }
+        missing = [name for name, value in required.items() if not value]
+        if missing:
+            raise ValueError("Variaveis obrigatorias ausentes: " + ", ".join(missing))
+        date_from, date_to = _date("EMAIL_DATE_FROM"), _date("EMAIL_DATE_TO")
+        if date_from and date_to and date_from > date_to:
+            raise ValueError("EMAIL_DATE_FROM nao pode ser posterior a EMAIL_DATE_TO")
+        subject_filters_raw = os.getenv("EMAIL_SUBJECT_FILTER", "").strip()
+        subject_filters = [f.strip() for f in subject_filters_raw.split(",")] if subject_filters_raw else []
+
+        return cls(
+            imap_host=os.getenv("IMAP_HOST", "imap.gmail.com").strip(),
+            imap_port=int(os.getenv("IMAP_PORT", "993")),
+            mailbox=os.getenv("IMAP_MAILBOX", "INBOX").strip(),
+            email_user=required["EMAIL_USER"],
+            email_password=required["EMAIL_PASSWORD"],
+            subject_filters=subject_filters,
+            sender_filter=os.getenv("EMAIL_SENDER_FILTER", "").strip().lower(),
+            date_from=date_from,
+            date_to=date_to,
+            api_url=required['RPA_API_URL'],
+            api_email=required['RPA_API_EMAIL'],
+            api_password=required['RPA_API_PASSWORD'],
+            api_timeout=float(os.getenv('RPA_API_TIMEOUT', '20')),
+            processing_history_path=Path(os.getenv('RPA_HISTORY_PATH', str(ROOT_DIR / 'resources' / 'api_email_history.db'))),
+            attachments_dir=Path(os.getenv("ATTACHMENTS_DIR", str(ROOT_DIR / "resources" / "attachments"))),
+        )

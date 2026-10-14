@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   ComposedChart,
   Bar,
@@ -9,17 +10,13 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { formatPercent, formatCurrency } from '../utils/formatters';
-import { calculateVariation } from '../data/mockData';
+import { BarChart3 } from 'lucide-react';
+import { formatMetricValue, formatTargetAchievement } from '../utils/formatters';
+import { calculateVariation } from '../utils/kpiData';
 
-const formatValue = (val, unit) => {
-  if (val === undefined || val === null) return '—';
-  if (unit === '%' || unit === 'Ratio') return formatPercent(val);
-  if (unit === 'MUSD') return formatCurrency(val);
-  return val;
-};
+const formatValue = (val, unit) => formatMetricValue(val, unit);
 
-function CustomTooltip({ active, payload, label, unit }) {
+function CustomTooltip({ active, payload, label, unit, currentYearLabel = '2026', prevYearLabel = '2025', t }) {
   if (!active || !payload || !payload.length) return null;
   
   const data = payload[0]?.payload;
@@ -29,20 +26,20 @@ function CustomTooltip({ active, payload, label, unit }) {
 
   return (
     <div className="custom-tooltip">
-      <div className="custom-tooltip__title">{label}</div>
+      <div className="custom-tooltip__title">{t(`months.${label}`, label)}</div>
       
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
-          <span className="custom-tooltip__dot" style={{ background: '#3b82f6' }}></span>
-          Atual (2026)
+          <span className="custom-tooltip__dot" style={{ background: '#3B82F6' }}></span>
+          Actual ({currentYearLabel})
         </span>
         <span className="custom-tooltip__value">{formatValue(data.currentResult, unit)}</span>
       </div>
       
       <div className="custom-tooltip__row">
         <span className="custom-tooltip__label">
-          <span className="custom-tooltip__dot" style={{ background: '#8b5cf6' }}></span>
-          Anterior (2025)
+          <span className="custom-tooltip__dot" style={{ background: '#A78BFA' }}></span>
+          Previous ({prevYearLabel})
         </span>
         <span className="custom-tooltip__value">{formatValue(data.previousResult, unit)}</span>
       </div>
@@ -50,7 +47,7 @@ function CustomTooltip({ active, payload, label, unit }) {
       {data.target !== undefined && data.target !== null && (
         <div className="custom-tooltip__row">
           <span className="custom-tooltip__label">
-            <span className="custom-tooltip__dot" style={{ background: '#10b981' }}></span>
+            <span className="custom-tooltip__dot" style={{ background: '#F59E0B' }}></span>
             Target
           </span>
           <span className="custom-tooltip__value">{formatValue(data.target, unit)}</span>
@@ -59,30 +56,36 @@ function CustomTooltip({ active, payload, label, unit }) {
 
       {data.currentAchievement !== undefined && data.currentAchievement !== null && (
         <div className="custom-tooltip__row">
-          <span className="custom-tooltip__label">Atingimento</span>
-          <span className="custom-tooltip__value">{(data.currentAchievement * 100).toFixed(0)}%</span>
+          <span className="custom-tooltip__label">Target Achievement</span>
+          <span className="custom-tooltip__value">
+            {formatTargetAchievement(
+              data.currentAchievement <= 2 && data.currentAchievement > 0
+                ? data.currentAchievement * 100
+                : data.currentAchievement
+            )}
+          </span>
         </div>
       )}
 
       {variation !== null && (
         <div className="custom-tooltip__variation" style={{ color: variation > 0 ? 'var(--danger)' : 'var(--success)' }}>
-          Variação YoY: {variation > 0 ? '+' : ''}{variation.toFixed(1)}%
+          YoY Variation: {variation > 0 ? '+' : ''}{variation.toFixed(1)}%
         </div>
       )}
     </div>
   );
 }
 
-function CustomLegend({ accentColor, lineColor, targetColor, hasTarget }) {
+function CustomLegend({ accentColor, lineColor, targetColor, hasTarget, currentYearLabel = '2026', prevYearLabel = '2025' }) {
   return (
     <div className="custom-legend">
       <div className="custom-legend__item">
         <div className="custom-legend__marker--bar" style={{ background: accentColor }}></div>
-        <span>2026 (Realizado)</span>
+        <span>{currentYearLabel} (Actual)</span>
       </div>
       <div className="custom-legend__item">
         <div className="custom-legend__marker" style={{ background: lineColor }}></div>
-        <span>2025 (Ano Anterior)</span>
+        <span>{prevYearLabel} (Previous Year)</span>
       </div>
       {hasTarget && (
         <div className="custom-legend__item">
@@ -94,60 +97,117 @@ function CustomLegend({ accentColor, lineColor, targetColor, hasTarget }) {
   );
 }
 
+/* Paleta: barras sempre em tons de azul; linhas de target e ano anterior em cores não-vermelhas. */
+const BAR_BEST = '#7DD3FC';   // azul claro — melhor período
+const BAR_WORST = '#1E3A8A';  // azul escuro — pior período
+
 export default function ComparisonChart({
   data,
   unit,
-  accentColor = '#3b82f6',
-  lineColor = '#8b5cf6',
-  targetColor = '#10b981',
+  accentColor = '#3B82F6',
+  lineColor = '#A78BFA',
+  targetColor = '#F59E0B',
+  selectedPeriod,
+  onPeriodClick,
+  currentYearLabel = '2026',
+  prevYearLabel = '2025',
 }) {
+  const { t } = useTranslation();
+  // Rótulos do eixo Y ficam curtos de propósito: o valor completo aparece
+  // no tooltip, aqui só precisa dar a escala.
   const formatYAxis = (val) => {
     if (unit === '%' || unit === 'Ratio') return `${(val * 100).toFixed(1)}%`;
     if (unit === 'MUSD') return `$${val.toFixed(1)}M`;
+    if (unit === 'KUSD') return `$${val.toFixed(0)}K`;
+    if (unit === 'KBRL') return `R$${val.toFixed(0)}K`;
     return val;
   };
 
   const hasTarget = data.some(d => d.target !== undefined && d.target !== null);
 
-  // Filter out future months with no data
   const chartData = data.filter(d => d.currentResult !== null || d.previousResult !== null);
 
+  // Sem nenhum ponto valido nao ha grafico para desenhar: mostra o estado vazio
+  // em vez de eixos vazios, que passam a impressao de valor zero.
+  if (chartData.length === 0) {
+    return (
+      <div className="comparison-chart-wrapper">
+        <div className="chart-empty-state" role="status">
+          <BarChart3 size={28} aria-hidden="true" />
+          <strong>{t('kpi.no_data')}</strong>
+          <span>{t('kpi.no_record')}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', height: '360px', paddingBottom: '8px' }}>
-      <div style={{ flex: 1, minHeight: '300px', width: '100%' }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 20, right: 30, bottom: 10, left: 10 }}>
+    <div className="comparison-chart-wrapper">
+      <div className="comparison-chart-canvas">
+        <ResponsiveContainer width="100%" height={280}>
+          <ComposedChart
+            data={chartData}
+            margin={{ top: 20, right: 20, bottom: 10, left: 10 }}
+            onClick={(nextState) => {
+              if (onPeriodClick && nextState && nextState.activeLabel) {
+                onPeriodClick(nextState.activeLabel);
+              }
+            }}
+          >
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
-              stroke="rgba(148, 163, 184, 0.08)"
+              stroke="var(--border)"
             />
             <XAxis
               dataKey="period"
-              stroke="#64748b"
-              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              stroke="var(--text-muted)"
+              tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
               axisLine={false}
               tickLine={false}
+              tickFormatter={(val) => t(`months.${val}`, val)}
             />
             <YAxis
-              stroke="#64748b"
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              stroke="var(--text-muted)"
+              tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               tickFormatter={formatYAxis}
-              width={60}
+              width={55}
             />
             <Tooltip
-              content={<CustomTooltip unit={unit} />}
+              content={
+                <CustomTooltip 
+                  unit={unit} 
+                  currentYearLabel={currentYearLabel}
+                  prevYearLabel={prevYearLabel}
+                  t={t}
+                />
+              }
               cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }}
             />
 
-            <Bar dataKey="currentResult" radius={[4, 4, 0, 0]} maxBarSize={40}>
+            <Bar dataKey="currentResult" radius={[4, 4, 0, 0]} maxBarSize={38}>
               {chartData.map((entry, index) => {
                 let fill = accentColor;
-                if (entry.isBest) fill = '#fbbf24';
-                if (entry.isWorst) fill = '#ef4444';
-                return <Cell key={`cell-${index}`} fill={fill} fillOpacity={entry.currentResult === null ? 0 : 0.85} />;
+                if (entry.isBest) fill = BAR_BEST;
+                if (entry.isWorst) fill = BAR_WORST;
+
+                const isSelected = entry.period === selectedPeriod;
+                const opacity = selectedPeriod ? (isSelected ? 1.0 : 0.35) : 0.85;
+                const stroke = isSelected ? '#FFFFFF' : 'none';
+                const strokeWidth = isSelected ? 2 : 0;
+
+                return (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={fill}
+                    fillOpacity={entry.currentResult === null ? 0 : opacity}
+                    stroke={stroke}
+                    strokeWidth={strokeWidth}
+                    style={{ cursor: 'pointer' }}
+                  />
+                );
               })}
             </Bar>
 
@@ -163,12 +223,12 @@ export default function ComparisonChart({
 
             {hasTarget && (
               <Line
-                type="stepAfter"
+                type="monotone"
                 dataKey="target"
                 stroke={targetColor}
                 strokeWidth={1.5}
                 strokeDasharray="4 4"
-                dot={false}
+                dot={{ r: 2, fill: targetColor, strokeWidth: 0 }}
                 connectNulls={true}
               />
             )}
@@ -181,6 +241,8 @@ export default function ComparisonChart({
         lineColor={lineColor}
         targetColor={targetColor}
         hasTarget={hasTarget}
+        currentYearLabel={currentYearLabel}
+        prevYearLabel={prevYearLabel}
       />
     </div>
   );

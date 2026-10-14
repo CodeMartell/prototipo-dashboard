@@ -1,16 +1,162 @@
-import { useState } from 'react';
-import { ChevronDown, ChevronUp, Lightbulb, FileText } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, FileText, Save, Trash2, X } from 'lucide-react';
+import { addActionPlan, getActionPlans, removeActionPlan } from '../utils/actionPlanStorage';
+import { createActionPlan, deleteActionPlan, fetchActionPlans, isAuthenticated } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
-export default function ActionPlanPanel({ kpiName, period, insight }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export default function ActionPlanPanel({
+  kpiKey,
+  kpiName,
+  _period,
+  selectedYear,
+  periodLabel,
+}) {
+  const { t, i18n } = useTranslation();
+  const [isExpanded, setIsExpanded] = useState(true); // Default to expanded to show context
+  
   const [notes, setNotes] = useState('');
+  const [savedPlans, setSavedPlans] = useState(() => getActionPlans(kpiKey, selectedYear));
+  const [showAllPeriods, setShowAllPeriods] = useState(false);
+  const [expandedPeriods, setExpandedPeriods] = useState(() => new Set([periodLabel]));
+  const [selectedPlanModal, setSelectedPlanModal] = useState(null);
+  const [carouselIndexes, setCarouselIndexes] = useState({});
+  
+  const [saveStatus, setSaveStatus] = useState('saved'); // 'saved' | 'saving'
+
+  useEffect(() => {
+    if (!selectedPlanModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setSelectedPlanModal(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedPlanModal]);
+
+  const loadPlans = useCallback(async () => {
+    if (isAuthenticated()) {
+      try {
+        const apiPlans = await fetchActionPlans({ kpiType: kpiKey, year: selectedYear });
+        if (Array.isArray(apiPlans)) {
+          const formatted = apiPlans.map((p) => ({
+            id: p.id,
+            period: p.period || periodLabel,
+            notes: p.description || p.title,
+            createdAt: p.created_at || '',
+            updatedAt: p.updated_at || p.created_at || '',
+            legacy: false,
+          }));
+          setSavedPlans(formatted);
+          return;
+        }
+      } catch (err) {
+        console.warn('Não foi possível carregar planos da API, usando armazenamento local:', err);
+      }
+    }
+    setSavedPlans(getActionPlans(kpiKey, selectedYear));
+  }, [kpiKey, selectedYear, periodLabel]);
+
+  const persistNotes = useCallback(async () => {
+    const trimmedNotes = notes.trim();
+    if (!trimmedNotes) return;
+    const currentPeriod = (periodLabel ? (['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(periodLabel) ? periodLabel : periodLabel) : 'Jan');
+    setSaveStatus('saving');
+
+    if (isAuthenticated()) {
+      try {
+        await createActionPlan({
+          title: trimmedNotes.split('\n')[0].slice(0, 90),
+          description: trimmedNotes,
+          kpi_type: kpiKey,
+          year: selectedYear,
+          period: currentPeriod,
+          status: 'open',
+        });
+        setNotes('');
+        setSaveStatus('saved');
+        await loadPlans();
+        return;
+      } catch (err) {
+        console.warn('Erro ao salvar plano na API, persistindo no armazenamento local:', err);
+      }
+    }
+
+    addActionPlan(kpiKey, selectedYear, (periodLabel ? (['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(periodLabel) ? t('months.' + periodLabel) : periodLabel) : t('months.Jan')), trimmedNotes);
+    setNotes('');
+    setSavedPlans(getActionPlans(kpiKey, selectedYear));
+    setSaveStatus('saved');
+  }, [kpiKey, notes, periodLabel, selectedYear, loadPlans, t]);
+
+  // O campo sempre representa um novo plano; trocar de período não carrega
+  // um card existente para edição nem provoca sobrescrita acidental.
+  useEffect(() => {
+    setNotes('');
+    setSaveStatus('saved');
+    setExpandedPeriods((current) => new Set([...current, periodLabel]));
+  }, [kpiKey, selectedYear, periodLabel]);
+
+  // Carrega os planos sempre que o indicador ou o ano selecionado mudar
+  useEffect(() => {
+    loadPlans();
+  }, [loadPlans]);
+
+  const removePlan = async (plan) => {
+    if (isAuthenticated() && plan?.id && !String(plan.id).startsWith('legacy:')) {
+      try {
+        await deleteActionPlan(plan.id);
+        await loadPlans();
+        return;
+      } catch (err) {
+        console.warn('Erro ao excluir na API, removendo do armazenamento local:', err);
+      }
+    }
+    removeActionPlan(kpiKey, selectedYear, plan);
+    setSavedPlans(getActionPlans(kpiKey, selectedYear));
+  };
+
+  const formatUpdatedAt = (value) => {
+    if (!value) return t('action_plan.saved_prev');
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return t('action_plan.saved_prev');
+    return `${t('action_plan.updated')} ${date.toLocaleString(i18n.language === 'pt' ? 'pt-BR' : i18n.language === 'ko' ? 'ko-KR' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })}`;
+  };
+
+  const groupedPlans = useMemo(() => {
+    const groups = new Map();
+    savedPlans.forEach((plan) => {
+      if (!groups.has(plan.period)) groups.set(plan.period, []);
+      groups.get(plan.period).push(plan);
+    });
+    return [...groups.entries()].map(([period, plans]) => ({ period, plans }));
+  }, [savedPlans]);
+
+  const selectedPeriodCount = savedPlans.filter((plan) => plan.period === periodLabel).length;
+  const hasOtherPeriods = savedPlans.some((plan) => plan.period !== periodLabel);
+  const visibleGroups = showAllPeriods
+    ? groupedPlans
+    : groupedPlans.filter((group) => group.period === periodLabel);
+
+  const togglePeriod = (period) => {
+    setExpandedPeriods((current) => {
+      const next = new Set(current);
+      if (next.has(period)) next.delete(period);
+      else next.add(period);
+      return next;
+    });
+  };
+
+  const moveCarousel = (period, total, direction) => {
+    setCarouselIndexes((current) => ({
+      ...current,
+      [period]: ((current[period] || 0) + direction + total) % total,
+    }));
+  };
 
   return (
     <div className={`action-plan-panel ${isExpanded ? 'action-plan-panel--expanded' : ''}`}>
       <div className="action-plan-panel__header" onClick={() => setIsExpanded(!isExpanded)}>
         <h3>
           <FileText size={16} style={{ color: 'var(--highlight-accent)' }} />
-          Plano de Ação — {kpiName}
+          {t('action_plan.title')} — {kpiName} ({['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(periodLabel) ? t('months.' + periodLabel) : periodLabel})
         </h3>
         {isExpanded ? (
           <ChevronUp size={18} style={{ color: 'var(--text-muted)' }} />
@@ -20,22 +166,192 @@ export default function ActionPlanPanel({ kpiName, period, insight }) {
       </div>
 
       <div className="action-plan-panel__body">
-        <div className="insight-banner">
-          <Lightbulb size={18} style={{ color: 'var(--accent-airfreight)', flexShrink: 0, marginTop: '2px' }} />
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{insight}</p>
-        </div>
-
-        <div style={{ marginTop: 'var(--space-3)' }}>
-          <label className="small-label">Anotações / Próximos Passos</label>
+        <div>
+          <label className="small-label">{t('action_plan.notes_label')}</label>
           <textarea
             className="action-plan-panel__textarea"
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Descreva as ações a serem tomadas..."
+            onChange={(e) => {
+              setNotes(e.target.value);
+              setSaveStatus('saving');
+            }}
+            placeholder={t('action_plan.notes_placeholder').replace('{period}', periodLabel)}
           />
-          <p className="action-plan-panel__note">Observações salvas localmente (protótipo)</p>
+          
+          <div className="action-plan-panel__footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--space-2)' }}>
+            <p className="action-plan-panel__note">
+              {t('action_plan.linked_to')} {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].includes(periodLabel) ? t('months.' + periodLabel) : periodLabel} / {selectedYear ? selectedYear.substring(1) : ''}
+            </p>
+            <div className="action-plan-panel__save-controls">
+              <span className={`action-plan-panel__status action-plan-panel__status--${saveStatus}`}>
+                {saveStatus === 'saving'
+                  ? t('action_plan.unsaved')
+                  : isAuthenticated()
+                  ? (t('action_plan.saved_synced') || '✓ Sincronizado com o servidor')
+                  : t('action_plan.saved')}
+              </span>
+              <button
+                type="button"
+                className="action-plan-panel__save-btn"
+                onClick={persistNotes}
+                disabled={!notes.trim()}
+              >
+                <Save size={14} />
+                {t('action_plan.btn_save')}
+              </button>
+            </div>
+          </div>
+
+          {savedPlans.length > 0 && (
+            <section className="action-plan-history" aria-label="Saved action plans">
+              <div className="action-plan-history__heading">
+                <div>
+                  <h4>{t('action_plan.history_title')}</h4>
+                  <span>
+                    {t('action_plan.plans_count').replace('{count}', selectedPeriodCount).replace('{noun}', selectedPeriodCount === 1 ? t('action_plan.plan_noun_s') : t('action_plan.plan_noun_p')).replace('{period}', periodLabel).replace('{year}', selectedYear ? selectedYear.substring(1) : '')}
+                  </span>
+                </div>
+                {hasOtherPeriods && (
+                  <button
+                    type="button"
+                    className="action-plan-history__toggle-all"
+                    onClick={() => setShowAllPeriods((current) => !current)}
+                  >
+                    {showAllPeriods ? t('action_plan.show_only').replace('{period}', periodLabel) : t('action_plan.show_all')}
+                  </button>
+                )}
+              </div>
+              {visibleGroups.length === 0 ? (
+                <p className="action-plan-history__empty">{t('action_plan.empty')}</p>
+              ) : visibleGroups.map((group) => {
+                const isOpen = expandedPeriods.has(group.period);
+                return (
+                  <div className="action-plan-period-group" key={group.period}>
+                    <button
+                      type="button"
+                      className="action-plan-period-group__header"
+                      onClick={() => togglePeriod(group.period)}
+                      aria-expanded={isOpen}
+                    >
+                      <span>{group.period}/{selectedYear ? selectedYear.substring(1) : ''}</span>
+                      <span>{group.plans.length} {group.plans.length === 1 ? t('action_plan.plan_noun_s') : t('action_plan.plan_noun_p')}</span>
+                      {isOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                    </button>
+                    {isOpen && (() => {
+                      const index = (carouselIndexes[group.period] || 0) % group.plans.length;
+                      const plan = group.plans[index];
+                      const hasMultiplePlans = group.plans.length > 1;
+                      return (
+                        <div className="action-plan-carousel" aria-label={`${group.period} action plans`}>
+                          <div className="action-plan-carousel__stage">
+                            <div className="action-plan-carousel__backdrop action-plan-carousel__backdrop--far" aria-hidden="true" />
+                            <div className="action-plan-carousel__backdrop action-plan-carousel__backdrop--near" aria-hidden="true" />
+                            <article
+                              className={`action-plan-card ${plan.period === periodLabel ? 'action-plan-card--active' : ''}`}
+                              key={plan.id}
+                              onClick={() => setSelectedPlanModal({ plan, index })}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  setSelectedPlanModal({ plan, index });
+                                }
+                              }}
+                              title="Clique para abrir e ler o plano completo"
+                            >
+                              <div className="action-plan-card__header">
+                                <span className="action-plan-card__period">{t('action_plan.plan_title').replace('{idx}', index + 1)}</span>
+                                <button
+                                  type="button"
+                                  className="action-plan-card__remove"
+                                  title={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
+                                  aria-label={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removePlan(plan);
+                                  }}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                              <p className="action-plan-card__text">{plan.notes}</p>
+                              <small>{formatUpdatedAt(plan.updatedAt)}</small>
+                            </article>
+                          </div>
+                          {hasMultiplePlans && (
+                            <div className="action-plan-carousel__controls">
+                              <button type="button" className="action-plan-carousel__nav" onClick={() => moveCarousel(group.period, group.plans.length, -1)} aria-label="Plano anterior">
+                                <ChevronLeft size={16} />
+                              </button>
+                              <span className="action-plan-carousel__counter" aria-live="polite">{index + 1} / {group.plans.length}</span>
+                              <button type="button" className="action-plan-carousel__nav" onClick={() => moveCarousel(group.period, group.plans.length, 1)} aria-label="Próximo plano">
+                                <ChevronRight size={16} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                );
+              })}
+            </section>
+          )}
         </div>
       </div>
+
+      {/* Modal / Card Expandido de Leitura */}
+      {selectedPlanModal && (
+        <div
+          className="action-plan-modal-overlay"
+          onClick={() => setSelectedPlanModal(null)}
+          role="presentation"
+        >
+          <div
+            className="action-plan-modal-card"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="action-plan-modal-title"
+          >
+            <div className="action-plan-modal-card__header">
+              <div className="action-plan-modal-card__title-box">
+                <span id="action-plan-modal-title" className="action-plan-modal-card__badge">
+                  {t('action_plan.plan_title').replace('{idx}', selectedPlanModal.index + 1)}
+                </span>
+                <span className="action-plan-modal-card__period">
+                  {selectedPlanModal.plan.period}/{selectedYear ? selectedYear.substring(1) : ''}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="action-plan-modal-card__close"
+                onClick={() => setSelectedPlanModal(null)}
+                aria-label={t('common.close', 'Fechar')}
+                title="Fechar (Esc)"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="action-plan-modal-card__body">
+              <p className="action-plan-modal-card__text">
+                {selectedPlanModal.plan.notes}
+              </p>
+            </div>
+
+            <div className="action-plan-modal-card__footer">
+              <span className="action-plan-modal-card__updated">
+                {formatUpdatedAt(selectedPlanModal.plan.updatedAt)}
+              </span>
+              <span className="action-plan-modal-card__hint">
+                Clique fora ou pressione Esc para fechar
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

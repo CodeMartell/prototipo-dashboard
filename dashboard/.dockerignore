@@ -1,0 +1,14 @@
+# Nao copiar dependencias/artefatos locais para a imagem.
+# node_modules do host (Windows) contem binarios .exe que quebram o build
+# Linux com "node.exe: not found" — o npm ci dentro do container recria tudo.
+node_modules
+dist
+
+# Arquivos de ambiente locais nao entram na imagem.
+.env
+.env.*
+
+# Ruido
+*.log
+.vscode
+.git

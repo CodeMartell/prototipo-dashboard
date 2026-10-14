@@ -1,0 +1,30 @@
+# Ambiente Virtual Python
+.venv/
+venv/
+ENV/
+env/
+
+# Arquivos de Ambiente e Segredos
+.env
+*.env.local
+
+# Cache Python e compilação
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Logs locais
+logs/*
+!logs/.gitkeep
+
+# Dados e saídas locais de execução
+dados_processados/*
+!dados_processados/.gitkeep
+
+# IDEs e Sistema Operacional
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

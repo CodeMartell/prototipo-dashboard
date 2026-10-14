@@ -178,6 +178,8 @@ Para resolver os problemas de forma sustentável e aderente às diretrizes de ar
 
 ## 5. Desafios Técnicos Enfrentados e Soluções Adotadas
 
+### 5.1. Matriz Sintética de Desafios
+
 | # | Desafio Encontrado | Sintoma / Erro | Causa Raiz | Solução Adotada |
 |---|-------------------|----------------|------------|-----------------|
 | **1** | **Conexão recusada na porta 5001** | `Failed to establish connection: Connection Refused (port 5001)` | O container Docker do backend expunha apenas a porta `9192:5001`. O app Desktop estava codificado para conectar-se na porta 5001. | Mapeada a porta `5001:5001` no `docker-compose.yml` e ajustados os scripts `start.bat`/`start.sh`. |
@@ -187,8 +189,86 @@ Para resolver os problemas de forma sustentável e aderente às diretrizes de ar
 | **5** | **Divergência de formato de ano (`Y26` vs `2026`)** | Evidências enviadas no Desktop ficavam sob `Y26`, mas o frontend filtrava por `2026`. | Inconsistência no tratamento do prefixo 'Y' entre o seletor visual e a query de API. | O backend passou a resolver anos de forma cruzada (`_normalize_years`): se recebe `Y26`, busca por `Y26` e `2026`; se recebe `2026`, busca por `2026` e `Y26`. |
 | **6** | **Filtro estrito de usuário em Evidências** | Evidências enviadas por um usuário/desktop não eram listadas para outros logins na Web. | O controller aplicava `Evidence.user_id == current_user["id"]` na consulta geral de evidências por KPI. | Ajustado o escopo da listagem de evidências para o nível compartilhado do indicador/projeto, permitindo visão corporativa unificada. |
 | **7** | **Evidências da Web não apareciam no Desktop** | Upload feito no Web Dashboard não refletia na listagem do Desktop (direção Web → Desktop). | O serviço `evidence_service.get_evidences()` no Desktop consultava apenas o cache JSON local em disco (`evidences_meta.json`) sem buscar os registros da API. | Implementada sincronização remota via `api_client.get_evidences()`, prevenção de duplicatas por ID/remote_id e download automático sob demanda ao abrir o arquivo no Desktop. |
-| **8** | **Bloqueio de upload de arquivos > 1 MB no Web** | Arquivos PDF/PPT acima de 1 MB travavam ou retornavam erro 413, impossibilitando uploads de até 25 MB. | O Nginx nos containers (`dashboard/nginx.conf` e `nginx/nginx.conf`) operava com o valor padrão de `client_max_body_size 1m`. | Configurado `client_max_body_size 50M;` no Nginx, aumentado o limite do backend para 50 MB, adicionado suporte textual explícito a `.PDF` nos textos de interface (`pt`, `en`, `ko`) e botão de descarte para arquivos pendentes. |
+| **8** | **Bloqueio de upload de arquivos > 1 MB no Web** | Arquivos PDF/PPT acima de 1 MB travavam com spinner infinito no botão e retornavam HTTP 413. | O Nginx nos containers operava com o valor padrão de `client_max_body_size 1m;`. | Configurado `client_max_body_size 50M;` no Nginx, aumentado o limite do backend para 50 MB, adicionado suporte textual a `.PDF` e botão de descarte de anexos pendentes. |
 | **9** | **Exclusão de planos e evidências não sincronizada** | Itens excluídos no Web continuavam no Desktop, e vice-versa. | O Desktop mantinha cache local e apenas adicionava novos itens remotos sem reconciliar exclusões da API (`remote_ids`); além disso, a exclusão na API de evidências barrava perfis GESTOR/ANALISTA criadas por outro usuário. | Implementada reconciliação bidirecional de exclusões nos serviços do Desktop (`action_plan_service` e `evidence_service`) e permissão de exclusão para papéis gestores no controller de evidências do backend. |
+| **10** | **Visualização de planos extensos e glitches visuais** | Textos compridos ficavam espremidos no card; no desktop o placeholder ficava sobreposto ao texto. | Falta de modal de expansão no Web e bug de shadow DOM multiline no Flet Desktop. | Criado modal de visualização expandida com zoom e backdrop blur no Web; removido o placeholder conflitante e normalizado o fuso horário no Desktop. |
+
+---
+
+### 5.2. Desafio 7 em Detalhes: Sincronização de Evidências Web → Desktop e Download Sob Demanda
+
+- **Cenário e Sintoma:**  
+  O upload realizado pelo aplicativo Desktop sincronizava perfeitamente com o servidor e era exibido no Web Dashboard. No entanto, o inverso não funcionava: quando o usuário realizava o upload de uma evidência (como um PDF de relatório ou apresentação PowerPoint) através do Web Dashboard, a lista de evidências do aplicativo Desktop permanecia inalterada, como se nenhum arquivo tivesse sido enviado.
+- **Causa Raiz:**  
+  O serviço `evidence_service.py` no aplicativo Desktop foi concebido originalmente como uma solução local e continuava consultando apenas o arquivo `storage/evidences_meta.json` gravado no disco da máquina. Ele nunca realizava chamadas à rota `GET /api/evidences` para recuperar registros cadastrados por outros usuários ou pela interface Web.
+- **Solução Implementada:**  
+  1. Modificado o método `get_evidences()` em `evidence_service.py` para consultar `self.api_client.get_evidences(kpi_key, year, period)`.
+  2. Implementado mecanismo de mapeamento por `id` e `remote_id` para incorporar os metadados remotos no catálogo local sem criar duplicatas.
+  3. Como o arquivo binário físico reside no banco de dados do servidor (armazenado em formato BLOB), foi implementado o download automático sob demanda: quando o usuário clica no botão *"Abrir arquivo"* no Desktop, se o arquivo ainda não existir localmente na pasta `storage/evidences/`, o método `open_file()` dispara transparentemente o download através da API (`GET /api/evidences/{id}/download`), salva a cópia local e a executa no aplicativo padrão do Windows (Adobe Reader, PowerPoint, etc.).
+
+---
+
+### 5.3. Desafio 8 em Detalhes: Limite de Upload no Proxy Nginx (1 MB vs 25 MB/50 MB) e Estado do Botão
+
+- **Cenário e Sintoma:**  
+  No painel de evidências do Web Dashboard (`EvidencePanel.jsx`), o card de upload indicava: `".PPT or .PPTX · 25 MB maximum per file"`. Ao selecionar ou arrastar arquivos perfeitamente válidos (como um PDF de 2 MB ou 15 MB) e clicar no botão *"Salvar na plataforma"*, o botão entrava em estado de envio (`isSaving = true`), ficava travado com o ícone de carregamento (spinner) e o upload nunca era concluído. Adicionalmente, a instrução textual do componente omitia o suporte a arquivos `.PDF`.
+- **Investigação Técnica e Causa Raiz:**  
+  1. No código da interface React (`EvidencePanel.jsx`), a constante de validação `MAX_SIZE` estava configurada para `25 * 1024 * 1024` (25 MB) e a lista de extensões permitidas incluía `pdf`.
+  2. No backend FastAPI (`server/app/controllers/evidence_controller.py`), o endpoint `POST /api/evidences` também aceitava até 25 MB. Testes automatizados chamando a API diretamente na porta `5001` com arquivos de 5 MB obtinham `HTTP 201 Created` sem qualquer falha.
+  3. No entanto, o usuário acessa o Dashboard Web através da porta `5173`, servida pelo container **Nginx** (`dashboard/nginx.conf`), o qual encaminha as chamadas `/api/` para o serviço de backend (assim como o proxy reverso HTTPS em `nginx/nginx.conf`).
+  4. **Por padrão de fábrica, o Nginx adota `client_max_body_size 1m;` (exatamente 1 Megabyte)** sempre que essa diretiva não for explicitamente declarada.
+  5. Ao receber um payload `multipart/form-data` cujo cabeçalho `Content-Length` excedia 1 MB, o Nginx cortava a conexão imediatamente antes mesmo de encaminhar a requisição ao FastAPI e retornava o código de erro **`HTTP 413 Request Entity Too Large`** em formato HTML.
+  6. O navegador recebia o erro 413, o `fetch` falhava ao tentar interpretar o HTML como JSON e o botão de salvar permanecia desabilitado durante a tentativa ou exibia mensagens genéricas de falha.
+- **Solução Implementada:**  
+  1. **Ajuste de Infraestrutura Nginx (`dashboard/nginx.conf` e `nginx/nginx.conf`):**  
+     Declarada a diretiva `client_max_body_size 50M;` tanto no bloco `server` quanto no bloco `location /api/`. O teto de 50 MB foi adotado para acomodar arquivos de 25 MB com folga para cabeçalhos multipart, além de equalizar a capacidade com o limite de 50 MB adotado no aplicativo Desktop.
+  2. **Backend API (`server/app/controllers/evidence_controller.py`):**  
+     Aumentado o `MAX_SIZE` no controller para `50 * 1024 * 1024` e atualizada a mensagem de validação de extensões para citar explicitamente: `"Envie somente apresentações PowerPoint (.ppt ou .pptx) ou documentos PDF (.pdf)."`.
+  3. **Traduções e Usabilidade do Frontend (`EvidencePanel.jsx`, `locales/*.json`, `api.js`):**  
+     - Textos em português, inglês e coreano atualizados para: *"Carregar Apresentação ou Documento"* e *".PDF, .PPT ou .PPTX · 25 MB máximo por arquivo"*.
+     - Adicionado botão de descarte/cancelamento (`Trash2`) para cada arquivo na fila de pendentes, permitindo ao usuário remover um arquivo selecionado antes de enviar.
+     - Implementado tratamento amigável para HTTP 413 em `api.js`, emitindo o aviso: *"O arquivo excede o limite máximo permitido pelo servidor."*.
+
+---
+
+### 5.4. Desafio 9 em Detalhes: Reconciliação Bidirecional de Exclusões (Delete Web ⇄ Desktop)
+
+- **Cenário e Sintoma:**  
+  Quando o usuário excluía um Plano de Ação ou uma Evidência no Web Dashboard, o registro deixava de aparecer na Web, mas continuava visível no Desktop. De modo análogo, ao excluir um item no Desktop, em determinadas situações ele continuava visível no Web Dashboard após atualização.
+- **Investigação Técnica e Causa Raiz:**  
+  1. **Fluxo Web → Desktop:**  
+     - O Desktop mantém os dados em cache local (`action_plans.json` e `evidences_meta.json`).
+     - Ao executar `get_action_plans()` ou `get_evidences()`, o Desktop consultava a API e percorria o retorno remoto **apenas para adicionar** novos itens inexistentes no cache local.
+     - **Inexistência de reconciliação de exclusão:** Se um item fosse excluído na Web, ele deixava de vir na resposta da API. Como o Desktop apenas realizava inclusões aditivas, o registro antigo continuava com `deleted_at = None` no arquivo JSON local. Ao retornar os dados para a tela, o Desktop mesclava o arquivo local e reexibia o item que já havia sido apagado no servidor.
+     - Se todos os itens de um período fossem excluídos na Web, a API retornava lista vazia `[]`. Como `if remote_items:` em Python avalia lista vazia como falso, o bloco de sincronização era totalmente ignorado e o Desktop exibia o histórico local defasado.
+  2. **Fluxo Desktop → Web:**  
+     - No backend (`server/app/controllers/evidence_controller.py`), o endpoint `DELETE /api/evidences/{id}` continha uma cláusula `if current_user.get("role") != "ADMIN": query = query.filter(Evidence.user_id == current_user["id"])`.
+     - Como as evidências enviadas pelo Desktop eram gravadas sob o ID do usuário de serviço (`bot.local@example.com`), se um usuário com perfil `GESTOR` ou `ANALISTA` na Web tentasse excluir o arquivo, o backend devolvia `HTTP 404/403` e não excluía o registro do banco de dados.
+     - No Desktop, as funções de deleção procuravam o item a ser excluído somente sob uma chave estrita (`f"{kpi_key}_{year}"`). Se houvesse qualquer discrepância de formatação na chave (ex: `Y26` vs `2026`), o item não era localizado localmente e a requisição HTTP `DELETE` para a API não era disparada.
+- **Solução Implementada:**  
+  1. **Algoritmo de Reconciliação no Desktop (`action_plan_service.py` e `evidence_service.py`):**  
+     - Alterada a checagem para `if remote_list is not None:` (garantindo que listas vazias `[]` acionem a limpeza de itens excluídos).
+     - Extraído o conjunto de IDs ativos da API: `remote_ids = {item["id"] for item in remote_items}`.
+     - **Reconciliação ativa:** Todo item local que possui `remote_id` ou identificador de API, mas que **não consta mais** em `remote_ids`, é imediatamente marcado com `deleted_at = datetime.now().isoformat()` localmente.
+  2. **Deleção Multi-chave no Desktop:**  
+     - Em `delete_action_plan()` e `delete_evidence()`, a busca pelo item local agora examina todas as coleções por `id == target_id` ou `remote_id == target_id`, grava a marcação de lixeira local e executa a chamada `DELETE` na API com o `remote_id` correto.
+  3. **Permissões no Backend (`evidence_controller.py`):**  
+     - Atualizada a permissão de exclusão de evidências para autorizar papéis de gestão (`ADMIN`, `GESTOR`, `ANALISTA`), permitindo que a equipe corporativa remova evidências do indicador sem sofrer bloqueio caso o upload tenha sido realizado pela integração Desktop.
+
+---
+
+### 5.5. Visual: Card Zoom-in Modal Overlay (Web) e Correção de Textos no Desktop
+
+- **Cenário e Requisito do Usuário:**  
+  - No Web Dashboard, cards com planos de ação muito extensos ficavam espremidos na grade. Uma primeira tentativa de expandir os cards diretamente no grid esticava o painel e criava barras de rolagem internas verticais indesejadas. O usuário solicitou um efeito de card expandido elegante, similar a um alerta modal de leitura que cresce na tela e se fecha ao clicar fora ou no botão fechar.
+  - No aplicativo Desktop, foram observados dois problemas: (a) texto de ajuda/placeholder desenhado de forma duplicada e sobreposta em cima do texto digitado pelo usuário (*glitch* gráfico do Flet/Flutter Web shadow DOM); e (b) divergência de horário ao salvar planos de ação no Desktop, que gravava em UTC e causava diferença de horas em relação ao relógio local.
+- **Solução Implementada:**  
+  1. **Web Dashboard (`ActionPlanPanel.jsx` e `index.css`):**  
+     - Cards na grade mantidos compactos com limite de 4 linhas e reticências (`-webkit-line-clamp: 4`), com micro-animação de hover (`translateY(-2px)` e brilho de borda).
+     - Ao clicar no card, abre-se uma janela modal centralizada (`.action-plan-modal-overlay` e `.action-plan-modal-card`) com transição suave de escala (`0.92 -> 1.0`), desfoque de fundo (`backdrop-filter: blur(6px)`), texto integral sem compressão, botão de fechar (`X`), fechamento por clique fora da área do card e suporte ao atalho de teclado `Escape`.
+  2. **Aplicativo Desktop (`action_plan_view.py` e `action_plan_service.py`):**  
+     - Removido o parâmetro dinâmico `hint_text` do campo de texto multiline, solucionando definitivamente a sobreposição visual de texto no Flet.
+     - Implementada a conversão explícita de timestamps UTC para o fuso horário local do computador (`dt.astimezone()`), garantindo sincronia exata de horário entre o computador do usuário e a plataforma Web.
 
 ---
 

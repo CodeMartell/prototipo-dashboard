@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY rpa_email ./rpa_email
 
-CMD ["python", "-m", "rpa_email.bot"]
+CMD ["python", "-m", "rpa_email"]

@@ -5,8 +5,8 @@ Tabelas dos indicadores — mesmo formato que o server.py atual já espera
 """
 import uuid
 
-from sqlalchemy import Float, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Float, ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
 
@@ -28,6 +28,14 @@ class KpiRecord(Base):
     target: Mapped[float] = mapped_column(Float, default=0.0)
     result: Mapped[float] = mapped_column(Float, default=0.0)
     achievement: Mapped[float | None] = mapped_column(Float, nullable=True)
+    source: Mapped[str] = mapped_column(String(20), nullable=False, default="rpa_email")
+    # 'rpa_email' | 'manual'
+    submitted_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    # null = veio do robô; preenchido para entradas manuais
+
+    submitter = relationship("User", foreign_keys=[submitted_by])
 
 
 class LogisticsVsProdRecord(Base):
@@ -39,3 +47,12 @@ class LogisticsVsProdRecord(Base):
     logistics_cost: Mapped[float] = mapped_column(Float, default=0.0)
     production_amount: Mapped[float] = mapped_column(Float, default=0.0)
     ratio: Mapped[float | None] = mapped_column(Float, nullable=True)
+    source: Mapped[str] = mapped_column(String(20), nullable=False, default="rpa_email")
+    # 'rpa_email' | 'manual'
+    submitted_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    # null = veio do robô; preenchido para entradas manuais
+
+    submitter = relationship("User", foreign_keys=[submitted_by])
+

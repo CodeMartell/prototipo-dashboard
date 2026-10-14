@@ -5,9 +5,30 @@ __pycache__
 *.pyc
 **/*.pyc
 .pytest_cache
-
+.env
+**/.env
+**/.env.local
+**/.env.homologacao
+rpa_email/resources/*.db
+rpa_email/resources/*.db-*
 rpa_email/.env
 rpa_email/resources/attachments
-
+outputs
 dashboard/node_modules
 dashboard/dist
+*.log
+*.sqlite
+
+# Pastas e rascunhos locais da documentação
+fluxo/
+scratch/
+
+# Scripts locais e testes
+scratch_extractor.py
+generate_pdd_docs.py
+generate_pdf.py
+generate_report_pdf.py
+generate_pdfs.py
+generate_rfc_pdf.py
+test.png
+*.pdf

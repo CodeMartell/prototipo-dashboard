@@ -1,0 +1,253 @@
+/* ============================================================
+   AuditPage.css — DXi Design System aligned
+   ============================================================ */
+
+.audit-page {
+  min-height: 100vh;
+  background-color: var(--bg-body);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font);
+}
+
+.audit-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 2rem;
+  background-color: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.audit-header-bar__left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.audit-header-bar__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.audit-header-bar__subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.audit-content {
+  padding: 2rem;
+  max-width: 1300px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Card container */
+.audit-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.audit-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.audit-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.audit-filter-label {
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.audit-input, .audit-select {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.audit-input:focus, .audit-select:focus {
+  border-color: var(--brand-500);
+}
+
+.audit-scoped-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--accent-amber);
+  color: var(--accent-amber);
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+}
+
+/* Table */
+.audit-table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background-color: var(--bg-card);
+}
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.825rem;
+  text-align: left;
+}
+
+.audit-table th {
+  background-color: var(--bg-elevated);
+  color: var(--text-muted);
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+
+.audit-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-secondary);
+}
+
+.audit-table tr:hover td {
+  background-color: var(--bg-card-hover);
+}
+
+.audit-table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.audit-badge-role {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 600;
+  background-color: rgba(231, 25, 74, 0.15);
+  color: var(--brand-300);
+}
+
+/* DateRangeFilter styling inside DXi */
+.drf-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.drf-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.25rem;
+}
+
+.drf-btn-shortcut {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.775rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font);
+}
+
+.drf-btn-shortcut:hover:not(:disabled) {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.drf-btn-shortcut.active {
+  background-color: var(--brand-500);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.drf-separator {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.drf-ticket-box {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.drf-ticket-cell {
+  padding: 0.35rem 0.75rem;
+}
+
+.drf-ticket-cell:first-child {
+  border-right: 1px solid var(--border);
+}
+
+.drf-ticket-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.15rem;
+}
+
+.drf-ticket-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-family: var(--font);
+}

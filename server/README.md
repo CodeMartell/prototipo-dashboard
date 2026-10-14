@@ -1,93 +1,76 @@
-# Dashboard KPI Logístico — Backend
+# DataLens — Backend FastAPI
 
-FastAPI, padrão CSR (Controller-Service-Repository). Este backend é dono do banco — o bot de extração chama `POST /api/ingestion/kpi-report` em vez de escrever direto no Postgres. Perfil único por enquanto: **ADMIN**.
+A API segue Controller–Service–Repository e é responsável pela persistência dos
+KPIs. O RPA envia `POST /api/ingestion/kpi-report` com JWT; não escreve no banco.
+Os cinco papéis atuais, a matriz de permissões e as contas demonstrativas estão
+no [README principal](../README.md#-divisão-de-privilégios-rbac-e-auditoria).
 
-## Passo a passo
+## Executar e testar
 
-```bash
-# 1. Postgres via Docker
-docker run --name pg-dashboard -e POSTGRES_PASSWORD=senha123 -e POSTGRES_DB=dashboard_kpi -p 5432:5432 -d postgres:16
-# próximas vezes: docker start pg-dashboard
+Siga o [roteiro principal](../docs/guides/development.md) para dependências,
+`.env` da raiz, migrations, seed, PostgreSQL/SQLite, carga histórica e testes.
+O entrypoint Docker aplica migrations, executa `scripts/seed_rbac.py` e cria o
+administrador de `ADMIN_*` quando configurado. O seed também provisiona contas
+demonstrativas; revise esse comportamento antes de qualquer uso fora de testes.
 
-# 2. Ambiente virtual
-python -m venv venv
-venv\Scripts\activate        # Windows
-source venv/bin/activate     # Mac/Linux
-pip install -r requirements.txt
+Na execução local, API e Swagger usam `http://localhost:5001/docs`; no Compose
+principal, a porta publicada é `http://localhost:9192/docs`.
 
-# 3. Configurar .env
-copy .env.example .env       # Windows
-cp .env.example .env         # Mac/Linux
+## Contratos e persistência
 
-# 4. Migrations
-# Primeira vez (arquivo já vem pronto no repo), só aplica:
-alembic upgrade head
+| Rota | Uso / autorização |
+| --- | --- |
+| `GET /api/kpis/dashboard` | Séries dos indicadores, com autenticação |
+| `PUT /api/kpis/{kpi_type}/{year}/{month}` | Meta e resultado; `kpi:write_manual` |
+| `PUT /api/kpis/extra/logistics-vs-prod/{year}/{month}` | Custo x produção; `kpi:write_manual` |
+| `DELETE /api/kpis/{kpi_type}/{year}/{month}` | Exclusão; `kpi:delete`, com autoria para GESTOR |
+| `POST /api/ingestion/kpi-report` | Recepção do robô; ADMIN; novo lote retorna `pending` |
+| `GET /api/profile/pending-ingestions` | Fila de aprovação; `kpi:write_manual` |
+| `POST /api/profile/ingestions/{queue_id}/accept` | Aplica o lote aprovado; `kpi:write_manual` |
+| `POST /api/profile/ingestions/{queue_id}/accept-partial` | Aplica itens selecionados; `kpi:write_manual` |
+| `POST /api/profile/ingestions/{queue_id}/reject` | Rejeita o lote; `kpi:write_manual` |
+| `POST /api/profile/ingestions/{queue_id}/rollback` | Reverte lote aceito; `kpi:write_manual` |
 
-# Se você mudou algum model (app/models/*.py) e precisa gerar uma migration NOVA:
-alembic revision --autogenerate -m "descricao da mudanca"
-alembic upgrade head
+A recepção grava `email_ingest_queue`, com payload e diferenças para revisão;
+a aprovação aplica os dados e registra o processamento. Um Message-ID que já
+está na fila ou no histórico retorna `skipped`. Receber um e-mail com sucesso não
+significa que seus números já estejam visíveis no dashboard.
 
-# 5. Criar perfil ADMIN + usuário
-python scripts/seed_roles.py
-python scripts/create_admin.py teste@gmail.com senha123
+`achievement` e `ratio` podem ser calculados pelo backend quando omitidos.
+A direção dos indicadores, períodos válidos e cálculo estão em
+[`app/core/kpi_meta.py`](app/core/kpi_meta.py). A carga
+[`scripts/seed_history_data.py`](scripts/seed_history_data.py) faz upsert das
+séries históricas de 2025/2026 e não roda no entrypoint, para evitar substituir
+lançamentos manuais a cada inicialização. A referência histórica permanece em
+[`history_and_data.txt`](../history_and_data.txt).
 
-# 6. Subir a API
-python main.py
+## Estrutura e manutenção
+
+| Caminho | Responsabilidade |
+| --- | --- |
+| `main.py` | FastAPI, rotas, middleware de acesso, CORS e exceções |
+| `app/controllers/` | Contratos HTTP, autenticação e autorização |
+| `app/services/` | Regras de negócio, ingestão, aprovação e auditoria |
+| `app/repositories/` | Acesso aos dados |
+| `app/models/` e `app/schemas/` | SQLAlchemy e contratos Pydantic |
+| `app/database/` | Engine, sessões e metadados |
+| `app/core/` | Configuração, JWT, permissões, KPIs e logging |
+| `alembic/` | Migrations versionadas |
+| `scripts/` | Seeds RBAC, homologação, administrador e dados históricos |
+| `tests/` | Testes unitários e de integração local |
+
+Se uma alteração de modelo exigir migration, execute dentro de `server/`, com o
+ambiente da API ativado e um banco de desenvolvimento configurado:
+
+```powershell
+python -m alembic revision --autogenerate -m "descricao da mudanca"
+python -m alembic upgrade head
 ```
 
-API em `http://localhost:5001` — docs em `/docs`. 
+Revise o arquivo gerado antes de aplicar. Para apenas preparar um banco com o
+schema existente, use `upgrade head`; não gere outra migration inicial.
 
-## Estrutura
-
-```
-server/
-├── main.py                        # entry point, registra rotas e middlewares
-├── app/
-│   ├── controllers/                # recebe HTTP, valida entrada, devolve resposta
-│   │   ├── auth_controller.py        # login
-│   │   ├── user_controller.py        # criar usuário (ADMIN)
-│   │   ├── dashboard_controller.py   # GET /api/kpis/*
-│   │   ├── analysis_controller.py    # GET /api/analysis/* (anomalia, YoY)
-│   │   └── ingestion_controller.py   # POST /api/ingestion/kpi-report
-│   ├── services/                   # regra de negócio
-│   │   ├── auth_service.py
-│   │   ├── user_service.py
-│   │   ├── dashboard_service.py
-│   │   ├── analysis_service.py
-│   │   └── ingestion_service.py
-│   ├── repositories/                # única camada que faz SQL
-│   │   ├── user_repository.py
-│   │   ├── role_repository.py
-│   │   ├── dashboard_repository.py
-│   │   └── processed_email_repository.py
-│   ├── models/                      # tabelas (SQLAlchemy)
-│   │   ├── user.py / role.py
-│   │   ├── kpi.py                     # 5 tabelas de KPI + logistics_vs_prod
-│   │   └── processed_email.py
-│   ├── schemas/                     # contratos de entrada/saída (Pydantic)
-│   ├── database/                    # engine + sessão do Postgres
-│   └── core/                        # config, JWT, exceções, logging, dependencies
-├── alembic/                        # migrations versionadas
-├── scripts/
-│   ├── seed_roles.py                 # cria perfil ADMIN
-│   └── create_admin.py               # cria o primeiro usuário
-└── tests/                          # pytest (5 testes)
-```
-
-## Tecnologias
-
-- **Python 3.11+** / **FastAPI** — framework da API
-- **PostgreSQL** — banco de dados
-- **SQLAlchemy** — ORM
-- **Alembic** — versionamento de schema (migrations)
-- **Pydantic** — validação de schemas (entrada/saída)
-- **JWT (PyJWT) + bcrypt** — autenticação e hash de senha
-- **Docker** — Postgres local
-- **pytest** — testes automatizados
-
-
-## Testes
-
-```bash
-pytest tests/
-```
+As dependências estão em `requirements.txt` deste diretório: FastAPI, SQLAlchemy,
+Alembic, Pydantic, psycopg, PyJWT e bcrypt, além das ferramentas de testes.
+A integração com PostgreSQL descartável tem seus limites documentados em
+[Ambiente de integração](../docs/testing/integration.md).

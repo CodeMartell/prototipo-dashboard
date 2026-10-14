@@ -24,5 +24,7 @@ class UserOut(BaseModel):
     email: EmailStr
     name: str | None = None
     role: str
+    permissions: list[str] = []
 
     model_config = {"from_attributes": True}
+

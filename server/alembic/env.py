@@ -1,3 +1,5 @@
+from app.models import evidence, kpi, processed_email, role, user  # noqa: F401
+
 """
 alembic/env.py
 Conecta o Alembic aos models SQLAlchemy do projeto e à DATABASE_URL do .env.
@@ -14,13 +16,14 @@ from sqlalchemy import engine_from_config, pool
 
 from app.core.config import get_settings
 from app.database.base import Base
+from app.database.session import db_url
 
 # Todos os models do projeto — este backend é dono do schema inteiro.
 from app.models import kpi, processed_email, role, user  # noqa: F401
 
 config = context.config
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", db_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

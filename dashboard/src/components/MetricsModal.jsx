@@ -1,147 +1,153 @@
-import React from 'react';
-import { X, Database, HelpCircle, Calculator, CheckCircle2, Layers } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { AlertCircle, Calculator, CheckCircle2, ChevronRight, Database, FileSpreadsheet, HelpCircle, Layers, Lightbulb, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-const METRICS_EXPLANATIONS = [
+const getMetrics = (t) => [
   {
-    id: 'logisticCost',
-    title: '1. Total Logistics Cost (Logistic Cost KPI TV %)',
-    formula: 'Logistic Cost (%) = (Total Logistics Cost + Incident Costs) / Gross Production Value',
-    source: 'ARUM System (Freight) + Incident Cost System (Claims/Demurrage) + GERP (Production)',
-    badge: 'Lower is Better',
-    badgeColor: 'var(--brand-800)',
-    concept: 'Percentage of total logistics movement cost relative to the financial value of gross TV production.',
-    rationale: 'Measures freight efficiency relative to factory financial volume. If production increases, nominal freight goes up, but the percentage should decline or stay stable to reflect scale efficiency.',
-    example: 'In Jan/26, $2.56M spent on freight + incidentals for $47.63M of production = 5.38% (against a target of 6.48%).'
+    id: 'warRoom', name: 'War Room Report', descriptor: t('metrics_modal.m_war_desc'), unit: '%', badge: t('metrics_modal.m_war_badge'), color: '#3B82F6',
+    formula: t('metrics_modal.m_war_form'),
+    concept: t('metrics_modal.m_war_conc'),
+    source: t('metrics_modal.m_war_src'),
+    businessRule: t('metrics_modal.m_war_biz'),
+    statusRule: t('metrics_modal.m_war_stat'),
+    example: t('metrics_modal.m_war_ex'),
   },
   {
-    id: 'airFreight',
-    title: '2. Average Cost — Air Freight (Air Freight KPI TV %)',
-    formula: 'Air Freight (%) = Emergency Air Freight Cost / Gross Production Value',
-    source: 'ARUM System (Emergency Air Transport Orders) + GERP',
-    badge: 'Crisis Monitoring',
-    badgeColor: 'var(--accent-teal)',
-    concept: 'Proportion of unplanned emergency air freight costs relative to total production.',
-    rationale: 'Air freight costs 4x to 8x more than ocean transport. Monitoring this metric separately highlights critical supply chain bottlenecks and vendor delays requiring urgent transport.',
-    example: 'In Mar/26, the metric reached 0.74% (target was 0.22%), triggering an alert regarding emergency freight spikes for critical parts.'
+    id: 'airFreight', name: 'Air Freight', descriptor: t('metrics_modal.m_air_desc'), unit: '%', badge: t('metrics_modal.m_air_badge'), color: '#38BDF8',
+    formula: t('metrics_modal.m_air_form'),
+    concept: t('metrics_modal.m_air_conc'),
+    source: t('metrics_modal.m_air_src'),
+    businessRule: t('metrics_modal.m_air_biz'),
+    validation: t('metrics_modal.m_air_val'),
+    statusRule: t('metrics_modal.m_air_stat'),
+    example: t('metrics_modal.m_air_ex'),
   },
   {
-    id: 'logisticsVsProd',
-    title: '3. Cost per Production Value (Cost x Product Amount Ratio)',
-    formula: 'Ratio = Nominal Logistics Cost (MUSD) / Nominal Production Value (MUSD)',
-    source: 'Master Sheet (dados.xlsx — Tab 3) consolidating GERP and Financials',
-    badge: 'Direct Financial Ratio',
-    badgeColor: 'var(--accent-violet)',
-    concept: 'Pure unweighted relationship between freight expense in USD and production value in USD.',
-    rationale: 'Provides transparent visibility into structural logistics cost variations relative to nominal volume, free from variable target adjustments.',
-    example: 'In May/26: $2.70M USD cost / $57.15M USD production = 0.0472 (or 4.72%).'
+    id: 'resinConsolidation', name: 'Resin Consolidation', descriptor: t('metrics_modal.m_resin_desc'), unit: 'KUSD', badge: t('metrics_modal.m_resin_badge'), color: '#2563EB',
+    formula: t('metrics_modal.m_resin_form'),
+    concept: t('metrics_modal.m_resin_conc'),
+    source: t('metrics_modal.m_resin_src'),
+    businessRule: t('metrics_modal.m_resin_biz'),
+    statusRule: t('metrics_modal.m_resin_stat'),
+    example: t('metrics_modal.m_resin_ex'),
   },
   {
-    id: 'totalProd',
-    title: '4. Total Production Amount (Production Amount — MUSD)',
-    formula: 'Total Value = Sum of nominal values (MUSD) reported by GERP',
-    source: 'GERP (LG Proprietary ERP — Billing & Production Module)',
-    badge: 'Budgetary Denominator',
-    badgeColor: 'var(--accent-amber)',
-    concept: 'Gross financial amount corresponding to TV units manufactured in the period.',
-    rationale: 'Base financial metric of the plant. Helps clarify whether total cost fluctuations stem from production volume shifts or freight rate increases.',
-    example: 'Y26 YTD (Jan-May), the plant manufactured $277.94 MUSD in electronics.'
+    id: 'taskCost', name: 'Task Cost Reduction', descriptor: t('metrics_modal.m_task_desc'), unit: 'KBRL', badge: t('metrics_modal.m_task_badge'), color: '#1D4ED8',
+    formula: t('metrics_modal.m_task_form'),
+    concept: t('metrics_modal.m_task_conc'),
+    source: t('metrics_modal.m_task_src'),
+    businessRule: t('metrics_modal.m_task_biz'),
+    statusRule: t('metrics_modal.m_task_stat'),
+    example: t('metrics_modal.m_task_ex'),
   },
   {
-    id: 'accumulatedCost',
-    title: '5. Accumulated Logistics Cost (Logistics Cost — MUSD)',
-    formula: 'Accumulated Cost = Sum of monthly transport disbursements (MUSD)',
-    source: 'ARUM System + Treasury/Finance Reports',
-    badge: 'Gross Financial Volume',
-    badgeColor: 'var(--brand-800)',
-    concept: 'Total USD cash outlay by LG for transportation and warehousing.',
-    rationale: 'Essential for cash flow control and volume contract negotiations with shipping lines and carriers.',
-    example: 'Y26 YTD (Jan-May), total freight outlay reached $12.23 MUSD.'
+    id: 'demurrage', name: 'Demurrage Cost', descriptor: t('metrics_modal.m_demurrage_desc'), unit: 'CTNR', badge: t('metrics_modal.m_demurrage_badge'), color: '#0EA5E9',
+    formula: t('metrics_modal.m_demurrage_form'),
+    concept: t('metrics_modal.m_demurrage_conc'),
+    source: t('metrics_modal.m_demurrage_src'),
+    businessRule: t('metrics_modal.m_demurrage_biz'),
+    statusRule: t('metrics_modal.m_demurrage_stat'),
+    example: t('metrics_modal.m_demurrage_ex'),
   },
   {
-    id: 'achievement',
-    title: '6. Achievement Ratio (Achievement Ratio)',
-    formula: 'Achievement = Target (%) / Result (%)',
-    source: 'Dashboard analytical calculation comparing Planned vs Actual',
-    badge: 'Performance KPI',
-    badgeColor: 'var(--accent-green)',
-    concept: 'Compliance index with the set cost target (where lower cost is better).',
-    rationale: 'Since the target represents a maximum spending ceiling, if actual result is lower than target, Target / Result will be greater than 1.0 (100%), indicating budget savings.',
-    example: 'Target of 6.48% / Result of 5.38% = 1.205 (120.5% target achievement — 1.1% total cost savings).'
-  }
+    id: 'incidentalCost', name: 'Incidental Cost', descriptor: t('metrics_modal.m_inc_desc'), unit: 'Ratio', badge: t('metrics_modal.m_inc_badge'), color: '#7C3AED',
+    formula: t('metrics_modal.m_inc_form'),
+    concept: t('metrics_modal.m_inc_conc'),
+    source: t('metrics_modal.m_inc_src'),
+    businessRule: t('metrics_modal.m_inc_biz'),
+    validation: t('metrics_modal.m_inc_val'),
+    statusRule: t('metrics_modal.m_inc_stat'),
+    example: t('metrics_modal.m_inc_ex'),
+  },
 ];
 
+function DetailBlock({ icon: Icon, label, children, accent = false }) {
+  return (
+    <section className={`metric-guide__block${accent ? ' metric-guide__block--accent' : ''}`}>
+      <div className="metric-guide__block-title"><Icon size={15} />{label}</div>
+      <div className="metric-guide__block-content">{children}</div>
+    </section>
+  );
+}
+
+function StatusRule({ metric, t }) {
+  if (metric.id === 'resinConsolidation' || metric.id === 'incidentalCost') {
+    return <span className="metric-status-rule metric-status-rule--neutral"><span className="metric-status-dot metric-status-dot--neutral" />{metric.statusRule}</span>;
+  }
+
+  if (metric.id === 'demurrage') {
+    return (
+      <div className="metric-status-list">
+        <span className="metric-status-rule"><span className="metric-status-dot metric-status-dot--green" /><strong>{t('metrics_modal.status_green')}</strong> {t('metrics_modal.zero_ctnr')}</span>
+        <span className="metric-status-rule"><span className="metric-status-dot metric-status-dot--red" /><strong>{t('metrics_modal.status_red')}</strong> {t('metrics_modal.more_zero_ctnr')}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="metric-status-list">
+      <span className="metric-status-rule"><span className="metric-status-dot metric-status-dot--green" /><strong>{t('metrics_modal.status_green')}</strong> {t('metrics_modal.achieve_100')}</span>
+      <span className="metric-status-rule"><span className="metric-status-dot metric-status-dot--yellow" /><strong>{t('metrics_modal.status_yellow')}</strong> {t('metrics_modal.achieve_90_99')}</span>
+      <span className="metric-status-rule"><span className="metric-status-dot metric-status-dot--red" /><strong>{t('metrics_modal.status_red')}</strong> {t('metrics_modal.achieve_lt_90')}</span>
+    </div>
+  );
+}
+
 export default function MetricsModal({ isOpen, onClose }) {
+  const { t } = useTranslation();
+  const METRICS = useMemo(() => getMetrics(t), [t]);
+  const [activeId, setActiveId] = useState(METRICS[0].id);
   if (!isOpen) return null;
+  const metric = METRICS.find((item) => item.id === activeId) || METRICS[0];
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content metrics-modal" onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title">
             <Database size={20} className="modal-title-icon" />
-            <div>
-              <h3>Metrics Guide & Data Origin</h3>
-              <p>Logical rationale, formulas, and corporate source systems for executive defense</p>
-            </div>
+            <div><h3>{t('metrics_modal.title')}</h3><p>{t('metrics_modal.subtitle')}</p></div>
           </div>
-          <button className="btn-close" onClick={onClose}>
-            <X size={18} />
-          </button>
+          <button className="btn-close" onClick={onClose} aria-label={t('metrics_modal.btn_close')}><X size={18} /></button>
         </div>
 
-        <div className="modal-body">
+        <div className="metrics-modal__body">
           <div className="metrics-intro-card">
-            <HelpCircle size={18} style={{ color: 'var(--brand-800)', flexShrink: 0, marginTop: '2px' }} />
-            <div>
-              <strong>How to explain these numbers to Management:</strong>
-              <p>
-                All cost indicators follow the <em>"Lower is Better"</em> principle. 
-                Financial data is consolidated from <strong>GERP (LG ERP)</strong> for production volumes 
-                and <strong>ARUM System / Incident Cost System</strong> for freight expenses and logistics contingencies.
-              </p>
-            </div>
+            <HelpCircle size={18} />
+            <div><strong>{t('metrics_modal.guide_title')}</strong><p>{t('metrics_modal.guide_desc')}</p></div>
           </div>
 
-          <div className="metrics-grid">
-            {METRICS_EXPLANATIONS.map((item) => (
-              <div key={item.id} className="metric-card-detail">
-                <div className="metric-card-detail__header">
-                  <h4>{item.title}</h4>
-                  <span className="metric-badge" style={{ backgroundColor: item.badgeColor + '22', color: item.badgeColor, borderColor: item.badgeColor + '44' }}>
-                    {item.badge}
-                  </span>
-                </div>
+          <div className="metrics-guide">
+            <nav className="metrics-guide__nav" aria-label="Metric list">
+              <div className="metrics-guide__nav-label">{t('metrics_modal.avail_metrics')}</div>
+              {METRICS.map((item, index) => (
+                <button type="button" key={item.id} className={`metrics-guide__nav-item${item.id === metric.id ? ' active' : ''}`} onClick={() => setActiveId(item.id)} style={{ '--metric-color': item.color }}>
+                  <span className="metrics-guide__nav-number">{String(index + 1).padStart(2, '0')}</span>
+                  <span><strong>{item.name}</strong><small>{item.unit} · {item.descriptor}</small></span>
+                  <ChevronRight size={15} />
+                </button>
+              ))}
+            </nav>
 
-                <div className="metric-card-detail__formula">
-                  <Calculator size={14} />
-                  <code>{item.formula}</code>
-                </div>
-
-                <div className="metric-card-detail__row">
-                  <strong><Layers size={13} /> Concept:</strong> {item.concept}
-                </div>
-
-                <div className="metric-card-detail__row">
-                  <strong><Database size={13} /> Data Source:</strong> {item.source}
-                </div>
-
-                <div className="metric-card-detail__row">
-                  <strong><CheckCircle2 size={13} /> Business Rationale:</strong> {item.rationale}
-                </div>
-
-                <div className="metric-card-detail__example">
-                  <strong>Practical Example:</strong> {item.example}
-                </div>
+            <article className="metric-guide__detail" style={{ '--metric-color': metric.color }}>
+              <header className="metric-guide__header">
+                <div><span className="metric-guide__eyebrow">{t('metrics_modal.def_title')}</span><h4>{metric.name}</h4><p>{metric.descriptor}</p></div>
+                <div className="metric-guide__tags"><span>{metric.unit}</span><span>{metric.badge}</span></div>
+              </header>
+              <DetailBlock icon={Calculator} label={t('metrics_modal.lbl_formula')} accent><code>{metric.formula}</code></DetailBlock>
+              <div className="metric-guide__columns">
+                <DetailBlock icon={Layers} label={t('metrics_modal.lbl_concept')}>{metric.concept}</DetailBlock>
+                <DetailBlock icon={FileSpreadsheet} label={t('metrics_modal.lbl_origin')}>{metric.source}</DetailBlock>
               </div>
-            ))}
+              <DetailBlock icon={CheckCircle2} label={t('metrics_modal.lbl_biz_rule')}>{metric.businessRule}</DetailBlock>
+              {metric.validation && <DetailBlock icon={AlertCircle} label={t('metrics_modal.lbl_val')}>{metric.validation}</DetailBlock>}
+              <DetailBlock icon={Database} label={t('metrics_modal.lbl_status')}><StatusRule metric={metric} t={t} /></DetailBlock>
+              <DetailBlock icon={Lightbulb} label={t('metrics_modal.lbl_example')} accent>{metric.example}</DetailBlock>
+            </article>
           </div>
         </div>
 
-        <div className="modal-footer">
-          <button className="btn btn--primary" onClick={onClose}>
-            Understood, close guide
-          </button>
-        </div>
+        <div className="modal-footer"><button className="btn btn--primary" onClick={onClose}>{t('metrics_modal.btn_close')}</button></div>
       </div>
     </div>
   );

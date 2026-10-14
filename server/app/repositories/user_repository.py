@@ -19,8 +19,26 @@ class UserRepository:
     def get_by_id(self, user_id: str) -> User | None:
         return self.db.get(User, user_id)
 
+    def list_all(self) -> list[User]:
+        return list(self.db.scalars(select(User).order_by(User.created_at.desc())))
+
     def create(self, user: User) -> User:
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)
         return user
+
+    def update(self, user: User) -> User:
+        self.db.add(user)
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def delete(self, user_id: str) -> bool:
+        user = self.get_by_id(user_id)
+        if user is None:
+            return False
+        self.db.delete(user)
+        self.db.commit()
+        return True
+

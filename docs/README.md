@@ -6,6 +6,7 @@ com data ficam no histórico e não comprovam o estado da versão atual.
 | Necessidade | Fonte principal |
 | --- | --- |
 | Instalar, executar, carregar dados, testar RPA e diagnosticar | [Guia de desenvolvimento](guides/development.md) |
+| Executar o robô (RPA) e resetar dados locais rapidamente | [Execução do Bot e Reset de Dados](guides/execucao-bot.md) |
 | Entender formatos, regras e aprovação da ingestão | [Arquitetura de ingestão](architecture/email-ingestion.md) |
 | Executar a integração HTTP/PostgreSQL isolada | [Testes de integração](testing/integration.md) |
 | Validar tecnicamente, registrar aceite e preparar produção | [Homologação e aceite](testing/acceptance.md) |

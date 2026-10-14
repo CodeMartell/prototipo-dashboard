@@ -5,6 +5,9 @@ partem da raiz do seu clone no Windows/PowerShell, salvo indicação contrária.
 O fluxo integrado é e-mail → RPA → FastAPI → aprovação → banco → React; o robô não gera
 um Excel de saída nem escreve diretamente no banco de KPIs.
 
+> [!TIP]
+> Para consultas rápidas de **execução do bot** e **reset de dados locais**, consulte diretamente o [Manual Rápido: Execução do Bot e Reset de Dados](execucao-bot.md).
+
 Execute as etapas na ordem. Se uma etapa falhar, corrija-a antes de avançar.
 
 ## 1. Pré-requisitos
@@ -325,23 +328,26 @@ cria o `.env` somente se ausente e executa `docker compose up -d --build`.
 Ele inicia `db`, `api` e `frontend`; o perfil RPA é separado. Confira o resultado
 com `docker compose ps` e o health em `http://localhost:9192/api/health`.
 
-## Reset local opcional
+## Reset de dados locais
 
-`scripts/development/reset_local_data.py` apaga os SQLite `dashboard.db` da raiz e de
-`server/`, o histórico `rpa_email/resources/api_email_history.db`, os anexos
-baixados e logs locais (inclusive auditoria); depois aplica migrations e seed
-RBAC e cria o administrador. Use apenas quando quiser descartar esses dados.
-Ele não apaga o volume PostgreSQL do Docker e aplica migrations no banco
-selecionado por `DATABASE_URL`; confirme o destino antes de executá-lo.
+### Zerar apenas os dados de KPIs (Recomendado para testar o robô)
+
+Para deixar a base de dados de KPIs vazia para testes com o robô, **sem apagar nenhum usuário, senha ou permissão**, execute no terminal do VSCode / Antigravity:
 
 ```powershell
-.\.venv\api\Scripts\python.exe scripts/development/reset_local_data.py
+python scripts/reset_kpis.py
 ```
+*(Ou via Docker: `docker compose exec api python scripts/reset_kpis.py`)*
 
-O seed provisiona cinco contas demonstrativas; consulte a matriz e credenciais
-no README. O reset lê `ADMIN_*` do ambiente do processo e usa como fallback
-`admin@lge.com`/`admin123`; ele não carrega esses valores do `.env` por conta própria.
-O roteiro normal acima dispensa reset.
+Esse script zera todas as tabelas de KPIs (`kpi_*`), a fila de aprovação (`email_ingest_queue`), os e-mails processados (`processed_emails`) e o histórico do robô, mantendo os usuários intactos. Para o manual completo, consulte o [Manual Rápido do Bot e Reset](execucao-bot.md).
+
+### Reset geral do ambiente local (Opcional)
+
+`scripts/development/reset_local_data.py` zera o ambiente completo (inclusive recriando o usuário admin inicial e aplicando seeds):
+
+```powershell
+python scripts/development/reset_local_data.py
+```
 
 ## Diagnóstico
 

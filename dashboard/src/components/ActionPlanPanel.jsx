@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, FileText, Save, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, FileText, Save, Trash2, X } from 'lucide-react';
 import { addActionPlan, getActionPlans, removeActionPlan } from '../utils/actionPlanStorage';
 import { createActionPlan, deleteActionPlan, fetchActionPlans, isAuthenticated } from '../services/api';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +19,7 @@ export default function ActionPlanPanel({
   const [showAllPeriods, setShowAllPeriods] = useState(false);
   const [expandedPeriods, setExpandedPeriods] = useState(() => new Set([periodLabel]));
   const [selectedPlanModal, setSelectedPlanModal] = useState(null);
+  const [carouselIndexes, setCarouselIndexes] = useState({});
   
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved' | 'saving'
 
@@ -143,6 +144,13 @@ export default function ActionPlanPanel({
     });
   };
 
+  const moveCarousel = (period, total, direction) => {
+    setCarouselIndexes((current) => ({
+      ...current,
+      [period]: ((current[period] || 0) + direction + total) % total,
+    }));
+  };
+
   return (
     <div className={`action-plan-panel ${isExpanded ? 'action-plan-panel--expanded' : ''}`}>
       <div className="action-plan-panel__header" onClick={() => setIsExpanded(!isExpanded)}>
@@ -229,44 +237,62 @@ export default function ActionPlanPanel({
                       <span>{group.plans.length} {group.plans.length === 1 ? t('action_plan.plan_noun_s') : t('action_plan.plan_noun_p')}</span>
                       {isOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </button>
-                    {isOpen && (
-                      <div className="action-plan-history__grid">
-                        {group.plans.map((plan, index) => (
-                          <article
-                            className={`action-plan-card ${plan.period === periodLabel ? 'action-plan-card--active' : ''}`}
-                            key={plan.id}
-                            onClick={() => setSelectedPlanModal({ plan, index })}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                setSelectedPlanModal({ plan, index });
-                              }
-                            }}
-                            title="Clique para abrir e ler o plano completo"
-                          >
-                            <div className="action-plan-card__header">
-                              <span className="action-plan-card__period">{t('action_plan.plan_title').replace('{idx}', index + 1)}</span>
-                              <button
-                                type="button"
-                                className="action-plan-card__remove"
-                                title={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
-                                aria-label={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removePlan(plan);
-                                }}
-                              >
-                                <Trash2 size={14} />
+                    {isOpen && (() => {
+                      const index = (carouselIndexes[group.period] || 0) % group.plans.length;
+                      const plan = group.plans[index];
+                      const hasMultiplePlans = group.plans.length > 1;
+                      return (
+                        <div className="action-plan-carousel" aria-label={`${group.period} action plans`}>
+                          <div className="action-plan-carousel__stage">
+                            <div className="action-plan-carousel__backdrop action-plan-carousel__backdrop--far" aria-hidden="true" />
+                            <div className="action-plan-carousel__backdrop action-plan-carousel__backdrop--near" aria-hidden="true" />
+                            <article
+                              className={`action-plan-card ${plan.period === periodLabel ? 'action-plan-card--active' : ''}`}
+                              key={plan.id}
+                              onClick={() => setSelectedPlanModal({ plan, index })}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  setSelectedPlanModal({ plan, index });
+                                }
+                              }}
+                              title="Clique para abrir e ler o plano completo"
+                            >
+                              <div className="action-plan-card__header">
+                                <span className="action-plan-card__period">{t('action_plan.plan_title').replace('{idx}', index + 1)}</span>
+                                <button
+                                  type="button"
+                                  className="action-plan-card__remove"
+                                  title={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
+                                  aria-label={t('action_plan.btn_remove').replace('{idx}', index + 1).replace('{period}', plan.period)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removePlan(plan);
+                                  }}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                              <p className="action-plan-card__text">{plan.notes}</p>
+                              <small>{formatUpdatedAt(plan.updatedAt)}</small>
+                            </article>
+                          </div>
+                          {hasMultiplePlans && (
+                            <div className="action-plan-carousel__controls">
+                              <button type="button" className="action-plan-carousel__nav" onClick={() => moveCarousel(group.period, group.plans.length, -1)} aria-label="Plano anterior">
+                                <ChevronLeft size={16} />
+                              </button>
+                              <span className="action-plan-carousel__counter" aria-live="polite">{index + 1} / {group.plans.length}</span>
+                              <button type="button" className="action-plan-carousel__nav" onClick={() => moveCarousel(group.period, group.plans.length, 1)} aria-label="Próximo plano">
+                                <ChevronRight size={16} />
                               </button>
                             </div>
-                            <p>{plan.notes}</p>
-                            <small>{formatUpdatedAt(plan.updatedAt)}</small>
-                          </article>
-                        ))}
-                      </div>
-                    )}
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}

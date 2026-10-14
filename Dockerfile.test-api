@@ -8,6 +8,6 @@ COPY rpa_email /app/rpa_email
 ENV PYTHONPATH=/app
 COPY tests/system /app/tests/system
 WORKDIR /app/server
-RUN useradd --create-home tester
+RUN useradd --create-home tester && chown -R tester:tester /app/server
 USER tester
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5001"]

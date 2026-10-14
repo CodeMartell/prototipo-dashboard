@@ -262,6 +262,7 @@
     "linked_to": "Linked to:",
     "unsaved": "Unsaved changes",
     "saved": "✓ Saved locally",
+    "saved_synced": "✓ Synced with server",
     "btn_save": "Save action plan",
     "history_title": "Saved action plans",
     "plans_count": "{count} {noun} for {period}/{year}",

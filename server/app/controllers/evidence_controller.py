@@ -12,7 +12,7 @@ from app.services.activity_log_service import ActivityLogService
 
 router = APIRouter(prefix="/api/evidences", tags=["evidences"], dependencies=[Depends(get_current_user)])
 
-ALLOWED_EXTENSIONS = {"ppt", "pptx"}
+ALLOWED_EXTENSIONS = {"ppt", "pptx", "pdf"}
 MAX_SIZE = 25 * 1024 * 1024
 
 
@@ -31,7 +31,6 @@ def list_evidences(
     rows = (
         db.query(Evidence)
         .filter(
-            Evidence.user_id == current_user["id"],
             Evidence.kpi_key == kpi_key,
             Evidence.year == year,
             Evidence.period == period,
@@ -149,7 +148,7 @@ def download_evidence(
     current_user: dict = Depends(_current_user),
     db: Session = Depends(get_db),
 ):
-    evidence = db.query(Evidence).filter(Evidence.id == evidence_id, Evidence.user_id == current_user["id"]).first()
+    evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
     if not evidence:
         raise HTTPException(status_code=404, detail="Evidência não encontrada.")
     return Response(
@@ -165,9 +164,12 @@ def delete_evidence(
     current_user: dict = Depends(_current_user),
     db: Session = Depends(get_db),
 ):
-    evidence = db.query(Evidence).filter(Evidence.id == evidence_id, Evidence.user_id == current_user["id"]).first()
+    query = db.query(Evidence).filter(Evidence.id == evidence_id)
+    if current_user.get("role") != "ADMIN":
+        query = query.filter(Evidence.user_id == current_user["id"])
+    evidence = query.first()
     if not evidence:
-        raise HTTPException(status_code=404, detail="Evidência não encontrada.")
+        raise HTTPException(status_code=404, detail="Evidência não encontrada ou sem permissão para exclusão.")
 
     file_name = evidence.name
     kpi_key = evidence.kpi_key

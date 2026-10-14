@@ -63,6 +63,7 @@ echo   SUCESSO! O Docker subiu o sistema em segundo plano.
 echo.
 echo   - Frontend: http://localhost:5173
 echo   - Backend:  http://localhost:9192
+echo   - Desktop:  http://localhost:5001 (API)
 echo.
 echo   Lembre-se: O banco de dados e a API podem levar de
 echo   30 a 60 segundos para terminarem de configurar

@@ -293,9 +293,11 @@ export async function fetchAuditLogs({ dateFrom, dateTo, actorUserId, action, pa
 // Planos de ação
 // ---------------------------------------------------------------------------
 
-export async function fetchActionPlans({ kpiType, status } = {}) {
+export async function fetchActionPlans({ kpiType, year, period, status } = {}) {
   const params = new URLSearchParams();
   if (kpiType) params.set('kpi_type', kpiType);
+  if (year) params.set('year', year);
+  if (period) params.set('period', period);
   if (status) params.set('status', status);
   return authFetch(`/api/action-plans?${params.toString()}`);
 }

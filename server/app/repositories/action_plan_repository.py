@@ -12,10 +12,20 @@ class ActionPlanRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def list_all(self, kpi_type: str | None = None, status: str | None = None) -> list[ActionPlan]:
+    def list_all(
+        self,
+        kpi_type: str | None = None,
+        year: str | None = None,
+        period: str | None = None,
+        status: str | None = None,
+    ) -> list[ActionPlan]:
         stmt = select(ActionPlan).order_by(ActionPlan.created_at.desc())
         if kpi_type:
             stmt = stmt.where(ActionPlan.kpi_type == kpi_type)
+        if year:
+            stmt = stmt.where(ActionPlan.year == year)
+        if period:
+            stmt = stmt.where(ActionPlan.period == period)
         if status:
             stmt = stmt.where(ActionPlan.status == status)
         return list(self.db.scalars(stmt))

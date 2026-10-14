@@ -40,6 +40,7 @@ services:
       ADMIN_NAME: ${ADMIN_NAME:-Admin}
     ports:
       - "9192:5001"
+      - "5001:5001"
     depends_on:
       db:
         condition: service_healthy

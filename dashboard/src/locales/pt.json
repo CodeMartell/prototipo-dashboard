@@ -262,6 +262,7 @@
     "linked_to": "Vinculado a:",
     "unsaved": "Alterações não salvas",
     "saved": "✓ Salvo localmente",
+    "saved_synced": "✓ Sincronizado com o servidor",
     "btn_save": "Salvar plano",
     "history_title": "Planos salvos",
     "plans_count": "{count} {noun} para {period}/{year}",

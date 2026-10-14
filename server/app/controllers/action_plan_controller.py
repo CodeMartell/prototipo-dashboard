@@ -20,11 +20,13 @@ def _get_service(db: Session = Depends(get_db)) -> ActionPlanService:
 @router.get("", response_model=list[ActionPlanOut])
 def list_plans(
     kpi_type: str | None = Query(default=None),
+    year: str | None = Query(default=None),
+    period: str | None = Query(default=None),
     status: str | None = Query(default=None),
     service: ActionPlanService = Depends(_get_service),
     _: dict = Depends(require_permission("action_plans:read")),
 ):
-    return service.list_plans(kpi_type=kpi_type, status=status)
+    return service.list_plans(kpi_type=kpi_type, year=year, period=period, status=status)
 
 
 @router.get("/{plan_id}", response_model=ActionPlanOut)

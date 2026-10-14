@@ -17,7 +17,7 @@ import {
 import { useTranslation } from 'react-i18next';
 
 const MAX_SIZE = 25 * 1024 * 1024;
-const ALLOWED_EXTENSIONS = ['ppt', 'pptx'];
+const ALLOWED_EXTENSIONS = ['ppt', 'pptx', 'pdf'];
 
 const formatSize = (bytes) =>
   bytes < 1024 * 1024
@@ -166,7 +166,7 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
       <input
         ref={inputRef}
         type="file"
-        accept=".ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        accept=".ppt,.pptx,.pdf,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
         multiple
         hidden
         onChange={(e) => handleSelectFiles(e.target.files)}

@@ -13,7 +13,7 @@ from app.services.activity_log_service import ActivityLogService
 router = APIRouter(prefix="/api/evidences", tags=["evidences"], dependencies=[Depends(get_current_user)])
 
 ALLOWED_EXTENSIONS = {"ppt", "pptx", "pdf"}
-MAX_SIZE = 25 * 1024 * 1024
+MAX_SIZE = 50 * 1024 * 1024
 
 KPI_MAP = {
     "logisticCost": "logistic_cost",
@@ -126,11 +126,11 @@ async def upload_evidence(
 ):
     extension = file.filename.rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else ""
     if extension not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Envie somente apresentações PowerPoint (.ppt ou .pptx).")
+        raise HTTPException(status_code=400, detail="Envie somente apresentações PowerPoint (.ppt ou .pptx) ou documentos PDF (.pdf).")
 
     content = await file.read()
     if len(content) > MAX_SIZE:
-        raise HTTPException(status_code=400, detail="O arquivo excede o limite de 25 MB.")
+        raise HTTPException(status_code=400, detail="O arquivo excede o limite máximo permitido de 50 MB.")
 
     canonical_kpi = KPI_MAP.get(kpi_key, kpi_key)
     evidence = Evidence(

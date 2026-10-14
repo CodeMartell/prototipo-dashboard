@@ -360,6 +360,9 @@ export async function uploadEvidence({ file, kpiType, year, month }) {
   }
 
   if (!response.ok) {
+    if (response.status === 413) {
+      throw new Error('O arquivo excede o limite máximo permitido pelo servidor.');
+    }
     const body = await response.json().catch(() => ({}));
     throw new Error(body.detail || body.error || `Erro ao fazer upload da evidência (status ${response.status})`);
   }

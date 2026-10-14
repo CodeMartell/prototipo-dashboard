@@ -107,6 +107,11 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
     if (inputRef.current) inputRef.current.value = '';
   };
 
+  const handleRemovePending = (indexToRemove) => {
+    setPendingFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+    setError('');
+  };
+
   const handleSavePending = async () => {
     if (!pendingFiles.length) return;
 
@@ -223,6 +228,18 @@ export default function EvidencePanel({ kpiKey, kpiName, selectedYear, periodLab
                   <Clock size={12} />
                   {t('evidence.badge_pending')}
                 </span>
+              </div>
+              <div className="evidence-panel__file-actions">
+                <button
+                  type="button"
+                  title="Remover arquivo selecionado"
+                  aria-label="Remover arquivo selecionado"
+                  className="evidence-panel__action-btn evidence-panel__action-btn--delete"
+                  disabled={isSaving}
+                  onClick={() => handleRemovePending(index)}
+                >
+                  <Trash2 size={15} />
+                </button>
               </div>
             </div>
           ))}
